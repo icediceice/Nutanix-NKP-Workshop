@@ -1,0 +1,24 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: k8s-architecture
+spec:
+  title: "Kubernetes Architecture"
+  description: >
+    Deep-dive into Kubernetes objects: Deployments, Services, ConfigMaps, Secrets, Volumes,
+    Network Policies, Ingress, Jobs, and more. Learn to operate production workloads confidently.
+  workshop:
+    files:
+      - image:
+          url: $(image_repository)/k8s-architecture-files:latest
+  session:
+    namespaces:
+      budget: medium
+    applications:
+      terminal:
+        enabled: true
+        layout: split
+      editor:
+        enabled: true
+      console:
+        enabled: true

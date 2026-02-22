@@ -1,0 +1,30 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: infra-introduction
+spec:
+  title: "Introduction to Infrastructure"
+  description: "Infrastructure under Kubernetes, Cluster-API concepts, NKP cluster provisioning"
+  url: "https://github.com/icediceice/Nutanix-NKP-Workshop"
+  workshop:
+    files:
+      - image:
+          url: "$(image_repository)/infra-introduction-files:$(workshop_version)"
+        includePaths:
+          - /workshop/**
+  session:
+    namespaces:
+      budget: medium
+      security:
+        policy: baseline
+    applications:
+      terminal:
+        enabled: true
+      console:
+        enabled: true     # For examining CAPI resources in K8s dashboard
+      editor:
+        enabled: false
+      docker:
+        enabled: false
+      registry:
+        enabled: false

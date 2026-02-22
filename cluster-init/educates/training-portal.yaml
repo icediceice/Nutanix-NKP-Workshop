@@ -1,0 +1,64 @@
+# training-portal.yaml — Educates TrainingPortal CRD
+# This registers all 8 workshop modules with the Educates platform.
+# Reference: https://docs.educates.dev/en/stable/custom-resources/training-portal.html
+
+apiVersion: training.educates.dev/v1beta1
+kind: TrainingPortal
+metadata:
+  name: nkp-workshop-portal
+spec:
+  portal:
+    title: "NKP Partner Workshop"
+    password: ""            # Set via secret or leave empty for open access (trainer manages via registration app)
+    registration:
+      type: anonymous       # Registration is handled by our app — Educates just provides sessions
+    sessions:
+      maximum: 30           # Match config.yaml: max_concurrent_sessions
+    theme:
+      frame:
+        ancestors:
+          - "*"             # Allow iframe embedding if needed
+
+  workshops:
+    # ── Shared Foundation ──
+    - name: k8s-intro
+      capacity: 30
+      initial: 5
+      reserved: 2
+
+    - name: twelve-factor
+      capacity: 30
+      initial: 5
+      reserved: 2
+
+    - name: containers-docker
+      capacity: 30
+      initial: 5
+      reserved: 2
+
+    - name: k8s-architecture
+      capacity: 30
+      initial: 5
+      reserved: 2
+
+    # ── Developer Track ──
+    - name: dev-app-development
+      capacity: 20
+      initial: 3
+      reserved: 2
+
+    - name: dev-nkp-platform
+      capacity: 20
+      initial: 3
+      reserved: 2
+
+    # ── Infrastructure Track ──
+    - name: infra-introduction
+      capacity: 20
+      initial: 3
+      reserved: 2
+
+    - name: infra-nkp-platform
+      capacity: 20
+      initial: 3
+      reserved: 2

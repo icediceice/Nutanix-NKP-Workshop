@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nkp-lab-manager-backend
+  namespace: nkp-lab-manager
+  labels:
+    app: nkp-lab-manager
+    component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nkp-lab-manager
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: nkp-lab-manager
+        component: backend
+    spec:
+      serviceAccountName: nkp-lab-manager
+      containers:
+        - name: backend
+          image: ghcr.io/icediceice/nkp-lab-manager-backend:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: nkp-lab-manager-secrets
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: courses
+              mountPath: /app/courses.yaml
+              subPath: courses.yaml
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: nkp-lab-manager-data
+        - name: courses
+          configMap:
+            name: nkp-lab-manager-courses
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nkp-lab-manager-frontend
+  namespace: nkp-lab-manager
+  labels:
+    app: nkp-lab-manager
+    component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nkp-lab-manager
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: nkp-lab-manager
+        component: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/icediceice/nkp-lab-manager-frontend:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nkp-lab-manager-data
+  namespace: nkp-lab-manager
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: nutanix-volumes

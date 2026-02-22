@@ -1,0 +1,68 @@
+{
+  "quiz_id": "k8s-foundations",
+  "title": "Kubernetes Foundations Knowledge Check",
+  "description": "Test your understanding of core Kubernetes concepts covered in the Introduction and Architecture workshops.",
+  "passing_score": 70,
+  "questions": [
+    {
+      "id": "q1",
+      "question": "What is the smallest deployable unit in Kubernetes?",
+      "options": [
+        "A. Container",
+        "B. Pod",
+        "C. Deployment",
+        "D. Node"
+      ],
+      "correct": 1,
+      "explanation": "A Pod is the smallest deployable unit. It wraps one or more containers that share network and storage namespaces. You cannot deploy a bare container in Kubernetes — it must be inside a Pod."
+    },
+    {
+      "id": "q2",
+      "question": "A Deployment has 3 replicas. You delete one Pod manually. What happens?",
+      "options": [
+        "A. The Deployment scales down to 2 replicas permanently",
+        "B. The cluster raises an alert but takes no action",
+        "C. The ReplicaSet controller creates a replacement Pod to restore 3 replicas",
+        "D. The node where the Pod ran is cordoned"
+      ],
+      "correct": 2,
+      "explanation": "The ReplicaSet controller continuously reconciles actual state to desired state. When a Pod is deleted, the controller detects the deficit and creates a new Pod immediately."
+    },
+    {
+      "id": "q3",
+      "question": "Which kubectl command shows the events associated with a Pod, including scheduling decisions and image pull errors?",
+      "options": [
+        "A. kubectl get pod <name> -o yaml",
+        "B. kubectl logs <name>",
+        "C. kubectl describe pod <name>",
+        "D. kubectl top pod <name>"
+      ],
+      "correct": 2,
+      "explanation": "kubectl describe pod shows the full object status including the Events section at the bottom. This is the primary debugging tool for understanding why a Pod is stuck."
+    },
+    {
+      "id": "q4",
+      "question": "What is the purpose of a Kubernetes Service?",
+      "options": [
+        "A. To build container images on the cluster",
+        "B. To provide a stable DNS name and virtual IP for a set of Pods",
+        "C. To schedule Pods onto specific nodes",
+        "D. To store sensitive configuration data"
+      ],
+      "correct": 1,
+      "explanation": "Services provide a stable ClusterIP and DNS name that load-balances across healthy Pod endpoints. Without a Service, callers would need to track individual Pod IPs, which change every time a Pod is restarted."
+    },
+    {
+      "id": "q5",
+      "question": "Which liveness probe behaviour causes Kubernetes to restart a container?",
+      "options": [
+        "A. The probe succeeds on the first attempt",
+        "B. The probe fails consecutively more times than the failureThreshold",
+        "C. The probe takes longer than 30 seconds to return",
+        "D. The probe endpoint returns HTTP 200"
+      ],
+      "correct": 1,
+      "explanation": "When a liveness probe fails consecutively beyond the failureThreshold (default: 3), the kubelet kills and restarts the container. This handles deadlocked processes that are running but not healthy."
+    }
+  ]
+}

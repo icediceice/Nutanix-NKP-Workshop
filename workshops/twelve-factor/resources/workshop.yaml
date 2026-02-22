@@ -1,0 +1,30 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: twelve-factor
+spec:
+  title: "Twelve-Factor Application"
+  description: "The story of AppCo — a team modernizing their monolith, one factor at a time"
+  url: "https://github.com/icediceice/Nutanix-NKP-Workshop"
+  workshop:
+    files:
+      - image:
+          url: "$(image_repository)/twelve-factor-files:$(workshop_version)"
+        includePaths:
+          - /workshop/**
+  session:
+    namespaces:
+      budget: small
+      security:
+        policy: baseline
+    applications:
+      terminal:
+        enabled: true     # Light terminal use for examining sample apps
+      console:
+        enabled: false
+      editor:
+        enabled: true
+      docker:
+        enabled: false
+      registry:
+        enabled: false

@@ -1,0 +1,56 @@
+{
+  "quiz_id": "infra-track",
+  "title": "Infrastructure Track Knowledge Check",
+  "description": "Test your understanding of Cluster API, NKP cluster lifecycle, multi-tenancy, and infrastructure management.",
+  "passing_score": 70,
+  "questions": [
+    {
+      "id": "q1",
+      "question": "In Cluster API (CAPI), what does the MachineDeployment object control?",
+      "options": [
+        "A. The number of control plane nodes and their configuration",
+        "B. The number of worker nodes and the rolling update strategy for node upgrades",
+        "C. The network configuration for the cluster",
+        "D. The Kubernetes version of the management cluster"
+      ],
+      "correct": 1,
+      "explanation": "MachineDeployment manages a group of identical worker Machines. Scaling replicas adds or removes worker VMs. Changing the Kubernetes version triggers a rolling update of worker nodes, mirroring how Deployment manages Pods."
+    },
+    {
+      "id": "q2",
+      "question": "When a WorkspaceRoleBinding is created in Kommander, what happens automatically?",
+      "options": [
+        "A. A new namespace is created on every cluster in the workspace",
+        "B. The corresponding RBAC ClusterRoleBinding is created on every cluster in the workspace",
+        "C. All existing users are logged out and must re-authenticate",
+        "D. A Velero backup is triggered on all clusters"
+      ],
+      "correct": 1,
+      "explanation": "Kommander's federation controller propagates WorkspaceRoleBindings to RBAC ClusterRoleBindings on all member clusters. This is the core value of Kommander — managing multi-cluster access from a single control point."
+    },
+    {
+      "id": "q3",
+      "question": "What does Velero use to backup persistent volume data in Kubernetes?",
+      "options": [
+        "A. It SSHes into nodes and tar-archives the volume directories",
+        "B. It uses the CSI VolumeSnapshot API to create volume snapshots alongside object backups",
+        "C. It copies PVC data into a ConfigMap",
+        "D. It only backs up Kubernetes API objects — volume data must be backed up separately"
+      ],
+      "correct": 1,
+      "explanation": "Velero uses the CSI VolumeSnapshot API to snapshot persistent volume data at the storage layer. This is atomic, consistent, and does not require application quiescing. The snapshots are referenced in the backup and restored alongside the Kubernetes objects."
+    },
+    {
+      "id": "q4",
+      "question": "What is the difference between a Kubernetes StorageClass and a PersistentVolumeClaim?",
+      "options": [
+        "A. StorageClass and PVC are the same object with different names",
+        "B. A StorageClass defines HOW volumes are provisioned; a PVC is a request FOR a volume of a given class",
+        "C. PVCs are created by cluster admins; StorageClasses are created by developers",
+        "D. StorageClasses are for block storage; PVCs are for filesystem storage"
+      ],
+      "correct": 1,
+      "explanation": "StorageClass defines the provisioner, parameters, and reclaim policy — it is set up once by platform admins. A PVC is a developer's request for storage of a certain class and size. The CSI provisioner creates a PersistentVolume to satisfy the PVC."
+    }
+  ]
+}

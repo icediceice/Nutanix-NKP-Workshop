@@ -1,0 +1,56 @@
+{
+  "quiz_id": "developer-track",
+  "title": "Developer Track Knowledge Check",
+  "description": "Test your understanding of GitOps, containers, CI/CD pipelines, and developer workflows on NKP.",
+  "passing_score": 70,
+  "questions": [
+    {
+      "id": "q1",
+      "question": "In the GitOps two-repository pattern, what triggers a deployment to the cluster?",
+      "options": [
+        "A. A developer runs kubectl apply from their laptop",
+        "B. The CI pipeline SSHes into the cluster and runs docker pull",
+        "C. The CI pipeline commits a new image tag to the config repository, which FluxCD detects",
+        "D. A scheduled job polls Harbor for new image tags"
+      ],
+      "correct": 2,
+      "explanation": "In GitOps, the config repository is the source of truth. The CI pipeline updates the image tag in the config repo. FluxCD (a pull-based CD operator) detects the change and reconciles the cluster to match. No push access to the cluster is needed from CI."
+    },
+    {
+      "id": "q2",
+      "question": "What is the primary benefit of a multi-stage Docker build for a .NET application?",
+      "options": [
+        "A. It allows the build to run faster by using multiple CPU cores",
+        "B. The final runtime image excludes the .NET SDK and build tools, reducing size and attack surface",
+        "C. It enables the application to run on multiple operating systems simultaneously",
+        "D. It allows different base images to be used for different environments"
+      ],
+      "correct": 1,
+      "explanation": "Multi-stage builds keep build-time tools (compilers, SDKs, test frameworks) out of the final runtime image. The runtime image contains only the compiled binary and its runtime dependencies — much smaller and with fewer CVEs."
+    },
+    {
+      "id": "q3",
+      "question": "According to the Twelve-Factor methodology, where should database passwords be stored?",
+      "options": [
+        "A. In a config file committed to the application repository",
+        "B. Hard-coded in the application source code with environment-specific ifdef blocks",
+        "C. In the environment, injected as environment variables via Kubernetes Secrets",
+        "D. In a separate config file in the Docker image"
+      ],
+      "correct": 2,
+      "explanation": "Factor III (Config) states that everything that varies between deploys should come from the environment. Kubernetes Secrets inject sensitive values as environment variables without committing them to source control."
+    },
+    {
+      "id": "q4",
+      "question": "What does FluxCD's readiness status of 'False' on a Kustomization object indicate?",
+      "options": [
+        "A. The cluster has no network connectivity",
+        "B. FluxCD is reconciling a change — the cluster is being updated or an error occurred",
+        "C. The Git repository is empty",
+        "D. FluxCD has been paused by an administrator"
+      ],
+      "correct": 1,
+      "explanation": "A Kustomization in a non-Ready state means FluxCD is either actively reconciling (applying manifests) or encountered an error (e.g., invalid YAML, missing dependency). Check kubectl describe kustomization for the detailed message."
+    }
+  ]
+}

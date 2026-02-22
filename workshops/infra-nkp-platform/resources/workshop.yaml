@@ -1,0 +1,31 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: infra-nkp-platform
+spec:
+  title: "NKP Infrastructure Platform"
+  description: "Workspaces, cluster lifecycle, RBAC access policies, storage classes, backup & DR"
+  url: "https://github.com/icediceice/Nutanix-NKP-Workshop"
+  workshop:
+    files:
+      - image:
+          url: "$(image_repository)/infra-nkp-platform-files:$(workshop_version)"
+        includePaths:
+          - /workshop/**
+          - /exercises/**
+  session:
+    namespaces:
+      budget: x-large
+      security:
+        policy: privileged    # Elevated RBAC needed for cluster-level operations
+    applications:
+      terminal:
+        enabled: true
+      console:
+        enabled: true
+      editor:
+        enabled: true
+      docker:
+        enabled: false
+      registry:
+        enabled: false

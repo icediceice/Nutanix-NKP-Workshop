@@ -1,0 +1,31 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: k8s-intro
+spec:
+  title: "Introduction to Kubernetes"
+  description: "Connect to your cluster, run first kubectl commands, and understand pods and nodes"
+  url: "https://github.com/icediceice/Nutanix-NKP-Workshop"
+  workshop:
+    files:
+      - image:
+          url: "$(image_repository)/k8s-intro-files:$(workshop_version)"
+        includePaths:
+          - /workshop/**
+          - /exercises/**
+  session:
+    namespaces:
+      budget: small
+      security:
+        policy: baseline
+    applications:
+      terminal:
+        enabled: true
+      console:
+        enabled: true
+      editor:
+        enabled: false
+      docker:
+        enabled: false
+      registry:
+        enabled: false

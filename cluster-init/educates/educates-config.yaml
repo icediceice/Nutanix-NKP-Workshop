@@ -1,0 +1,27 @@
+# educates-config.yaml — Passed to `educates deploy-platform --config`
+# Values here are derived from cluster-init/config.yaml via install-educates.sh
+# Reference: https://docs.educates.dev/en/stable/installation-guides/cli-based-installation.html
+
+clusterIngress:
+  domain: educates.nkp-lab.local     # ← set from config.yaml: educates_ingress_domain
+
+clusterStorage:
+  class: nutanix-volumes              # ← set from config.yaml: storage_class
+
+clusterSecurityPolicy:
+  engine: kyverno                     # kyverno | pod-security
+
+workshopSecurity:
+  rulesEngine: kyverno
+
+# Image registry settings (optional — use NKP's Harbor if available)
+# imageRegistry:
+#   host: harbor.nkp-lab.local
+#   namespace: educates
+
+# TLS — configure if you have cert-manager installed
+# clusterIngress:
+#   tlsCertificateRef:
+#     kind: Secret
+#     name: wildcard-tls
+#     namespace: educates

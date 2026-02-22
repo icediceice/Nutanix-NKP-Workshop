@@ -1,0 +1,28 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../.env
+    volumes:
+      - ./data:/app/data
+      - ../courses.yaml:/app/courses.yaml:ro
+      # Mount kubeconfig for live cluster access (optional)
+      # - ~/.kube:/root/.kube:ro
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  data:

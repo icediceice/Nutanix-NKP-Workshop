@@ -1,0 +1,24 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: infra-nkp-platform
+spec:
+  title: "NKP Platform for Infrastructure"
+  description: >
+    Manage NKP clusters at scale using Kommander workspaces, access policies, kubeconfig
+    management, storage classes, and Velero backup and disaster recovery.
+  workshop:
+    files:
+      - image:
+          url: $(image_repository)/infra-nkp-platform-files:latest
+  session:
+    namespaces:
+      budget: large
+    applications:
+      terminal:
+        enabled: true
+        layout: split
+      editor:
+        enabled: false
+      console:
+        enabled: true

@@ -1,0 +1,15 @@
+website:
+  title: "Introduction to Kubernetes"
+
+navigation:
+  logo: /images/nutanix-logo.png
+
+sections:
+  - title: "Getting Started"
+    path: /01-connect-cluster
+  - title: "Exploring Your Cluster"
+    path: /02-explore-nodes
+  - title: "Running Your First Pod"
+    path: /03-first-pod
+  - title: "Summary"
+    path: /99-summary

@@ -1,0 +1,31 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: k8s-architecture
+spec:
+  title: "Kubernetes Architectural Overview"
+  description: "Deep-dive: contexts, deployments, services, storage, security, networking, observability"
+  url: "https://github.com/icediceice/Nutanix-NKP-Workshop"
+  workshop:
+    files:
+      - image:
+          url: "$(image_repository)/k8s-architecture-files:$(workshop_version)"
+        includePaths:
+          - /workshop/**
+          - /exercises/**
+  session:
+    namespaces:
+      budget: large       # Larger budget for the many sub-topic exercises
+      security:
+        policy: baseline
+    applications:
+      terminal:
+        enabled: true
+      console:
+        enabled: true     # K8s dashboard for observe exercises
+      editor:
+        enabled: true
+      docker:
+        enabled: false
+      registry:
+        enabled: false

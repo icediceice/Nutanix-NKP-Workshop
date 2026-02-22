@@ -1,0 +1,37 @@
+# cluster-init/config.yaml
+# Copy to config.local.yaml and fill in values before running init.sh.
+# config.local.yaml is gitignored — never commit credentials.
+
+# --- Cluster Connection ---
+kubeconfig_path: ~/.kube/config        # Path to kubeconfig file
+cluster_context: nkp-workshop          # kubectl context name
+
+# --- Platform Config ---
+storage_class: nutanix-volumes         # Nutanix CSI storage class
+metallb_ip_range: "10.168.100.20-10.168.100.30"
+ingress_domain: workshop.nkp-lab.local # Base domain for ingress rules
+
+# --- Educates Config ---
+educates_version: "3.2.0"             # Pin to a stable version
+educates_ingress_domain: educates.nkp-lab.local
+educates_policy_engine: kyverno       # kyverno | pod-security (check Educates docs)
+
+# --- Registration App ---
+registration_app_nodeport: 30080
+admin_password: ""                    # Set per-session — leave empty during testing
+
+# --- NUS / S3 Config (for storage course exercises) ---
+s3_endpoint: "https://objects.nkp-lab.local"
+s3_access_key: ""
+s3_secret_key: ""
+
+# --- Workshop Session Config ---
+session_label: "workshop-2026-03"     # Used to label and identify workshop namespaces
+max_concurrent_sessions: 30
+
+# --- Harbor Registry (Developer track) ---
+harbor_url: "https://harbor.nkp-lab.local"
+harbor_project: "workshop"
+
+# --- GitLab (Developer track CI/CD) ---
+gitlab_url: "https://gitlab.nkp-lab.local"

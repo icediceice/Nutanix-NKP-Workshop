@@ -1,0 +1,31 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: containers-docker
+spec:
+  title: "Containers with Docker"
+  description: "Build, run, and push containers — from Dockerfile anatomy to multi-stage builds"
+  url: "https://github.com/icediceice/Nutanix-NKP-Workshop"
+  workshop:
+    files:
+      - image:
+          url: "$(image_repository)/containers-docker-files:$(workshop_version)"
+        includePaths:
+          - /workshop/**
+          - /exercises/**
+  session:
+    namespaces:
+      budget: medium
+      security:
+        policy: baseline
+    applications:
+      terminal:
+        enabled: true
+      console:
+        enabled: false
+      editor:
+        enabled: true
+      docker:
+        enabled: true     # Docker-in-Docker for container build exercises
+      registry:
+        enabled: true     # Local registry for push/pull exercises

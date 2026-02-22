@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+*.egg
+
+# Node
+node_modules/
+.npm/
+*.local
+
+# Build output
+frontend/dist/
+frontend/build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.env
+config.local.yaml
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# Docker
+.docker/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs
+*.log
+logs/
+
+# Kubernetes / kubeconfig
+kubeconfig
+*.kubeconfig
+kubeconfig-*
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+.tox/
+
+# Temporary
+*.tmp
+*.bak
+tmp/
+
+# OS
+Thumbs.db

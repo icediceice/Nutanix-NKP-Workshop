@@ -1,0 +1,21 @@
+# MetalLB IP address pool for LoadBalancer services.
+# Update addresses to match your lab network range.
+# Replace with values from config.yaml: metallb_ip_range
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: workshop-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    - 10.168.100.20-10.168.100.30   # ← update from config.yaml
+
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: workshop-l2
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - workshop-pool

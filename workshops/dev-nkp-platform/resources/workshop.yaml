@@ -1,0 +1,31 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: dev-nkp-platform
+spec:
+  title: "NKP Developer Platform"
+  description: "Harbor registry, observability tools, App Catalog, FluxCD GitOps, Istio service mesh"
+  url: "https://github.com/icediceice/Nutanix-NKP-Workshop"
+  workshop:
+    files:
+      - image:
+          url: "$(image_repository)/dev-nkp-platform-files:$(workshop_version)"
+        includePaths:
+          - /workshop/**
+          - /exercises/**
+  session:
+    namespaces:
+      budget: x-large     # Extra budget for Istio sidecar injection
+      security:
+        policy: baseline
+    applications:
+      terminal:
+        enabled: true
+      console:
+        enabled: true
+      editor:
+        enabled: true
+      docker:
+        enabled: false
+      registry:
+        enabled: false

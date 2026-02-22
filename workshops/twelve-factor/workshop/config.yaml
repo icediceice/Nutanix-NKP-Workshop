@@ -1,0 +1,24 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: twelve-factor-app
+spec:
+  title: "The Twelve-Factor App"
+  description: >
+    Explore the twelve-factor methodology through the fictional AppCo company scenario.
+    Learn why each factor matters and how Kubernetes naturally enforces many of them.
+  workshop:
+    files:
+      - image:
+          url: $(image_repository)/twelve-factor-files:latest
+  session:
+    namespaces:
+      budget: small
+    applications:
+      terminal:
+        enabled: true
+        layout: split
+      editor:
+        enabled: true
+      console:
+        enabled: false

@@ -1,0 +1,38 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: dev-app-development
+spec:
+  title: "Application Development"
+  description: "GitOps model, .NET containers, GitLab CI/CD pipeline, Harbor registry"
+  url: "https://github.com/icediceice/Nutanix-NKP-Workshop"
+  workshop:
+    files:
+      - image:
+          url: "$(image_repository)/dev-app-development-files:$(workshop_version)"
+        includePaths:
+          - /workshop/**
+          - /exercises/**
+    env:
+      - name: HARBOR_URL
+        value: "$(harbor_url)"
+      - name: GITLAB_URL
+        value: "$(gitlab_url)"
+      - name: HARBOR_PROJECT
+        value: "$(harbor_project)"
+  session:
+    namespaces:
+      budget: large
+      security:
+        policy: baseline
+    applications:
+      terminal:
+        enabled: true
+      console:
+        enabled: true
+      editor:
+        enabled: true
+      docker:
+        enabled: true     # For .NET container builds
+      registry:
+        enabled: false    # Using Harbor instead

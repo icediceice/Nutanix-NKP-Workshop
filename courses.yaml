@@ -1,0 +1,103 @@
+# courses.yaml — Modular workshop curriculum
+#
+# Participants select one or more bundles. Foundation workshops are always included.
+# Bundles can be mixed across categories — an infrastructure engineer can take Istio,
+# a developer can take Storage & DR. The system provisions every unique workshop in
+# the selected bundles.
+#
+# Bundle → Workshop mapping: multiple bundles may resolve to the same Educates
+# workshop CRD (deduplication happens at provision time).
+
+foundation:
+  title: "Foundation"
+  description: "Core Kubernetes concepts included for all participants"
+  workshops:
+    - k8s-intro
+    - twelve-factor
+    - containers-docker
+    - k8s-architecture
+
+bundles:
+
+  # ─── Developer-oriented bundles ─────────────────────────────────────────────
+
+  app-development:
+    id: app-development
+    title: "Modern Application Development"
+    category: developer
+    description: "GitOps delivery model, containerising applications, and building GitLab CI/CD pipelines that push to Harbor and trigger deployments."
+    duration_hours: 4
+    workshops:
+      - dev-app-development
+
+  nkp-developer-tools:
+    id: nkp-developer-tools
+    title: "NKP Developer Platform"
+    category: developer
+    description: "Access Harbor container registry, explore Prometheus metrics and Grafana dashboards, and deploy apps from the NKP Application Catalog."
+    duration_hours: 2
+    workshops:
+      - dev-nkp-platform
+    includes_tools:
+      - Harbor (container registry + vulnerability scanning)
+      - Prometheus + Grafana (metrics)
+      - Loki (log aggregation)
+
+  fluxcd-gitops:
+    id: fluxcd-gitops
+    title: "FluxCD & GitOps Deployments"
+    category: developer
+    description: "Declarative continuous delivery — set up a GitOps source, create Kustomizations, observe FluxCD reconciliation in action."
+    duration_hours: 1.5
+    workshops:
+      - dev-nkp-platform
+    coherent_with:
+      - app-development   # stronger when paired with CI/CD pipeline work
+
+  istio-service-mesh:
+    id: istio-service-mesh
+    title: "Istio Service Mesh"
+    category: developer
+    description: "Traffic management, mTLS security, and distributed observability. Includes hands-on with Kiali (service graph) and Jaeger (distributed tracing)."
+    duration_hours: 2
+    workshops:
+      - dev-nkp-platform
+    includes_tools:
+      - Istio (traffic management + mTLS)
+      - Kiali (service mesh visualisation)
+      - Jaeger (distributed tracing)
+
+  # ─── Infrastructure-oriented bundles ────────────────────────────────────────
+
+  infra-fundamentals:
+    id: infra-fundamentals
+    title: "Infrastructure Fundamentals"
+    category: infrastructure
+    description: "The compute, storage, and networking layer under Kubernetes. Cluster-API concepts and how NKP uses it to manage cluster lifecycle declaratively."
+    duration_hours: 2
+    workshops:
+      - infra-introduction
+
+  cluster-operations:
+    id: cluster-operations
+    title: "NKP Cluster Operations"
+    category: infrastructure
+    description: "Create workspaces and cluster groups, provision and scale workload clusters, manage access policies and RBAC, configure kubeconfig for users."
+    duration_hours: 3
+    workshops:
+      - infra-nkp-platform
+    coherent_with:
+      - infra-fundamentals   # builds on CAPI concepts
+
+  storage-and-dr:
+    id: storage-and-dr
+    title: "Storage & Backup/DR"
+    category: infrastructure
+    description: "Nutanix CSI storage classes, dynamic PVC provisioning, reclaim policies. Backup with Velero/OADP — configure backup location, run a backup, simulate restore."
+    duration_hours: 2
+    workshops:
+      - infra-nkp-platform
+    includes_tools:
+      - Nutanix CSI Driver
+      - VolumeSnapshot API
+      - Velero / OADP

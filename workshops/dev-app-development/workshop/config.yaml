@@ -1,0 +1,24 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: dev-app-development
+spec:
+  title: "Application Development on Kubernetes"
+  description: >
+    Build and deploy a .NET application using GitOps, GitLab CI, and FluxCD on NKP.
+    Covers containerisation, pipeline automation, and automated Kubernetes deployments.
+  workshop:
+    files:
+      - image:
+          url: $(image_repository)/dev-app-development-files:latest
+  session:
+    namespaces:
+      budget: medium
+    applications:
+      terminal:
+        enabled: true
+        layout: split
+      editor:
+        enabled: true
+      console:
+        enabled: false

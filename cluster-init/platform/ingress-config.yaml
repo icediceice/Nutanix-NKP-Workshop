@@ -1,0 +1,16 @@
+# Ingress configuration placeholder.
+# NKP ships with Traefik as the default ingress controller.
+# This file sets a wildcard IngressClass annotation default and
+# configures the ingress domain from config.yaml.
+#
+# For most NKP installations this file may be a no-op —
+# verify with: kubectl get ingressclass
+
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: traefik
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: traefik.io/ingress-controller
