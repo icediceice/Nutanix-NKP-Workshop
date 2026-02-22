@@ -32,13 +32,65 @@
 
 ---
 
+## Cluster Go-Live Checklist (Wednesday)
+
+> Run through this in order the first time you connect to a real NKP cluster.
+
+### Step 1 — Get Educates credentials
+```bash
+kubectl describe trainingportal <portal-name> | grep -A 25 "Educates:"
+```
+You need four values from the output:
+- `Clients.Robot.Id`      → `EDUCATES_ROBOT_CLIENT_ID`
+- `Clients.Robot.Secret`  → `EDUCATES_ROBOT_CLIENT_SECRET`
+- `Credentials.Robot.Password` → `EDUCATES_ROBOT_PASSWORD`
+- Username is always `robot@educates` → `EDUCATES_ROBOT_USERNAME`
+
+And the portal URL:
+```bash
+kubectl get trainingportal -o jsonpath='{.items[0].status.educates.url}'
+```
+→ `EDUCATES_PORTAL_URL`
+
+### Step 2 — Update `.env`
+Edit `registration-app/backend/.env`:
+```
+DRY_RUN=false
+EDUCATES_PORTAL_URL=https://<portal-ingress-url>
+EDUCATES_ROBOT_CLIENT_ID=<Id from above>
+EDUCATES_ROBOT_CLIENT_SECRET=<Secret from above>
+EDUCATES_ROBOT_USERNAME=robot@educates
+EDUCATES_ROBOT_PASSWORD=<Password from above>
+EDUCATES_INDEX_URL=http://localhost:3000   # or the real registration app URL
+CLUSTER_CONTEXT=<your kubectl context name>
+```
+
+### Step 3 — Verify Educates health
+```bash
+curl -s http://localhost:8000/api/cluster/status | python3 -m json.tool
+```
+When live, `educates.status` should be `"ok"` and `educates.environment_names` lists the loaded workshops.
+
+### Step 4 — Verify workshop environments are running
+The provisioner maps workshop names → Educates environment names via the catalog API.
+Your `TrainingPortal` CRD must reference all 8 workshops (see `cluster-init/educates/training-portal.yaml`).
+Check: `kubectl get workshopenvironments`
+
+### Step 5 — Test provision one participant
+1. Create a session in Admin UI
+2. Register one test participant with a few modules
+3. Click Provision → check status becomes `ready`
+4. Click the activation URL — should open the Educates workshop in the browser
+
+### Step 6 — Kubeconfig context
+Set `CLUSTER_CONTEXT` to match: `kubectl config get-contexts`
+
+---
+
 ## Pending — Phase 2
 
-### High Priority
-- [ ] Educates REST API integration (replace `_request_sessions` stub in educates_provisioner.py)
-  - Research actual Educates Training Portal API endpoints
-  - Implement bearer token auth
-  - Handle session URL response shape
+### High Priority (needs cluster)
+- [ ] Smoke-test real Educates provisioning end-to-end (Step 1–6 above)
 - [ ] Workshop content expansion (currently placeholder Markdown stubs in workshops/)
   - Each workshop needs 3–5 hands-on lab steps with terminal commands
 
