@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from database import engine, Base
-from routers import registration, sessions, provisioning, import_export, courses
+from routers import registration, sessions, provisioning, import_export, courses, auth
 
 
 @asynccontextmanager
@@ -34,6 +34,7 @@ app.include_router(sessions.router, prefix="/api", tags=["sessions"])
 app.include_router(provisioning.router, prefix="/api", tags=["provisioning"])
 app.include_router(import_export.router, prefix="/api", tags=["import-export"])
 app.include_router(courses.router, prefix="/api", tags=["courses"])
+app.include_router(auth.router, prefix="/api", tags=["auth"])
 
 
 @app.get("/health")

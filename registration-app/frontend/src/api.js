@@ -2,6 +2,9 @@ import axios from 'axios'
 
 const api = axios.create({ baseURL: '/api' })
 
+// --- Auth ---
+export const verifyAdmin = (password) => api.post('/auth/verify', { password })
+
 // --- Registration ---
 export const register = (data) => api.post('/register', data)
 export const getStatus = (email) => api.get(`/status/${encodeURIComponent(email)}`)

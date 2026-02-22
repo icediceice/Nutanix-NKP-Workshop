@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getParticipants, getActiveSession, exportCsv } from '../api.js'
+import { getParticipants, getActiveSession, exportCsv, verifyAdmin } from '../api.js'
 import StatsBar from './StatsBar.jsx'
 import ParticipantTable from './ParticipantTable.jsx'
 import ProvisionButton from './ProvisionButton.jsx'
@@ -9,6 +9,7 @@ import ClusterOverview from './ClusterOverview.jsx'
 import { colors, styles, radius, shadows } from '../styles/theme.js'
 
 const TABS = ['Participants', 'Sessions', 'Cluster']
+const STATUS_OPTIONS = ['', 'registered', 'provisioning', 'ready', 'error']
 
 function Section({ title, children }) {
   return (
@@ -20,13 +21,16 @@ function Section({ title, children }) {
 }
 
 export default function AdminPanel() {
-  const [authed, setAuthed] = useState(!import.meta.env.PROD)  // skip auth in dev if no password set
+  const [authed, setAuthed] = useState(false)
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
   const [tab, setTab] = useState('Participants')
   const [participants, setParticipants] = useState([])
   const [activeSession, setActiveSession] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [search, setSearch] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
 
   const loadParticipants = useCallback(async () => {
     if (!authed) return
@@ -43,16 +47,19 @@ export default function AdminPanel() {
     }
   }, [authed, activeSession?.id])
 
-  useEffect(() => { loadParticipants() }, [authed])
+  useEffect(() => { if (authed) loadParticipants() }, [authed])
 
-  const handleAuth = (e) => {
+  const handleAuth = async (e) => {
     e.preventDefault()
-    // Simple client-side check — real auth would be a backend endpoint
-    const expectedPassword = window.__ADMIN_PASSWORD__ || ''
-    if (!expectedPassword || password === expectedPassword) {
+    setAuthLoading(true)
+    setAuthError('')
+    try {
+      await verifyAdmin(password)
       setAuthed(true)
-    } else {
-      setAuthError('Incorrect password.')
+    } catch (err) {
+      setAuthError(err.response?.data?.detail || 'Incorrect password.')
+    } finally {
+      setAuthLoading(false)
     }
   }
 
@@ -66,11 +73,22 @@ export default function AdminPanel() {
     URL.revokeObjectURL(url)
   }
 
+  // Client-side search + status filter
+  const filteredParticipants = participants.filter((p) => {
+    const q = search.toLowerCase()
+    const matchSearch = !q || [p.name, p.email, p.company].some((f) => f?.toLowerCase().includes(q))
+    const matchStatus = !filterStatus || p.status === filterStatus
+    return matchSearch && matchStatus
+  })
+
   if (!authed) {
     return (
       <div style={{ maxWidth: '400px', margin: '60px auto' }}>
         <div style={{ ...styles.card, boxShadow: shadows.elevated }}>
-          <h2 style={{ color: colors.primary, marginBottom: '20px' }}>Admin Login</h2>
+          <h2 style={{ color: colors.primary, marginBottom: '8px' }}>Admin Login</h2>
+          <p style={{ fontSize: '13px', color: '#888', marginBottom: '20px' }}>
+            Leave blank and press Sign In if no password is set (local dev).
+          </p>
           <form onSubmit={handleAuth}>
             <input
               type="password"
@@ -81,7 +99,9 @@ export default function AdminPanel() {
               autoFocus
             />
             {authError && <div style={{ color: '#C62828', fontSize: '13px', marginBottom: '12px' }}>{authError}</div>}
-            <button type="submit" style={{ ...styles.btn.primary, width: '100%' }}>Sign In</button>
+            <button type="submit" disabled={authLoading} style={{ ...styles.btn.primary, width: '100%', opacity: authLoading ? 0.7 : 1 }}>
+              {authLoading ? 'Checking…' : 'Sign In'}
+            </button>
           </form>
         </div>
       </div>
@@ -93,7 +113,14 @@ export default function AdminPanel() {
       {/* Active session banner */}
       {activeSession && (
         <div style={{ background: colors.primary, color: '#fff', borderRadius: radius.md, padding: '10px 20px', marginBottom: '20px', fontSize: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>Active Session: <strong>{activeSession.name}</strong></span>
+          <span>
+            Active Session: <strong>{activeSession.name}</strong>
+            {activeSession.event_date && (
+              <span style={{ opacity: 0.7, marginLeft: '10px', fontSize: '12px' }}>
+                {new Date(activeSession.event_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+            )}
+          </span>
           <span style={{ opacity: 0.7, fontSize: '12px' }}>
             {participants.length} participant{participants.length !== 1 ? 's' : ''}
           </span>
@@ -123,7 +150,23 @@ export default function AdminPanel() {
         <>
           <StatsBar participants={participants} />
           <Section>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
+            {/* Toolbar */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
+              <input
+                style={{ ...styles.input, flex: '2 1 200px', marginBottom: 0 }}
+                placeholder="Search name, email, company…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <select
+                style={{ ...styles.input, flex: '0 0 140px', marginBottom: 0 }}
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>{s || 'All statuses'}</option>
+                ))}
+              </select>
               <ProvisionButton onRefresh={loadParticipants} />
               <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
                 <ExcelImport onImported={loadParticipants} />
@@ -135,7 +178,22 @@ export default function AdminPanel() {
                 </button>
               </div>
             </div>
-            <ParticipantTable participants={participants} onRefresh={loadParticipants} />
+
+            {search || filterStatus ? (
+              <div style={{ fontSize: '12px', color: '#888', marginBottom: '10px' }}>
+                Showing {filteredParticipants.length} of {participants.length} participants
+                {(search || filterStatus) && (
+                  <button
+                    onClick={() => { setSearch(''); setFilterStatus('') }}
+                    style={{ marginLeft: '10px', background: 'none', border: 'none', color: colors.accent, cursor: 'pointer', fontSize: '12px', textDecoration: 'underline' }}
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            ) : null}
+
+            <ParticipantTable participants={filteredParticipants} onRefresh={loadParticipants} />
           </Section>
         </>
       )}

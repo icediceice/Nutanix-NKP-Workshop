@@ -7,13 +7,16 @@ const CATEGORY_LABELS = {
   infrastructure: { label: 'Infrastructure', color: colors.spark },
 }
 
-export default function ModuleSelector({ value = [], onChange }) {
+export default function ModuleSelector({ value = [], onChange, onCoursesLoaded }) {
   const [bundles, setBundles] = useState({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     getCourses()
-      .then(({ data }) => setBundles(data.bundles || {}))
+      .then(({ data }) => {
+        setBundles(data.bundles || {})
+        onCoursesLoaded?.(data)
+      })
       .catch(() => setBundles({}))
       .finally(() => setLoading(false))
   }, [])

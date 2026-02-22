@@ -8,6 +8,7 @@ export default function RegistrationForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(null)
+  const [courses, setCourses] = useState(null)
 
   const handleChange = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }))
 
@@ -109,12 +110,49 @@ export default function RegistrationForm() {
             />
           </div>
 
-          <div style={{ marginBottom: '28px' }}>
+          <div style={{ marginBottom: form.modules.length > 0 ? '16px' : '28px' }}>
             <ModuleSelector
               value={form.modules}
               onChange={(modules) => setForm((f) => ({ ...f, modules }))}
+              onCoursesLoaded={setCourses}
             />
           </div>
+
+          {form.modules.length > 0 && courses && (() => {
+            const bundles = courses.bundles || {}
+            const foundation = courses.foundation || {}
+            const foundationCount = (foundation.workshops || []).length
+            const totalHours = form.modules.reduce((sum, id) => sum + (bundles[id]?.duration_hours || 0), 0)
+            const uniqueWorkshops = new Set([
+              ...(foundation.workshops || []),
+              ...form.modules.flatMap((id) => bundles[id]?.workshops || []),
+            ])
+            return (
+              <div style={{ background: `${colors.primary}08`, border: `1px solid ${colors.primary}22`, borderRadius: radius.md, padding: '14px 16px', marginBottom: '28px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: colors.primary, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Your Workshop Plan
+                </div>
+                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', color: '#333' }}>
+                    <strong>{uniqueWorkshops.size}</strong> workshops total
+                  </span>
+                  <span style={{ fontSize: '13px', color: '#333' }}>
+                    <strong>~{totalHours + 2}h</strong> estimated duration
+                  </span>
+                  <span style={{ fontSize: '13px', color: '#333' }}>
+                    <strong>{foundationCount}</strong> foundation + <strong>{form.modules.length}</strong> selected bundle{form.modules.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {form.modules.map((id) => (
+                    <span key={id} style={{ background: colors.primary, color: '#fff', padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600 }}>
+                      {bundles[id]?.title || id}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
 
           {error && (
             <div style={{ background: '#FFEBEE', color: colors.error, padding: '10px 14px', borderRadius: radius.sm, fontSize: '14px', marginBottom: '16px' }}>
