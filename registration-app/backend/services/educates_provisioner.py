@@ -1,26 +1,34 @@
 """
 Educates Training Portal integration service.
 
-Educates (https://educates.dev) exposes a REST API on the TrainingPortal that allows
-programmatic workshop session management. This service is the interface between our
-registration app and the Educates platform.
+Auth flow (OAuth2 Resource Owner Password Credentials):
+  1. POST /oauth2/token/ with Basic auth (client_id:client_secret) +
+     form body: grant_type=password&username=robot@educates&password=<pw>
+  2. Use the returned access_token as Bearer on all subsequent requests.
+  3. Refresh via refresh_token before expiry (tracked internally).
 
-IMPORTANT: The exact Educates REST API contract must be verified against the live docs:
-  https://docs.educates.dev/en/stable/custom-resources/training-portal.html
+Session flow:
+  1. GET /workshops/catalog/environments/ → build workshop_name→env_name map
+  2. For each workshop: POST /workshops/environment/<env_name>/request/
+     → returns {"url": "<relative-path>", "name": "<session-name>", "user": "<uuid>"}
+  3. Full activation URL = portal_url + url-field (one-time link, valid for `timeout` seconds)
+  4. Store {workshop_id: activation_url} in participant.workshop_urls
+  5. Cleanup: GET /workshops/session/<session-name>/terminate/
 
-If the REST API doesn't support direct session creation by user ID, alternatives are:
-  1. Generate unique per-participant portal access URLs (anonymous access tokens)
-  2. Use kubectl to create WorkshopSession CRDs directly
-
-The dry_run mode allows full testing without a live Educates installation.
+References:
+  https://docs.educates.dev/en/stable/portal-rest-api/client-authentication/
+  https://docs.educates.dev/en/stable/portal-rest-api/workshops-catalog/
+  https://docs.educates.dev/en/stable/portal-rest-api/session-management/
 """
 
-import os
 import json
 import logging
+import os
+import time
 import yaml
 from datetime import datetime
-from typing import List
+from typing import List, Dict, Optional
+from urllib.parse import urlencode
 
 import httpx
 
@@ -28,11 +36,13 @@ logger = logging.getLogger(__name__)
 
 COURSES_YAML = os.path.join(os.path.dirname(__file__), "..", "..", "..", "courses.yaml")
 
+# How many seconds before token expiry we proactively refresh
+TOKEN_REFRESH_BUFFER = 120
+
 
 def _resolve_workshops(selected_modules: List[str]) -> List[str]:
     """
-    Given a list of selected bundle IDs, return the deduplicated list of
-    Educates workshop CRD names to provision (foundation always included).
+    Return deduplicated Educates workshop names for foundation + selected bundles.
     """
     path = os.path.abspath(COURSES_YAML)
     if not os.path.exists(path):
@@ -40,40 +50,62 @@ def _resolve_workshops(selected_modules: List[str]) -> List[str]:
     with open(path) as f:
         data = yaml.safe_load(f)
 
-    workshop_set: list = []
     seen = set()
+    workshops: List[str] = []
 
-    def add_workshops(workshops):
-        for w in workshops:
+    def add(ws_list):
+        for w in ws_list:
             if w not in seen:
                 seen.add(w)
-                workshop_set.append(w)
+                workshops.append(w)
 
-    # Foundation is always included
-    foundation = data.get("foundation", {})
-    add_workshops(foundation.get("workshops", []))
-
-    # Add workshops for each selected bundle
+    add(data.get("foundation", {}).get("workshops", []))
     bundles = data.get("bundles", {})
     for bundle_id in selected_modules:
-        bundle = bundles.get(bundle_id, {})
-        add_workshops(bundle.get("workshops", []))
+        add(bundles.get(bundle_id, {}).get("workshops", []))
 
-    return workshop_set
+    return workshops
 
 
 class EducatesProvisioner:
-    def __init__(self, portal_url: str, portal_password: str, dry_run: bool = True):
-        self.portal_url = portal_url
-        self.portal_password = portal_password
+    def __init__(
+        self,
+        portal_url: str,
+        robot_client_id: str,
+        robot_client_secret: str,
+        robot_username: str,
+        robot_password: str,
+        index_url: str = "http://localhost:3000",
+        dry_run: bool = True,
+    ):
+        self.portal_url = portal_url.rstrip("/") if portal_url else ""
+        self.robot_client_id = robot_client_id
+        self.robot_client_secret = robot_client_secret
+        self.robot_username = robot_username
+        self.robot_password = robot_password
+        self.index_url = index_url
         self.dry_run = dry_run
 
-    def provision_participant(self, participant, db):
-        """
-        Request Educates workshop sessions for a participant.
+        # Token cache
+        self._access_token: Optional[str] = None
+        self._refresh_token: Optional[str] = None
+        self._token_expires_at: float = 0.0
 
-        Resolves the workshop list from foundation + selected bundles in courses.yaml,
-        deduplicates, then provisions each unique workshop.
+        # Environment catalog cache: workshop_name -> environment_name
+        # e.g. "k8s-intro" -> "k8s-intro-w01"
+        self._env_cache: Dict[str, str] = {}
+        self._env_cache_at: float = 0.0
+        self._ENV_CACHE_TTL = 300  # 5 minutes
+
+    # -------------------------------------------------------------------------
+    # Public interface
+    # -------------------------------------------------------------------------
+
+    def provision_participant(self, participant, db) -> None:
+        """
+        Request an Educates workshop session for every workshop in the
+        participant's resolved bundle list. Stores activation URLs in
+        participant.workshop_urls.
 
         Sets participant.status = "ready" on success, "error" on failure.
         """
@@ -83,82 +115,106 @@ class EducatesProvisioner:
         if not workshops:
             raise ValueError(f"No workshops resolved for modules: {selected_modules}")
 
-        if self.dry_run:
-            urls = self._dry_run_urls(participant.username, workshops)
-        else:
-            urls = self._request_sessions(participant.username, workshops)
+        try:
+            if self.dry_run:
+                urls = self._dry_run_urls(participant.username, workshops)
+            else:
+                urls = self._request_sessions(participant.username, participant.email, workshops)
 
-        participant.workshop_urls = json.dumps(urls)
-        participant.status = "ready"
-        participant.provisioned_at = datetime.utcnow()
-        db.commit()
-        logger.info(
-            "Provisioned %s — %d workshops (%s)",
-            participant.name,
-            len(urls),
-            ", ".join(selected_modules),
-        )
+            participant.workshop_urls = json.dumps(urls)
+            participant.status = "ready"
+            participant.provisioned_at = datetime.utcnow()
+            db.commit()
+            logger.info(
+                "Provisioned %s — %d workshops (%s)",
+                participant.name,
+                len(urls),
+                ", ".join(selected_modules),
+            )
+        except Exception as exc:
+            participant.status = "error"
+            participant.error_message = str(exc)
+            db.commit()
+            logger.error("Failed to provision %s: %s", participant.name, exc)
+            raise
 
-    def _dry_run_urls(self, username: str, workshops: List[str]) -> dict:
-        """Generate fake workshop URLs for dry-run testing."""
-        return {
-            workshop_id: f"https://dry-run.local/workshop/{workshop_id}/session/{username}"
-            for workshop_id in workshops
-        }
-
-    def _request_sessions(self, username: str, workshops: List[str]) -> dict:
+    def cleanup_participant(self, participant) -> None:
         """
-        Call Educates Training Portal REST API to create workshop sessions.
-
-        TODO: Implement after verifying the actual Educates REST API contract.
-        Reference: https://docs.educates.dev/en/stable/custom-resources/training-portal.html
-
-        The API likely requires:
-          - Authentication (bearer token or basic auth with portal credentials)
-          - A request per workshop identifying the user
-          - Returns a session URL the user can access directly
-
-        Adapt this method based on actual Educates API response shape.
-        """
-        if not self.portal_url:
-            raise ValueError("EDUCATES_PORTAL_URL is not configured.")
-
-        urls = {}
-        with httpx.Client(timeout=30.0) as client:
-            for workshop_id in workshops:
-                # Placeholder — replace with actual Educates API call
-                response = client.post(
-                    f"{self.portal_url}/workshops/environment/{workshop_id}/request/",
-                    json={"user": username},
-                    # headers={"Authorization": f"Bearer {self._get_token()}"},
-                )
-                if response.status_code in (200, 201):
-                    data = response.json()
-                    urls[workshop_id] = data.get("url", f"{self.portal_url}/workshop/{workshop_id}")
-                else:
-                    raise RuntimeError(
-                        f"Educates API error for {workshop_id}: {response.status_code} {response.text}"
-                    )
-        return urls
-
-    def cleanup_all_sessions(self):
-        """
-        Delete all active Educates workshop sessions.
-
-        In dry_run mode: logs the operation.
-        In live mode: calls Educates API or uses kubectl to delete WorkshopSession CRDs.
-
-        TODO: Implement after verifying the cleanup API or CRD approach.
+        Terminate all Educates sessions for a single participant.
+        Uses GET /workshops/user/<username>/sessions/ to discover active sessions,
+        then terminates each one.
         """
         if self.dry_run:
-            logger.info("[DRY RUN] Would delete all Educates workshop sessions.")
+            logger.info("[DRY RUN] Would terminate sessions for %s", participant.username)
             return
 
-        logger.info("Cleaning up all Educates workshop sessions...")
-        # TODO: implement via Educates API or kubectl delete workshopsessions --all-namespaces
+        token = self._get_token()
+        headers = {"Authorization": f"Bearer {token}"}
+
+        with httpx.Client(timeout=30.0) as client:
+            resp = client.get(
+                f"{self.portal_url}/workshops/user/{participant.username}/sessions/",
+                headers=headers,
+            )
+            if resp.status_code == 404:
+                logger.info("No sessions found for user %s", participant.username)
+                return
+            resp.raise_for_status()
+            sessions = resp.json().get("sessions", [])
+
+        for session in sessions:
+            session_name = session["name"]
+            try:
+                with httpx.Client(timeout=30.0) as client:
+                    r = client.get(
+                        f"{self.portal_url}/workshops/session/{session_name}/terminate/",
+                        headers=headers,
+                    )
+                    r.raise_for_status()
+                logger.info("Terminated session %s", session_name)
+            except Exception as exc:
+                logger.warning("Could not terminate session %s: %s", session_name, exc)
+
+    def cleanup_all_sessions(self) -> None:
+        """
+        Terminate all active sessions across all environments.
+        In dry_run: logs only. In live: queries catalog for all environments,
+        then terminates all allocated sessions.
+        """
+        if self.dry_run:
+            logger.info("[DRY RUN] Would terminate all Educates workshop sessions.")
+            return
+
+        token = self._get_token()
+        headers = {"Authorization": f"Bearer {token}"}
+
+        with httpx.Client(timeout=30.0) as client:
+            resp = client.get(
+                f"{self.portal_url}/workshops/catalog/environments/",
+                headers=headers,
+                params={"sessions": "true"},
+            )
+            resp.raise_for_status()
+
+        terminated = 0
+        for env in resp.json().get("environments", []):
+            for session in env.get("sessions", []):
+                session_name = session["name"]
+                try:
+                    with httpx.Client(timeout=30.0) as client:
+                        r = client.get(
+                            f"{self.portal_url}/workshops/session/{session_name}/terminate/",
+                            headers=headers,
+                        )
+                        r.raise_for_status()
+                    terminated += 1
+                except Exception as exc:
+                    logger.warning("Could not terminate session %s: %s", session_name, exc)
+
+        logger.info("Cleanup complete — terminated %d sessions.", terminated)
 
     def check_health(self) -> dict:
-        """Check if Educates Training Portal is reachable."""
+        """Check if Educates Training Portal is reachable and credentials are valid."""
         if self.dry_run:
             return {"status": "dry_run", "portal_url": self.portal_url or "not configured"}
 
@@ -166,8 +222,207 @@ class EducatesProvisioner:
             return {"status": "not_configured", "portal_url": ""}
 
         try:
-            with httpx.Client(timeout=5.0) as client:
-                response = client.get(f"{self.portal_url}/")
-            return {"status": "ok", "portal_url": self.portal_url, "http_status": response.status_code}
+            token = self._get_token()
+            headers = {"Authorization": f"Bearer {token}"}
+            with httpx.Client(timeout=10.0) as client:
+                resp = client.get(
+                    f"{self.portal_url}/workshops/catalog/environments/",
+                    headers=headers,
+                )
+            environments = resp.json().get("environments", [])
+            return {
+                "status": "ok",
+                "portal_url": self.portal_url,
+                "environments": len(environments),
+                "environment_names": [e["name"] for e in environments],
+            }
         except Exception as exc:
             return {"status": "unreachable", "portal_url": self.portal_url, "error": str(exc)}
+
+    # -------------------------------------------------------------------------
+    # Internal: OAuth2 token management
+    # -------------------------------------------------------------------------
+
+    def _get_token(self) -> str:
+        """Return a valid access token, refreshing if near expiry."""
+        now = time.time()
+
+        # If token is still valid, return it
+        if self._access_token and now < self._token_expires_at - TOKEN_REFRESH_BUFFER:
+            return self._access_token
+
+        # Try refresh token first (saves the robot password round-trip)
+        if self._refresh_token:
+            try:
+                return self._refresh_access_token()
+            except Exception:
+                logger.debug("Token refresh failed, re-authenticating from scratch.")
+
+        return self._authenticate()
+
+    def _authenticate(self) -> str:
+        """Obtain a fresh access token using robot credentials."""
+        if not self.portal_url:
+            raise ValueError("EDUCATES_PORTAL_URL is not configured.")
+        if not self.robot_client_id or not self.robot_client_secret:
+            raise ValueError(
+                "Educates robot credentials not configured. "
+                "Set EDUCATES_ROBOT_CLIENT_ID and EDUCATES_ROBOT_CLIENT_SECRET."
+            )
+
+        with httpx.Client(timeout=15.0) as client:
+            resp = client.post(
+                f"{self.portal_url}/oauth2/token/",
+                auth=(self.robot_client_id, self.robot_client_secret),
+                data={
+                    "grant_type": "password",
+                    "username": self.robot_username,
+                    "password": self.robot_password,
+                },
+            )
+
+        if resp.status_code != 200:
+            raise RuntimeError(
+                f"Educates authentication failed: {resp.status_code} {resp.text}"
+            )
+
+        token_data = resp.json()
+        self._access_token = token_data["access_token"]
+        self._refresh_token = token_data.get("refresh_token")
+        self._token_expires_at = time.time() + token_data.get("expires_in", 36000)
+        logger.debug("Educates token obtained, expires in %ds", token_data.get("expires_in"))
+        return self._access_token
+
+    def _refresh_access_token(self) -> str:
+        """Use the refresh token to obtain a new access token."""
+        with httpx.Client(timeout=15.0) as client:
+            resp = client.post(
+                f"{self.portal_url}/oauth2/token/",
+                data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": self._refresh_token,
+                    "client_id": self.robot_client_id,
+                    "client_secret": self.robot_client_secret,
+                },
+            )
+        resp.raise_for_status()
+        token_data = resp.json()
+        self._access_token = token_data["access_token"]
+        self._refresh_token = token_data.get("refresh_token", self._refresh_token)
+        self._token_expires_at = time.time() + token_data.get("expires_in", 36000)
+        logger.debug("Educates token refreshed.")
+        return self._access_token
+
+    # -------------------------------------------------------------------------
+    # Internal: environment catalog
+    # -------------------------------------------------------------------------
+
+    def _get_env_name(self, workshop_name: str, headers: dict) -> str:
+        """
+        Resolve a workshop name (e.g. "k8s-intro") to the Educates environment
+        name (e.g. "k8s-intro-w01") via the catalog API.
+
+        Results are cached for _ENV_CACHE_TTL seconds to avoid hammering the API.
+        """
+        now = time.time()
+        if now - self._env_cache_at > self._ENV_CACHE_TTL:
+            self._refresh_env_cache(headers)
+
+        env_name = self._env_cache.get(workshop_name)
+        if not env_name:
+            # Cache might be stale — try a fresh fetch
+            self._refresh_env_cache(headers)
+            env_name = self._env_cache.get(workshop_name)
+
+        if not env_name:
+            available = list(self._env_cache.keys())
+            raise RuntimeError(
+                f"Workshop '{workshop_name}' not found in Educates catalog. "
+                f"Available workshops: {available}"
+            )
+        return env_name
+
+    def _refresh_env_cache(self, headers: dict) -> None:
+        """Fetch the workshop catalog and rebuild the workshop_name→env_name map."""
+        with httpx.Client(timeout=15.0) as client:
+            resp = client.get(
+                f"{self.portal_url}/workshops/catalog/environments/",
+                headers=headers,
+                params={"state": "RUNNING"},
+            )
+        resp.raise_for_status()
+
+        self._env_cache = {}
+        for env in resp.json().get("environments", []):
+            workshop_name = env.get("workshop", {}).get("name", "")
+            env_name = env.get("name", "")
+            if workshop_name and env_name:
+                self._env_cache[workshop_name] = env_name
+
+        self._env_cache_at = time.time()
+        logger.debug("Educates env cache refreshed: %s", self._env_cache)
+
+    # -------------------------------------------------------------------------
+    # Internal: session provisioning
+    # -------------------------------------------------------------------------
+
+    def _request_sessions(self, username: str, email: str, workshops: List[str]) -> Dict[str, str]:
+        """
+        Request an Educates workshop session for each workshop.
+        Returns {workshop_id: activation_url}.
+
+        The activation URL is valid for 24 hours (timeout=86400). Once the
+        participant clicks it, their session starts and the URL is consumed.
+        """
+        token = self._get_token()
+        headers = {"Authorization": f"Bearer {token}"}
+
+        urls: Dict[str, str] = {}
+        for workshop_name in workshops:
+            env_name = self._get_env_name(workshop_name, headers)
+
+            with httpx.Client(timeout=30.0) as client:
+                resp = client.post(
+                    f"{self.portal_url}/workshops/environment/{env_name}/request/",
+                    headers=headers,
+                    params={
+                        "user": username,
+                        "email": email,
+                        "index_url": self.index_url,
+                        "timeout": 86400,  # 24 hours activation window
+                    },
+                )
+
+            if resp.status_code == 503:
+                raise RuntimeError(
+                    f"No capacity for workshop '{workshop_name}' "
+                    f"(environment '{env_name}'). "
+                    "Increase TrainingPortal capacity or reduce registered participants."
+                )
+            if resp.status_code not in (200, 201):
+                raise RuntimeError(
+                    f"Educates session request failed for '{workshop_name}': "
+                    f"{resp.status_code} {resp.text}"
+                )
+
+            session_data = resp.json()
+            # url is a relative path — prepend portal base URL
+            relative_url = session_data.get("url", "")
+            activation_url = f"{self.portal_url}{relative_url}" if relative_url else self.portal_url
+            urls[workshop_name] = activation_url
+
+            logger.debug(
+                "Session %s created for %s → %s",
+                session_data.get("name"),
+                username,
+                workshop_name,
+            )
+
+        return urls
+
+    def _dry_run_urls(self, username: str, workshops: List[str]) -> Dict[str, str]:
+        """Generate placeholder activation URLs for dry-run testing."""
+        return {
+            w: f"https://dry-run.local/workshops/session/{w}-w01-s001/activate/?token=dryrun&user={username}"
+            for w in workshops
+        }

@@ -16,7 +16,11 @@ router = APIRouter()
 def _get_provisioner() -> EducatesProvisioner:
     return EducatesProvisioner(
         portal_url=settings.educates_portal_url,
-        portal_password=settings.educates_portal_password,
+        robot_client_id=settings.educates_robot_client_id,
+        robot_client_secret=settings.educates_robot_client_secret,
+        robot_username=settings.educates_robot_username,
+        robot_password=settings.educates_robot_password,
+        index_url=settings.educates_index_url,
         dry_run=settings.dry_run,
     )
 

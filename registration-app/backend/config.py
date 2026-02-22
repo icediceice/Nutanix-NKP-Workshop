@@ -18,9 +18,16 @@ class Settings(BaseSettings):
     app_port: int = 8000
     app_title: str = "NKP Partner Workshop"
 
-    # Educates Training Portal
+    # Educates Training Portal — OAuth2 robot account credentials
+    # Retrieve after installation:
+    #   kubectl describe trainingportal <name> | grep -A 20 "Credentials"
     educates_portal_url: str = ""
-    educates_portal_password: str = ""
+    educates_robot_client_id: str = ""      # Status.educates.Clients.Robot.Id
+    educates_robot_client_secret: str = ""  # Status.educates.Clients.Robot.Secret
+    educates_robot_username: str = "robot@educates"
+    educates_robot_password: str = ""       # Status.educates.Credentials.Robot.Password
+    # URL to redirect participants to after their session ends
+    educates_index_url: str = "http://localhost:3000"
 
     # S3 / NUS
     s3_endpoint: str = ""
