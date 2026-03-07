@@ -110,7 +110,7 @@ k() { kubectl --kubeconfig="$KUBECONFIG_PATH" "$@"; }
 # ─── Dry-run wrapper ──────────────────────────────────────────────────────────
 run() {
   if [[ "$DRY_RUN" == "true" ]]; then
-    dry "Would run: $*"
+    dry "Would run: $(printf '%s ' "$@")"
   else
     "$@"
   fi
@@ -201,12 +201,18 @@ install_educates_cli() {
   # Check if already installed at correct version
   if command -v educates &>/dev/null; then
     local installed_ver
-    installed_ver=$(educates version 2>/dev/null | grep -oP 'v?\K[\d.]+' | head -1 || echo "unknown")
+    installed_ver=$(educates version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "unknown")
     if [[ "$installed_ver" == "${EDUCATES_VERSION#v}" ]]; then
       skip "educates CLI already installed: v${installed_ver}"
       return
     fi
     warn "educates v${installed_ver} installed, upgrading to v${EDUCATES_VERSION}"
+  fi
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    dry "Would download educates ${EDUCATES_VERSION} to ${bin_path}"
+    export PATH="${install_dir}:${PATH}"
+    return
   fi
 
   mkdir -p "$install_dir"
@@ -221,7 +227,9 @@ install_educates_cli() {
   # Ensure install_dir is in PATH for this session
   export PATH="${install_dir}:${PATH}"
 
-  success "educates CLI installed: $(educates version 2>/dev/null | head -1)"
+  local installed_ver_str
+  installed_ver_str=$(educates version 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1 || echo "${EDUCATES_VERSION}")
+  success "educates CLI installed: v${installed_ver_str}"
 }
 
 # =============================================================================
@@ -285,10 +293,12 @@ discover_cluster_params() {
 # =============================================================================
 # STEP 4 — Generate Educates platform config
 # =============================================================================
+# Sets global: PLATFORM_CONFIG_FILE
 generate_platform_config() {
   step "Generate Educates platform config"
 
-  local config_file="${WORKSHOP_ROOT}/.educates-platform-config.yaml"
+  PLATFORM_CONFIG_FILE="${WORKSHOP_ROOT}/.educates-platform-config.yaml"
+  local config_file="$PLATFORM_CONFIG_FILE"
 
   local cert_mgr_enabled="false"
   k get deployment -n cert-manager cert-manager &>/dev/null && cert_mgr_enabled="false" || cert_mgr_enabled="true"
@@ -320,8 +330,6 @@ EOF
   info "  ingress class: ${INGRESS_CLASS}"
   info "  cert-manager:  reuse existing"
   info "  registry:      Educates built-in"
-
-  echo "$config_file"
 }
 
 # =============================================================================
@@ -340,8 +348,7 @@ deploy_educates_platform() {
     return
   fi
 
-  local config_file
-  config_file=$(generate_platform_config)
+  local config_file="$PLATFORM_CONFIG_FILE"
 
   info "Running: educates admin platform deploy"
   if [[ "$DRY_RUN" == "true" ]]; then
@@ -370,6 +377,11 @@ deploy_educates_platform() {
 # =============================================================================
 wait_platform_ready() {
   step "Wait for Educates platform ready"
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    dry "Would wait for Educates operator, registry, and TrainingPortal CRD"
+    return
+  fi
 
   if state_done "platform_ready"; then
     skip "Platform already confirmed ready"
@@ -406,6 +418,11 @@ publish_workshop() {
 
   if state_done "workshop_published"; then
     skip "Workshop image already published (state: workshop_published)"
+    return
+  fi
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    dry "Would port-forward registry & run: educates publish-workshop --image-repository localhost:${LOCAL_REGISTRY_PORT:-5001}"
     return
   fi
 
@@ -502,7 +519,12 @@ wait_portal_ready() {
   step "Wait for TrainingPortal ready"
 
   if [[ "$DRY_RUN" == "true" ]]; then
-    dry "Would wait for TrainingPortal ${WORKSHOP_NAME} to reach Running phase"
+    dry "Would wait for TrainingPortal ${WORKSHOP_NAME} phase=Running"
+    return
+  fi
+
+  if state_done "portal_ready"; then
+    skip "Portal already confirmed ready"
     return
   fi
 
@@ -710,6 +732,7 @@ main() {
   preflight_check
   install_educates_cli
   discover_cluster_params
+  generate_platform_config
   deploy_educates_platform
   wait_platform_ready
   publish_workshop
