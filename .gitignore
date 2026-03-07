@@ -76,3 +76,8 @@ Thumbs.db
 
 # EDCR transient state
 .claude/active-plan.md
+
+# Educates bootstrap artifacts
+workshops/nkp-workshop/.educates-bootstrap-state
+workshops/nkp-workshop/.educates-credentials
+workshops/nkp-workshop/.educates-platform-config.yaml

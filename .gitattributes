@@ -1,2 +1,14 @@
-# Auto detect text files and perform LF normalization
+# Normalize line endings
 * text=auto
+
+# Scripts must use LF
+*.sh text eol=lf
+*.py text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+
+# Windows files keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
