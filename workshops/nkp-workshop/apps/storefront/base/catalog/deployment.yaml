@@ -21,7 +21,8 @@ spec:
       serviceAccountName: catalog
       containers:
         - name: catalog
-          image: rx-storefront/catalog:1.0
+          image: hashicorp/http-echo:latest
+          args: ["-listen=:8080", "-text=catalog ok"]
           ports:
             - containerPort: 8080
           env:

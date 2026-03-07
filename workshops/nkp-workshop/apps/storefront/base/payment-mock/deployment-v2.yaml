@@ -21,7 +21,8 @@ spec:
       serviceAccountName: payment-mock
       containers:
         - name: payment-mock
-          image: rx-storefront/payment-mock:2.0
+          image: hashicorp/http-echo:latest
+          args: ["-listen=:8080", "-text=payment-mock v2 ok"]
           ports:
             - containerPort: 8080
           env:

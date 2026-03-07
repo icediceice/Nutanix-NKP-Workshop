@@ -18,7 +18,8 @@ spec:
     spec:
       containers:
         - name: loadgen
-          image: rx-storefront/loadgen:1.0
+          image: fortio/fortio:latest
+          command: ["fortio", "load", "-qps", "5", "-t", "0", "-c", "2", "http://checkout-api.demo-app.svc.cluster.local:8080/"]
           envFrom:
             - configMapRef:
                 name: loadgen-config

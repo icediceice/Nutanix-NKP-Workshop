@@ -21,7 +21,8 @@ spec:
       serviceAccountName: checkout-api
       containers:
         - name: checkout-api
-          image: rx-storefront/checkout-api:1.0
+          image: hashicorp/http-echo:latest
+          args: ["-listen=:8080", "-text=checkout-api ok"]
           ports:
             - containerPort: 8080
           env:

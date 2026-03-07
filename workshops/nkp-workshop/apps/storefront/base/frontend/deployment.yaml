@@ -21,7 +21,7 @@ spec:
       serviceAccountName: frontend
       containers:
         - name: frontend
-          image: rx-storefront/frontend:1.0
+          image: nginx:stable-alpine
           ports:
             - containerPort: 80
           env:

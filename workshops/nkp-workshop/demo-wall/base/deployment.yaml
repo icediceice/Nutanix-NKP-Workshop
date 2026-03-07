@@ -19,7 +19,8 @@ spec:
       serviceAccountName: demo-wall
       containers:
         - name: demo-wall
-          image: rx-storefront/demo-wall:1.0
+          image: hashicorp/http-echo:latest
+          args: ["-listen=:9090", "-text=Demo Wall"]
           ports:
             - containerPort: 9090
           envFrom:
