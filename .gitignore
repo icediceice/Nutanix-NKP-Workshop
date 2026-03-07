@@ -73,3 +73,6 @@ tmp/
 
 # OS
 Thumbs.db
+
+# EDCR transient state
+.claude/active-plan.md
