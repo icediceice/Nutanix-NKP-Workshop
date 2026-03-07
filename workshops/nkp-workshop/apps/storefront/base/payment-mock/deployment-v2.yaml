@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-mock-v2
+  namespace: demo-app
+  labels:
+    app: payment-mock
+    version: v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-mock
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: payment-mock
+        version: v2
+    spec:
+      serviceAccountName: payment-mock
+      containers:
+        - name: payment-mock
+          image: rx-storefront/payment-mock:2.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: VERSION_LABEL
+              value: "v2"
+            - name: INJECT_LATENCY_MS
+              value: "0"
+            - name: INJECT_ERROR_RATE
+              value: "0.0"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://opentelemetry-collector.monitoring:4317"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

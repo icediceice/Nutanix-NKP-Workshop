@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Lab 6 Policy Enforce: Gatekeeper switches from dryrun to deny.
+resources:
+  - ../../base/
+  - ../../../../platform/istio/virtualservice-v1-only.yaml
+  - ../../../../platform/quotas/resourcequota-demo-app.yaml
+  - ../../../../platform/policy/constraint-template.yaml
+  - ../../../../platform/policy/gatekeeper-constraint-deny.yaml
+  - ../../../../platform/rbac/dev-role.yaml
+  - ../../../../platform/rbac/ops-role.yaml
+  - ../../../../platform/rbac/dev-rolebinding.yaml
+  - ../../../../platform/rbac/ops-rolebinding.yaml
+  - ../../../../demo-wall/overlays/lab-06-policy-enforce/
+  - ../../../../loadgen/overlays/load-baseline/

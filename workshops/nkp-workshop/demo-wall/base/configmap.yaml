@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "default"
+  SCENARIO_INTENT: "Workshop starting up"
+  SCENARIO_NEXT: "lab-01-start"
+  SCENARIO_NEXT_HINT: "Run bootstrap-workshop.sh to begin"
+  LAB_NUMBER: "0"
+  LAB_TITLE: "NKP Workshop"
+  ARGOCD_NAMESPACE: "argocd"
+  APP_NAMESPACE: "demo-app"
+  REFRESH_INTERVAL: "5"

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-wall
+  namespace: demo-ops
+  labels:
+    app: demo-wall
+spec:
+  type: LoadBalancer
+  selector:
+    app: demo-wall
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090

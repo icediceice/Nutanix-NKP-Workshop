@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-06-quota-pressure"
+  SCENARIO_INTENT: "Quota pressure — 20 stress pods filling namespace quota"
+  SCENARIO_NEXT: "lab-06-policy-enforce"
+  SCENARIO_NEXT_HINT: "Switch Gatekeeper to deny mode"
+  LAB_NUMBER: "6"
+  LAB_TITLE: "Multi-Tenancy & Governance"

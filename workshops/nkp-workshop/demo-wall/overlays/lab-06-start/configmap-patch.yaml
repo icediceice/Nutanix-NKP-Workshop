@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-06-start"
+  SCENARIO_INTENT: "Governance baseline — Gatekeeper in audit mode, RBAC active"
+  SCENARIO_NEXT: "lab-06-quota-pressure"
+  SCENARIO_NEXT_HINT: "Apply quota pressure"
+  LAB_NUMBER: "6"
+  LAB_TITLE: "Multi-Tenancy & Governance"

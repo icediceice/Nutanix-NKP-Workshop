@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-04-rwx"
+  SCENARIO_INTENT: "ReadWriteMany PVC shared across multiple pods"
+  SCENARIO_NEXT: "lab-05-start"
+  SCENARIO_NEXT_HINT: "Proceed to Lab 5: Production Operations"
+  LAB_NUMBER: "4"
+  LAB_TITLE: "Storage & Stateful Workloads"

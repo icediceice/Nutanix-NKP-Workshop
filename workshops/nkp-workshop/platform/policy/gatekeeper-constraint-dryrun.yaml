@@ -1,0 +1,13 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sDemoRequiredLabels
+metadata:
+  name: demo-required-labels
+spec:
+  enforcementAction: dryrun
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    namespaces: ["demo-app"]
+  parameters:
+    labels: ["app", "version"]

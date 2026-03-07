@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-05-incident-latency"
+  SCENARIO_INTENT: "Incident: v2 injecting 1000ms latency — trace to find root cause"
+  SCENARIO_NEXT: "lab-05-incident-error"
+  SCENARIO_NEXT_HINT: "Switch to error injection"
+  LAB_NUMBER: "5"
+  LAB_TITLE: "Production Operations"

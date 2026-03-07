@@ -1,0 +1,21 @@
+apiVersion: training.educates.dev/v1beta1
+kind: TrainingPortal
+metadata:
+  name: nkp-workshop
+spec:
+  portal:
+    title: "NKP Hands-On Workshop"
+    logo: ""
+    sessions:
+      maximum: 20
+    registration:
+      type: anonymous
+    updates:
+      workshop: true
+  workshops:
+    - name: nkp-workshop
+      capacity: 20
+      reserved: 2
+      expires: 480m
+      orphaned: 15m
+      overdue: 600m

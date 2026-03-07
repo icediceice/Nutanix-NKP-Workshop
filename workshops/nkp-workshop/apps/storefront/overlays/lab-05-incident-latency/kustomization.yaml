@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Lab 5 Incident — Latency: v2 injects 1000ms latency.
+resources:
+  - ../../base/
+  - ../../../../platform/istio/virtualservice-canary-10.yaml
+  - ../../../../platform/quotas/resourcequota-demo-app.yaml
+  - ../../../../demo-wall/overlays/lab-05-incident-latency/
+  - ../../../../loadgen/overlays/load-baseline/
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: "1000"
+    target:
+      kind: Deployment
+      name: payment-mock-v2

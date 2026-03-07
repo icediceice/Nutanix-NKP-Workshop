@@ -1,0 +1,96 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: nkp-workshop
+spec:
+  title: "NKP Hands-On Workshop"
+  description: "Deploy, observe, ship, troubleshoot, and govern — hands-on with a live NKP cluster."
+  url: https://github.com/icediceice/Nutanix-Demo
+
+  publish:
+    image: "$(image_repository)/nkp-workshop-files:$(workshop_version)"
+
+  workshop:
+    files:
+      - image:
+          url: "$(image_repository)/nkp-workshop-files:$(workshop_version)"
+        includePaths:
+          - /workshop/**
+          - /exercises/**
+
+  session:
+    namespaces:
+      budget: x-large
+      limits:
+        max:
+          cpu: "16"
+          memory: "32Gi"
+      secondary:
+        - name: $(session_name)-ops
+          budget: small
+
+    applications:
+      terminal:
+        enabled: true
+        layout: split
+      editor:
+        enabled: true
+      console:
+        enabled: false
+      docker:
+        enabled: false
+      vcluster:
+        enabled: false
+
+    dashboards:
+      - name: Storefront
+        url: http://frontend.$(session_namespace).svc.cluster.local
+      - name: ArgoCD
+        url: https://argocd.$(ingress_domain)/applications/argocd/rx-demo-$(session_name)
+      - name: Kiali
+        url: https://$(ingress_domain)/dkp/kiali/console/graph/namespaces/?namespaces=$(session_namespace)
+      - name: Jaeger
+        url: https://$(ingress_domain)/dkp/jaeger/search?service=frontend&namespace=$(session_namespace)
+      - name: Grafana
+        url: https://$(ingress_domain)/dkp/logging/grafana
+      - name: Demo Wall
+        url: http://demo-wall.$(session_name)-ops.svc.cluster.local:9090
+      - name: NKP Console
+        url: https://$(ingress_domain)/dkp/kommander/dashboard
+
+    env:
+      - name: WORKSHOP_NAMESPACE
+        value: $(session_namespace)
+      - name: OPS_NAMESPACE
+        value: $(session_name)-ops
+      - name: ARGOCD_NAMESPACE
+        value: argocd
+      - name: SESSION_NAME
+        value: $(session_name)
+      - name: ARGOCD_APP
+        value: rx-demo-$(session_name)
+
+    objects:
+      - apiVersion: argoproj.io/v1alpha1
+        kind: Application
+        metadata:
+          name: rx-demo-$(session_name)
+          namespace: argocd
+        spec:
+          project: default
+          source:
+            repoURL: https://github.com/icediceice/Nutanix-Demo.git
+            targetRevision: main
+            path: apps/storefront/overlays/lab-01-start
+          destination:
+            server: https://kubernetes.default.svc
+            namespace: $(session_namespace)
+          syncPolicy:
+            automated:
+              prune: true
+              selfHeal: true
+            syncOptions:
+              - CreateNamespace=false
+
+  environment:
+    objects: []

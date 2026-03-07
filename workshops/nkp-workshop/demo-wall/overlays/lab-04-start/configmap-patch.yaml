@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-04-start"
+  SCENARIO_INTENT: "Storage lab — CSI ready, no stateful workloads"
+  SCENARIO_NEXT: "lab-04-deploy-db"
+  SCENARIO_NEXT_HINT: "Deploy PostgreSQL StatefulSet"
+  LAB_NUMBER: "4"
+  LAB_TITLE: "Storage & Stateful Workloads"

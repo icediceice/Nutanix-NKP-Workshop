@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Lab 5 Node Resilience: 2 replicas + PDBs + pod anti-affinity for all services.
+resources:
+  - ../../base/
+  - ../../../../platform/istio/virtualservice-canary-10.yaml
+  - ../../../../platform/quotas/resourcequota-demo-app.yaml
+  - ../../../../platform/resilience/pdb-frontend.yaml
+  - ../../../../platform/resilience/pdb-checkout.yaml
+  - ../../../../platform/resilience/pdb-payment.yaml
+  - ../../../../platform/resilience/pdb-catalog.yaml
+  - ../../../../demo-wall/overlays/lab-05-node-resilience/
+  - ../../../../loadgen/overlays/load-baseline/
+patches:
+  # Scale all services to 2 replicas
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      labelSelector: "app in (frontend, checkout-api, payment-mock, catalog)"
+  # Add pod anti-affinity to spread across nodes
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/affinity
+        value:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - frontend
+                          - checkout-api
+                          - payment-mock
+                          - catalog
+                  topologyKey: kubernetes.io/hostname
+    target:
+      kind: Deployment
+      labelSelector: "app in (frontend, checkout-api, catalog)"

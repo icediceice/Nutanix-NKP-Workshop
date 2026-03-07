@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "workshop-load-off"
+  SCENARIO_INTENT: "Cluster idle — load generator off, minimal workloads"
+  SCENARIO_NEXT: "lab-01-start"
+  SCENARIO_NEXT_HINT: "Ready for next session"
+  LAB_NUMBER: "0"
+  LAB_TITLE: "Workshop Idle"

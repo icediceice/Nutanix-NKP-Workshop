@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-05-node-resilience"
+  SCENARIO_INTENT: "High availability: 2 replicas + PDBs + anti-affinity"
+  SCENARIO_NEXT: "lab-05-keda"
+  SCENARIO_NEXT_HINT: "Enable KEDA autoscaling"
+  LAB_NUMBER: "5"
+  LAB_TITLE: "Production Operations"

@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Lab 3 Mirror: 100% v1, shadow traffic mirrored to v2. Users see no change.
+resources:
+  - ../../base/
+  - ../../../../platform/istio/virtualservice-mirror.yaml
+  - ../../../../platform/quotas/resourcequota-demo-app.yaml
+  - ../../../../demo-wall/overlays/lab-03-mirror/
+  - ../../../../loadgen/overlays/load-baseline/

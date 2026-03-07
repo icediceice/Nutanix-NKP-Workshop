@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Lab 4 Start: frontend only + storage resources. No stateful workloads.
+resources:
+  - ../../base/namespace.yaml
+  - ../../../../platform/quotas/resourcequota-demo-app.yaml
+  - ../../../../platform/storage/storageclass-nutanix-volumes.yaml
+  - ../../../../platform/storage/storageclass-nutanix-files.yaml
+  - ../../../../platform/storage/volumesnapshotclass.yaml
+  - ../../../../platform/istio/destination-rules.yaml
+  - ../../../../demo-wall/overlays/lab-04-start/
+  - ../../../../loadgen/overlays/load-off/
+  - frontend-only.yaml

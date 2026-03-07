@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-02-high-load"
+  SCENARIO_INTENT: "Peak load active — stress metrics visible"
+  SCENARIO_NEXT: "lab-03-start"
+  SCENARIO_NEXT_HINT: "Proceed to Lab 3: GitOps & Progressive Delivery"
+  LAB_NUMBER: "2"
+  LAB_TITLE: "Observability"

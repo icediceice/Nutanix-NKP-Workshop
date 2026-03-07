@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Lab 5 Start: healthy 90/10 canary. No fault injection. No PDBs yet.
+resources:
+  - ../../base/
+  - ../../../../platform/istio/virtualservice-canary-10.yaml
+  - ../../../../platform/quotas/resourcequota-demo-app.yaml
+  - ../../../../demo-wall/overlays/lab-05-start/
+  - ../../../../loadgen/overlays/load-baseline/

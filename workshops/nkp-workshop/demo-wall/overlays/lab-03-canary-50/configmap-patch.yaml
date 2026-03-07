@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-03-canary-50"
+  SCENARIO_INTENT: "Progressive delivery — 50/50 traffic split between v1 and v2"
+  SCENARIO_NEXT: "lab-03-canary-100"
+  SCENARIO_NEXT_HINT: "Complete cutover to 100% v2"
+  LAB_NUMBER: "3"
+  LAB_TITLE: "GitOps & Progressive Delivery"

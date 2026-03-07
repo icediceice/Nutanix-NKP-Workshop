@@ -1,0 +1,17 @@
+# Note: volumeClaimTemplates in the StatefulSet creates this PVC automatically.
+# This file is kept as documentation. The PVC is named data-postgres-0.
+# If you need to pre-create a PVC (non-StatefulSet), use this template:
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-postgres-standalone
+  namespace: demo-app
+  annotations:
+    note: "Reference only. StatefulSet auto-creates data-postgres-0."
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nutanix-volumes
+  resources:
+    requests:
+      storage: 5Gi

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-04-snapshot"
+  SCENARIO_INTENT: "VolumeSnapshot created — insert post-snapshot data"
+  SCENARIO_NEXT: "lab-04-restore"
+  SCENARIO_NEXT_HINT: "Restore from snapshot"
+  LAB_NUMBER: "4"
+  LAB_TITLE: "Storage & Stateful Workloads"

@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rx-demo
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/icediceice/Nutanix-Demo.git
+    targetRevision: main
+    path: apps/storefront/overlays/lab-01-start    # Changed by switch-lab.sh
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true        # Delete resources removed from Git
+      selfHeal: true     # Revert manual changes
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas    # Allow KEDA to manage replicas without ArgoCD reverting

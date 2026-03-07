@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "workshop-reset"
+  SCENARIO_INTENT: "Workshop reset — all app resources deleted"
+  SCENARIO_NEXT: "workshop-load-off"
+  SCENARIO_NEXT_HINT: "Switch to load-off after reset"
+  LAB_NUMBER: "0"
+  LAB_TITLE: "Workshop Reset"

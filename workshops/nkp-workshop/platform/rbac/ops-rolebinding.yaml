@@ -1,0 +1,19 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ops-rolebinding-demo-app
+  namespace: demo-app
+subjects:
+  - kind: ServiceAccount
+    name: ops-user
+    namespace: demo-app
+roleRef:
+  kind: Role
+  name: ops-role-demo-app
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ops-user
+  namespace: demo-app

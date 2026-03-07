@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-06-policy-enforce"
+  SCENARIO_INTENT: "Policy enforcement — Gatekeeper blocking non-compliant pods"
+  SCENARIO_NEXT: "lab-06-start"
+  SCENARIO_NEXT_HINT: "Reset governance lab"
+  LAB_NUMBER: "6"
+  LAB_TITLE: "Multi-Tenancy & Governance"

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-01-start"
+  SCENARIO_INTENT: "Platform ready — no application deployed"
+  SCENARIO_NEXT: "lab-01-deploy"
+  SCENARIO_NEXT_HINT: "Run switch-lab.sh lab-01-deploy to ship the storefront"
+  LAB_NUMBER: "1"
+  LAB_TITLE: "Application Deployment"

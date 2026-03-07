@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Lab 2 Start: identical to lab-01-verify — full storefront, baseline load, v1 only.
+resources:
+  - ../../base/
+  - ../../../../platform/istio/virtualservice-v1-only.yaml
+  - ../../../../platform/quotas/resourcequota-demo-app.yaml
+  - ../../../../demo-wall/overlays/lab-02-start/
+  - ../../../../loadgen/overlays/load-baseline/

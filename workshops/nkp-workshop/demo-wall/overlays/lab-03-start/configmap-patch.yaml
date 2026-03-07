@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-03-start"
+  SCENARIO_INTENT: "100% v1 traffic — v2 deployed but receiving no traffic"
+  SCENARIO_NEXT: "lab-03-mirror"
+  SCENARIO_NEXT_HINT: "Enable traffic mirroring to shadow v2"
+  LAB_NUMBER: "3"
+  LAB_TITLE: "GitOps & Progressive Delivery"

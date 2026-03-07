@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Lab 4 Snapshot: adds VolumeSnapshot of data-postgres-0.
+resources:
+  - ../lab-04-start/frontend-only.yaml
+  - ../../base/namespace.yaml
+  - ../../../../apps/stateful/base/postgres-statefulset.yaml
+  - ../../../../apps/stateful/base/postgres-service.yaml
+  - ../../../../apps/stateful/base/volumesnapshot.yaml
+  - ../../../../platform/quotas/resourcequota-demo-app.yaml
+  - ../../../../platform/istio/destination-rules.yaml
+  - ../../../../demo-wall/overlays/lab-04-snapshot/
+  - ../../../../loadgen/overlays/load-off/

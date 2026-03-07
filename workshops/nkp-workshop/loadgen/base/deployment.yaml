@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-loadgen
+  namespace: demo-ops
+  labels:
+    app: demo-loadgen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-loadgen
+  template:
+    metadata:
+      labels:
+        app: demo-loadgen
+        version: v1
+    spec:
+      containers:
+        - name: loadgen
+          image: rx-storefront/loadgen:1.0
+          envFrom:
+            - configMapRef:
+                name: loadgen-config
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

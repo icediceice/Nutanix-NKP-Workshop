@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-03-canary-100"
+  SCENARIO_INTENT: "Full cutover — 100% traffic on v2"
+  SCENARIO_NEXT: "lab-03-start"
+  SCENARIO_NEXT_HINT: "Rollback to v1 if needed"
+  LAB_NUMBER: "3"
+  LAB_TITLE: "GitOps & Progressive Delivery"

@@ -91,7 +91,7 @@ Set `CLUSTER_CONTEXT` to match: `kubectl config get-contexts`
 
 ### High Priority (needs cluster)
 - [ ] Smoke-test real Educates provisioning end-to-end (Step 1–6 above)
-- [ ] Workshop content expansion (currently placeholder Markdown stubs in workshops/)
+- [x] Workshop content expansion — full NKP workshop implemented at workshops/nkp-workshop/ (172 files, 24 overlays, 6 labs, Educates integration)
   - Each workshop needs 3–5 hands-on lab steps with terminal commands
 
 ### Medium Priority
@@ -104,6 +104,31 @@ Set `CLUSTER_CONTEXT` to match: `kubectl config get-contexts`
 - [ ] Quiz component in learning-platform/
 - [ ] K8s self-deploy testing (registration-app/k8s/)
 - [ ] TrainingPortal CRD capacity tuning per expected participant count
+
+---
+
+## Architecture Notes — NKP Workshop (workshops/nkp-workshop/)
+
+### Structure
+```
+workshops/nkp-workshop/
+├── apps/storefront/base/         ← 4 microservices (frontend, checkout-api, payment-mock v1/v2, catalog)
+├── apps/storefront/overlays/     ← 24 Kustomize overlays (one per lab scenario)
+├── apps/stateful/base/           ← PostgreSQL, VolumeSnapshot, RWX demo
+├── platform/                     ← Istio variants, Gatekeeper, KEDA, RBAC, storage, ArgoCD app
+├── loadgen/overlays/             ← off / baseline / peak load profiles
+├── demo-wall/overlays/           ← Per-scenario configmap patches for Demo Wall
+├── scripts/                      ← switch-lab.sh, bootstrap, print-access, reset
+├── docs/                         ← 6 lab guides + instructor guide + prereqs + troubleshooting
+├── resources/                    ← Educates Workshop CRD + TrainingPortal CRD
+└── workshop/                     ← Educates content (9 modules, setup.d, profile.d, exercises)
+```
+
+### Key Design Decisions
+- Single `main` branch, path-based overlay switching (not Git branch per lab)
+- ArgoCD `prune: true` — resources not in the active overlay are deleted automatically
+- Educates: one ArgoCD Application per session (`rx-demo-$(session_name)`) targeting session namespace
+- Demo Wall: per-overlay ConfigMap patch provides scenario metadata; Demo Wall reads cluster state via in-cluster SA
 
 ---
 

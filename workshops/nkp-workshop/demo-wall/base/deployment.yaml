@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-wall
+  namespace: demo-ops
+  labels:
+    app: demo-wall
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-wall
+  template:
+    metadata:
+      labels:
+        app: demo-wall
+        version: v1
+    spec:
+      serviceAccountName: demo-wall
+      containers:
+        - name: demo-wall
+          image: rx-storefront/demo-wall:1.0
+          ports:
+            - containerPort: 9090
+          envFrom:
+            - configMapRef:
+                name: demo-wall-config
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

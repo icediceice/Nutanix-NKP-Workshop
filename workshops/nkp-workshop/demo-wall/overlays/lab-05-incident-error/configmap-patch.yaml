@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-05-incident-error"
+  SCENARIO_INTENT: "Incident: v2 returning 10% errors — red edges in Kiali"
+  SCENARIO_NEXT: "lab-05-node-resilience"
+  SCENARIO_NEXT_HINT: "Test node failure resilience"
+  LAB_NUMBER: "5"
+  LAB_TITLE: "Production Operations"

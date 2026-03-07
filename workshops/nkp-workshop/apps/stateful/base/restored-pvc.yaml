@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-postgres-restored
+  namespace: demo-app
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nutanix-volumes
+  resources:
+    requests:
+      storage: 5Gi
+  dataSource:
+    name: postgres-snapshot
+    kind: VolumeSnapshot
+    apiGroup: snapshot.storage.k8s.io

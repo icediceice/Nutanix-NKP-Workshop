@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout-api
+  namespace: demo-app
+  labels:
+    app: checkout-api
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: checkout-api
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: checkout-api
+        version: v1
+    spec:
+      serviceAccountName: checkout-api
+      containers:
+        - name: checkout-api
+          image: rx-storefront/checkout-api:1.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PAYMENT_SERVICE_URL
+              value: "http://payment-mock:8080"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://opentelemetry-collector.monitoring:4317"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

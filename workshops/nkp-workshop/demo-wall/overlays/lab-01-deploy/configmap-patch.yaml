@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-01-deploy"
+  SCENARIO_INTENT: "Deploying storefront via GitOps — ArgoCD syncing"
+  SCENARIO_NEXT: "lab-01-verify"
+  SCENARIO_NEXT_HINT: "Run switch-lab.sh lab-01-verify to start load generator"
+  LAB_NUMBER: "1"
+  LAB_TITLE: "Application Deployment"

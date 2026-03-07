@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Lab 6 Quota Pressure: 20 stress pods filling ~75% of namespace quota.
+resources:
+  - ../../base/
+  - ../../../../platform/istio/virtualservice-v1-only.yaml
+  - ../../../../platform/quotas/resourcequota-demo-app.yaml
+  - ../../../../platform/quotas/quota-stress-deployment.yaml
+  - ../../../../platform/policy/constraint-template.yaml
+  - ../../../../platform/policy/gatekeeper-constraint-dryrun.yaml
+  - ../../../../platform/rbac/dev-role.yaml
+  - ../../../../platform/rbac/ops-role.yaml
+  - ../../../../platform/rbac/dev-rolebinding.yaml
+  - ../../../../platform/rbac/ops-rolebinding.yaml
+  - ../../../../demo-wall/overlays/lab-06-quota-pressure/
+  - ../../../../loadgen/overlays/load-baseline/

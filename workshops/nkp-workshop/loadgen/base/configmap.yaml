@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loadgen-config
+  namespace: demo-ops
+data:
+  # Load profile: off | baseline | peak
+  LOAD_PROFILE: "off"
+  TARGET_HOST: "http://frontend.demo-app.svc.cluster.local"
+  # baseline: 2 RPS frontend, 0.5 RPS checkout
+  BASELINE_RPS: "2"
+  BASELINE_CHECKOUT_RPS: "0.5"
+  # peak: 20 RPS frontend, 5 RPS checkout
+  PEAK_RPS: "20"
+  PEAK_CHECKOUT_RPS: "5"

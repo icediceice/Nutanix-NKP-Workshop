@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-restored
+  namespace: demo-app
+spec:
+  serviceName: postgres-restored
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-restored
+  template:
+    metadata:
+      labels:
+        app: postgres-restored
+        version: v1
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: demo
+            - name: POSTGRES_PASSWORD
+              value: workshop123
+            - name: POSTGRES_DB
+              value: storefront
+          volumeMounts:
+            - name: restored-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: restored-data
+          persistentVolumeClaim:
+            claimName: data-postgres-restored

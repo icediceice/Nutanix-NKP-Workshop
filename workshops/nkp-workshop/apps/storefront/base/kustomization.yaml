@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - frontend/serviceaccount.yaml
+  - frontend/deployment.yaml
+  - frontend/service.yaml
+  - checkout-api/serviceaccount.yaml
+  - checkout-api/deployment.yaml
+  - checkout-api/service.yaml
+  - payment-mock/serviceaccount.yaml
+  - payment-mock/deployment-v1.yaml
+  - payment-mock/deployment-v2.yaml
+  - payment-mock/service.yaml
+  - catalog/serviceaccount.yaml
+  - catalog/deployment.yaml
+  - catalog/service.yaml
+  - networking/gateway.yaml
+  - networking/virtualservice.yaml
+  - networking/destination-rules.yaml

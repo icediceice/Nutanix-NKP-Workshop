@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-03-mirror"
+  SCENARIO_INTENT: "Traffic mirroring — shadow v2 requests, users see v1 only"
+  SCENARIO_NEXT: "lab-03-canary-10"
+  SCENARIO_NEXT_HINT: "Start 10% canary rollout"
+  LAB_NUMBER: "3"
+  LAB_TITLE: "GitOps & Progressive Delivery"

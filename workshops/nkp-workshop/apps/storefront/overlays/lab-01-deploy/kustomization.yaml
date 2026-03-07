@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Lab 1 Deploy: full storefront + Istio routing. Load still off.
+resources:
+  - ../../base/
+  - ../../../../platform/istio/virtualservice-v1-only.yaml
+  - ../../../../platform/quotas/resourcequota-demo-app.yaml
+  - ../../../../demo-wall/overlays/lab-01-deploy/
+  - ../../../../loadgen/overlays/load-off/

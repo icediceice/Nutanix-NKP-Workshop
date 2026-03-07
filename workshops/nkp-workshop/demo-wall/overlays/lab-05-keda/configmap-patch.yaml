@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-05-keda"
+  SCENARIO_INTENT: "KEDA autoscaling active — checkout-api scales from zero"
+  SCENARIO_NEXT: "lab-05-start"
+  SCENARIO_NEXT_HINT: "Reset to healthy baseline"
+  LAB_NUMBER: "5"
+  LAB_TITLE: "Production Operations"

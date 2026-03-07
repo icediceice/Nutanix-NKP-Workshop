@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-wall-config
+  namespace: demo-ops
+data:
+  SCENARIO_NAME: "lab-01-verify"
+  SCENARIO_INTENT: "Application deployed — baseline traffic active"
+  SCENARIO_NEXT: "lab-02-start"
+  SCENARIO_NEXT_HINT: "Proceed to Lab 2: Observability"
+  LAB_NUMBER: "1"
+  LAB_TITLE: "Application Deployment"
