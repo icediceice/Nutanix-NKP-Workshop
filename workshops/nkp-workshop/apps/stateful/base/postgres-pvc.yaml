@@ -11,7 +11,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: nutanix-volumes
+  storageClassName: nutanix-volume
   resources:
     requests:
       storage: 5Gi

@@ -15,7 +15,7 @@ if [ -z "$OVERLAY" ]; then
   exit 1
 fi
 
-OVERLAY_PATH="apps/storefront/overlays/${OVERLAY}"
+OVERLAY_PATH="workshops/nkp-workshop/apps/storefront/overlays/${OVERLAY}"
 if [ ! -d "$(dirname "$0")/../${OVERLAY_PATH}" ]; then
   echo "Error: Overlay '$OVERLAY' not found at ${OVERLAY_PATH}"
   exit 1

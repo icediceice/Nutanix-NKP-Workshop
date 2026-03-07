@@ -6,9 +6,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/icediceice/Nutanix-Demo.git
+    repoURL: https://github.com/icediceice/Nutanix-NKP-Workshop.git
     targetRevision: main
-    path: apps/storefront/overlays/lab-01-start    # Changed by switch-lab.sh
+    path: workshops/nkp-workshop/apps/storefront/overlays/lab-01-start    # Changed by switch-lab.sh
   destination:
     server: https://kubernetes.default.svc
   syncPolicy:

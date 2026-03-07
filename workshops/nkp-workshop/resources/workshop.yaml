@@ -5,7 +5,7 @@ metadata:
 spec:
   title: "NKP Hands-On Workshop"
   description: "Deploy, observe, ship, troubleshoot, and govern — hands-on with a live NKP cluster."
-  url: https://github.com/icediceice/Nutanix-Demo
+  url: https://github.com/icediceice/Nutanix-NKP-Workshop
 
   publish:
     image: "$(image_repository)/nkp-workshop-files:$(workshop_version)"
@@ -79,9 +79,9 @@ spec:
         spec:
           project: default
           source:
-            repoURL: https://github.com/icediceice/Nutanix-Demo.git
+            repoURL: https://github.com/icediceice/Nutanix-NKP-Workshop.git
             targetRevision: main
-            path: apps/storefront/overlays/lab-01-start
+            path: workshops/nkp-workshop/apps/storefront/overlays/lab-01-start
           destination:
             server: https://kubernetes.default.svc
             namespace: $(session_namespace)

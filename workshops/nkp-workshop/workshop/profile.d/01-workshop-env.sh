@@ -18,7 +18,7 @@ switch-lab() {
   fi
   echo "Switching to overlay: $OVERLAY"
   kubectl -n argocd patch application "$ARGOCD_APP" --type merge \
-    -p "{\"spec\":{\"source\":{\"path\":\"apps/storefront/overlays/${OVERLAY}\"}}}"
+    -p "{\"spec\":{\"source\":{\"path\":\"workshops/nkp-workshop/apps/storefront/overlays/${OVERLAY}\"}}}"
   kubectl -n argocd annotate application "$ARGOCD_APP" \
     argocd.argoproj.io/refresh=hard --overwrite
   echo "Waiting for sync..."

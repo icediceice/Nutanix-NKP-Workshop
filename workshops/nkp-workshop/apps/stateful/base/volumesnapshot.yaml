@@ -4,6 +4,6 @@ metadata:
   name: postgres-snapshot
   namespace: demo-app
 spec:
-  volumeSnapshotClassName: nutanix-snapshot
+  volumeSnapshotClassName: nutanix-snapshot-class
   source:
     persistentVolumeClaimName: data-postgres-0
