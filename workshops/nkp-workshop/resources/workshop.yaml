@@ -51,7 +51,7 @@ spec:
       - name: Storefront
         url: http://frontend.$(session_namespace).svc.cluster.local
       - name: ArgoCD
-        url: https://10.8.16.55/applications/argocd/rx-demo-$(session_name)
+        url: http://10.8.16.55/applications/argocd/rx-demo-$(session_name)
       - name: Kiali
         url: https://$(ingress_domain)/dkp/kiali/console/graph/namespaces/?namespaces=$(session_namespace)
       - name: Jaeger
