@@ -1,0 +1,70 @@
+---
+# ArgoCD Application: installs Kiali server via Helm into istio-system
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kiali
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://kiali.org/helm-charts
+    chart: kiali-server
+    targetRevision: "*"
+    helm:
+      valuesObject:
+        auth:
+          strategy: anonymous
+        server:
+          web_root: /dkp/kiali
+        external_services:
+          prometheus:
+            url: "http://kube-prometheus-stack-prometheus.kommander-default-workspace.svc.cluster.local:9090"
+          tracing:
+            enabled: true
+            in_cluster_url: "http://jaeger.istio-system.svc.cluster.local:16686"
+            use_grpc: false
+          grafana:
+            enabled: true
+            in_cluster_url: "http://grafana-logging.kommander-default-workspace.svc.cluster.local:3000"
+        deployment:
+          cluster_wide_access: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+---
+# ExternalName service in kommander-default-workspace so Traefik ingress can route to Kiali
+apiVersion: v1
+kind: Service
+metadata:
+  name: kiali-proxy
+  namespace: kommander-default-workspace
+spec:
+  type: ExternalName
+  externalName: kiali.istio-system.svc.cluster.local
+  ports:
+    - name: http
+      port: 20001
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kiali
+  namespace: kommander-default-workspace
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /dkp/kiali
+            pathType: Prefix
+            backend:
+              service:
+                name: kiali-proxy
+                port:
+                  number: 20001

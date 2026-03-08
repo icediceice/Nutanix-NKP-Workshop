@@ -1,0 +1,68 @@
+---
+# ArgoCD Application: installs Jaeger all-in-one via Helm into istio-system
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: jaeger
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://jaegertracing.github.io/helm-charts
+    chart: jaeger
+    targetRevision: "*"
+    helm:
+      valuesObject:
+        # All-in-one mode: single pod with collector + query + agent
+        allInOne:
+          enabled: true
+          args:
+            - --query.base-path=/dkp/jaeger
+        # Disable individual components (all-in-one handles them)
+        collector:
+          enabled: false
+        query:
+          enabled: false
+        agent:
+          enabled: false
+        storage:
+          type: none
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+---
+# ExternalName service in kommander-default-workspace so Traefik ingress can route to Jaeger
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-proxy
+  namespace: kommander-default-workspace
+spec:
+  type: ExternalName
+  externalName: jaeger.istio-system.svc.cluster.local
+  ports:
+    - name: http
+      port: 16686
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jaeger
+  namespace: kommander-default-workspace
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /dkp/jaeger
+            pathType: Prefix
+            backend:
+              service:
+                name: jaeger-proxy
+                port:
+                  number: 16686
