@@ -14,6 +14,12 @@ spec:
     files:
       - image:
           url: ghcr.io/icediceice/nkp-workshop-files:latest
+      # Git overlay: provides fixed setup.d scripts directly from repo,
+      # overriding the stale published image version (CRLF + set -e issue).
+      - github:
+          repo: icediceice/Nutanix-NKP-Workshop
+          ref: main
+        newRootPath: workshops/nkp-workshop/workshop
 
   session:
     namespaces:

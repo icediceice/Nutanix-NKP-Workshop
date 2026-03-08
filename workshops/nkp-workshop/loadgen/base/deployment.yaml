@@ -16,6 +16,8 @@ spec:
         app: demo-loadgen
         version: v1
     spec:
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: loadgen
           image: fortio/fortio:latest
@@ -23,6 +25,11 @@ spec:
           envFrom:
             - configMapRef:
                 name: loadgen-config
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           resources:
             requests:
               cpu: 50m

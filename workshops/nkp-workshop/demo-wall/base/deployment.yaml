@@ -17,6 +17,8 @@ spec:
         version: v1
     spec:
       serviceAccountName: demo-wall
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: demo-wall
           image: hashicorp/http-echo:latest
@@ -26,6 +28,11 @@ spec:
           envFrom:
             - configMapRef:
                 name: demo-wall-config
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           resources:
             requests:
               cpu: 50m
