@@ -70,18 +70,6 @@ spec:
         value: rx-demo-$(session_name)
 
     objects:
-      # Allow workshop pod to reach session namespace (for Storefront dashboard tab proxy)
-      - apiVersion: cilium.io/v2
-        kind: CiliumNetworkPolicy
-        metadata:
-          name: allow-session-$(session_name)
-          namespace: $(workshop_namespace)
-        spec:
-          endpointSelector: {}
-          egress:
-            - toEndpoints:
-                - matchLabels:
-                    io.kubernetes.pod.namespace: $(session_namespace)
       # Grant cluster-read access so attendees can run kubectl get nodes/namespaces/pv/sc
       - apiVersion: rbac.authorization.k8s.io/v1
         kind: ClusterRole
@@ -105,7 +93,7 @@ spec:
         subjects:
           - kind: ServiceAccount
             name: $(session_name)
-            namespace: $(workshop_namespace)
+            namespace: $(environment_name)
       - apiVersion: argoproj.io/v1alpha1
         kind: Application
         metadata:

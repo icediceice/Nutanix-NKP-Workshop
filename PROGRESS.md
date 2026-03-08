@@ -35,6 +35,14 @@ Upcoming work in priority order:
 
 ## Work Log
 
+### 2026-03-09
+
+#### session — Workshop RBAC + Cilium egress fix — complete
+- **What:** `kubectl get nodes` was forbidden because Educates session service accounts have no cluster-level RBAC by default. Added `ClusterRole` + `ClusterRoleBinding` in `session.objects` (nodes/namespaces/pvs/storageclasses). Also added per-session `CiliumNetworkPolicy` in `$(workshop_namespace)` to allow workshop pod egress to session namespace (needed for Storefront dashboard tab proxy). Frontend DNS 404 at session start is by design — `lab-01-start` intentionally deploys no app workloads.
+- **Files:** `workshops/nkp-workshop/resources/workshop.yaml`
+- **Next:** Smoke-test real Educates provisioning end-to-end (needs cluster); verify `$(workshop_namespace)` is a valid Educates template variable
+- **Known issues:** `$(workshop_namespace)` used for SA namespace in ClusterRoleBinding — needs cluster-level verification that this variable resolves correctly in Educates 3.6
+
 ### 2026-03-08 (continued)
 
 #### session — Setup page auto-cert + kubeconfig integration — complete
