@@ -420,6 +420,65 @@ publish_workshop() {
 }
 
 # =============================================================================
+# STEP 8b — Apply observability stack (Kiali, Jaeger, ArgoCD ingress + basehref)
+# =============================================================================
+# WHY THIS STEP EXISTS:
+#   NKP's Traefik (kommander-traefik) blocks ExternalName service backends by
+#   default. Ingress objects must live in the same namespace as their target
+#   service so Traefik can resolve them directly. This step applies:
+#     - kiali.yaml  → ArgoCD Application (installs Kiali) + Ingress in istio-system
+#     - jaeger.yaml → ArgoCD Application (installs Jaeger) + Ingress in istio-system
+#     - argocd-ingress.yaml → Ingress in argocd namespace (not kommander-default-workspace)
+#   It also patches argocd-cmd-params-cm so ArgoCD serves at /dkp/argocd subpath.
+#   Kyverno policies on NKP block LoadBalancer services in session namespaces, so
+#   Kiali/Jaeger/demo-wall all use ClusterIP and are exposed only through Traefik.
+# =============================================================================
+apply_observability_stack() {
+  step "Apply observability stack (Kiali, Jaeger, ArgoCD ingress)"
+
+  if state_done "observability_applied"; then
+    skip "Observability stack already applied"
+    return
+  fi
+
+  local obs_dir="${WORKSHOP_ROOT}/resources/observability"
+  if [[ ! -d "$obs_dir" ]]; then
+    warn "Observability manifests not found at ${obs_dir} — skipping"
+    return
+  fi
+
+  # Kiali and Jaeger: ArgoCD Applications deploy them into istio-system;
+  # Ingresses are in istio-system so Traefik can resolve service backends.
+  info "Applying Kiali (ArgoCD Application + istio-system Ingress)..."
+  run k apply -f "${obs_dir}/kiali.yaml"
+
+  info "Applying Jaeger (ArgoCD Application + istio-system Ingress)..."
+  run k apply -f "${obs_dir}/jaeger.yaml"
+
+  # ArgoCD: Ingress lives in argocd namespace pointing at argocd-server:80.
+  # ExternalName proxy in kommander-default-workspace was rejected by Traefik.
+  info "Applying ArgoCD ingress (argocd namespace → /dkp/argocd)..."
+  run k apply -f "${obs_dir}/argocd-ingress.yaml"
+
+  # ArgoCD v3.x reads server.basehref and server.rootpath from this configmap
+  # via env vars (ARGOCD_SERVER_BASEHREF / ARGOCD_SERVER_ROOTPATH).
+  # Without this, SPA links break and API calls 404 when served at a subpath.
+  info "Patching argocd-cmd-params-cm (basehref + rootpath = /dkp/argocd)..."
+  run k -n argocd patch configmap argocd-cmd-params-cm \
+    --type merge \
+    -p '{"data":{"server.basehref":"/dkp/argocd","server.rootpath":"/dkp/argocd","server.insecure":"true"}}'
+
+  info "Restarting argocd-server to pick up configmap changes..."
+  run k -n argocd rollout restart deployment/argocd-server
+  if [[ "$DRY_RUN" != "true" ]]; then
+    k -n argocd rollout status deployment/argocd-server --timeout=120s
+  fi
+
+  state_set "observability_applied"
+  success "Observability stack applied — Kiali/Jaeger deploying via ArgoCD"
+}
+
+# =============================================================================
 # STEP 8 — Apply TrainingPortal
 # =============================================================================
 apply_training_portal() {
@@ -588,11 +647,6 @@ extract_workshop_ca_cert() {
 
   local ca_dest="${WORKSHOP_ROOT}/resources/workshop-ca.crt"
 
-  if [[ -f "$ca_dest" ]]; then
-    skip "workshop-ca.crt already present: ${ca_dest}"
-    return
-  fi
-
   if [[ "$DRY_RUN" == "true" ]]; then
     dry "Would extract CA cert from cluster to ${ca_dest}"
     return
@@ -602,22 +656,33 @@ extract_workshop_ca_cert() {
 
   local ca_pem=""
 
-  # ── Attempt 1: cert-manager CA secrets ──────────────────────────────────
-  for ns in cert-manager kommander kommander-default-workspace; do
-    local secrets
-    secrets=$(k get secret -n "$ns" --no-headers 2>/dev/null \
-              | awk '{print $1}' || true)
-    for secret in $secrets; do
-      local raw
-      raw=$(k get secret -n "$ns" "$secret" \
-            -o jsonpath='{.data.ca\.crt}' 2>/dev/null || true)
-      if [[ -n "$raw" ]]; then
-        ca_pem=$(echo "$raw" | base64 -d)
-        info "  Found CA cert in secret ${ns}/${secret}"
-        break 2
-      fi
+  # ── Attempt 0: kommander-ca by name (the real cluster CA) ────────────────
+  local raw0
+  raw0=$(k get secret -n cert-manager kommander-ca \
+         -o jsonpath='{.data.ca\.crt}' 2>/dev/null || true)
+  if [[ -n "$raw0" ]]; then
+    ca_pem=$(echo "$raw0" | base64 -d)
+    info "  Found CA cert in secret cert-manager/kommander-ca"
+  fi
+
+  # ── Attempt 1: scan cert-manager CA secrets ──────────────────────────────
+  if [[ -z "$ca_pem" ]]; then
+    for ns in cert-manager kommander kommander-default-workspace; do
+      local secrets
+      secrets=$(k get secret -n "$ns" --no-headers 2>/dev/null \
+                | awk '{print $1}' || true)
+      for secret in $secrets; do
+        local raw
+        raw=$(k get secret -n "$ns" "$secret" \
+              -o jsonpath='{.data.ca\.crt}' 2>/dev/null || true)
+        if [[ -n "$raw" ]]; then
+          ca_pem=$(echo "$raw" | base64 -d)
+          info "  Found CA cert in secret ${ns}/${secret}"
+          break 2
+        fi
+      done
     done
-  done
+  fi
 
   # ── Attempt 2: last cert in Traefik / wildcard TLS chain ─────────────────
   if [[ -z "$ca_pem" ]]; then
@@ -1045,7 +1110,12 @@ create_ca_configmap() {
     --dry-run=client -o yaml | k apply -f -
 
   success "ConfigMap workshop-ca-cert updated in namespace ${namespace}"
-  info "Backend pod will serve CA cert at /setup/ca.crt after next restart"
+
+  # Restart backend so the new cert mount is picked up immediately
+  if k get deployment nkp-lab-manager-backend -n "$namespace" &>/dev/null; then
+    k rollout restart deployment/nkp-lab-manager-backend -n "$namespace" &>/dev/null || true
+    info "Backend restarted to pick up new CA cert"
+  fi
 }
 
 # =============================================================================
@@ -1179,6 +1249,7 @@ main() {
   deploy_educates_platform
   wait_platform_ready
   publish_workshop
+  apply_observability_stack
   apply_training_portal
   wait_portal_ready
   extract_credentials

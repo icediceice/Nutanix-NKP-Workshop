@@ -129,6 +129,85 @@ All sessions should show `Running` status within 10 minutes.
 
 ---
 
+## NKP-Specific Cluster Preparation
+
+This section applies when running on an NKP (Nutanix Kubernetes Platform)
+workload cluster managed by Kommander. The bootstrap script handles all of
+this automatically, but understanding the why helps when troubleshooting.
+
+### Traefik ingress routing rules
+
+NKP uses Kommander-Traefik (`kommander-traefik` ingress class) as the cluster
+ingress controller. Two behaviours matter for workshop routing:
+
+1. **ExternalName services are blocked.** The ingress provider does not have
+   `allowExternalNameServices` enabled. Any Ingress whose backend points to an
+   ExternalName Service is silently dropped (Traefik logs the error but never
+   routes the path). **Rule:** put each Ingress in the same namespace as its
+   target Service.
+
+2. **IngressRoute CRDs are watched cluster-wide** (`--providers.kubernetescrd`
+   with no namespace restriction), but cross-namespace service references
+   require `allowCrossNamespace` which is not enabled. Use standard Ingress
+   objects (not IngressRoute) for simplicity.
+
+### Kyverno admission policies
+
+NKP installs Kyverno with `educates-environment-*` policies that enforce:
+
+- **No LoadBalancer services** in Educates session namespaces.
+  Use `ClusterIP` + Traefik ingress instead.
+- **Security contexts**: `runAsNonRoot: true`, `allowPrivilegeEscalation: false`,
+  `capabilities.drop: [ALL]` on containers in session namespaces.
+
+If ArgoCD shows an Application stuck OutOfSync with a Kyverno admission error,
+check the events in the session namespace:
+```bash
+kubectl -n <session-ns> get events | grep -i denied
+```
+
+### Observability stack
+
+Kiali and Jaeger are **not** installed by default on the NKP workload cluster.
+They are installed automatically by `bootstrap-educates.sh` via ArgoCD
+Applications defined in `workshops/nkp-workshop/resources/observability/`.
+
+| Tool | ArgoCD Application | Helm repo |
+|------|--------------------|-----------|
+| Kiali | `kiali.yaml` | `https://kiali.org/helm-charts` |
+| Jaeger | `jaeger.yaml` | `https://jaegertracing.github.io/helm-charts` |
+
+Both are deployed into `istio-system` in all-in-one mode.
+Ingresses for both live in `istio-system` to satisfy the ExternalName rule above.
+
+### ArgoCD subpath configuration
+
+ArgoCD is pre-installed on the workload cluster. To serve it at `/dkp/argocd`
+via Traefik, the bootstrap script patches `argocd-cmd-params-cm`:
+
+```bash
+kubectl -n argocd patch configmap argocd-cmd-params-cm --type merge \
+  -p '{"data":{"server.basehref":"/dkp/argocd","server.rootpath":"/dkp/argocd","server.insecure":"true"}}'
+kubectl -n argocd rollout restart deployment/argocd-server
+```
+
+`server.insecure: "true"` is required because Traefik terminates TLS and
+forwards plain HTTP to ArgoCD. Without it, ArgoCD redirects to HTTPS and
+the browser gets an infinite redirect loop.
+
+### Cilium network policy for Educates
+
+Cilium on NKP blocks ClusterIP + kube-dns egress from session pods by default.
+The `environment.objects` in `workshop.yaml` installs a `CiliumNetworkPolicy`
+that explicitly allows:
+- Egress to `kube-apiserver` and `world`
+- Egress to `kube-dns` on UDP/TCP 53
+- Egress to pods in `kube-system`, `nkp-workshop-ui`, and `kommander-default-workspace` (Traefik)
+
+Without this, session terminals cannot reach the API server or resolve DNS.
+
+---
+
 ## Teardown
 
 At the end of the workshop, run:
