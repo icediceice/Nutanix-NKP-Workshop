@@ -1,3 +1,12 @@
 # Full Workshop — All 6 labs (6–8 hours)
-# This is the default workshop file referenced by modules.yaml
 name: "NKP Full Workshop"
+modules:
+  activate:
+    - 00-workshop-overview
+    - 01-lab-01-application-deployment
+    - 02-lab-02-observability
+    - 03-lab-03-gitops-progressive-delivery
+    - 04-lab-04-storage-stateful-workloads
+    - 05-lab-05-production-operations
+    - 06-lab-06-multitenancy-governance
+    - 99-workshop-summary

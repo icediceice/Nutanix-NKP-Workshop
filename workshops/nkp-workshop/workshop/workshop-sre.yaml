@@ -1,3 +1,10 @@
 # SRE Operations Focus — Labs 2, 4, 5 (4 hours)
 # Deep dive: observability, storage, production operations
 name: "NKP SRE Operations Focus"
+modules:
+  activate:
+    - 00-workshop-overview
+    - 02-lab-02-observability
+    - 04-lab-04-storage-stateful-workloads
+    - 05-lab-05-production-operations
+    - 99-workshop-summary

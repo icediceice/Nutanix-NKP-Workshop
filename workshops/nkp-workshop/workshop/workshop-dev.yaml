@@ -1,3 +1,11 @@
 # Developer Fast Track — Labs 1, 2, 3, 5 (4 hours)
 # Focused on deployment, observability, GitOps, and incident response
 name: "NKP Developer Fast Track"
+modules:
+  activate:
+    - 00-workshop-overview
+    - 01-lab-01-application-deployment
+    - 02-lab-02-observability
+    - 03-lab-03-gitops-progressive-delivery
+    - 05-lab-05-production-operations
+    - 99-workshop-summary
