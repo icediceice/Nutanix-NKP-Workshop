@@ -3,7 +3,6 @@ kind: Kustomization
 # Lab 4 Restore: adds restored PVC (from snapshot) + second postgres instance.
 resources:
   - ../lab-04-start/frontend-only.yaml
-  - ../../base/namespace.yaml
   - ../../../../apps/stateful/base/postgres-statefulset.yaml
   - ../../../../apps/stateful/base/postgres-service.yaml
   - ../../../../apps/stateful/base/volumesnapshot.yaml

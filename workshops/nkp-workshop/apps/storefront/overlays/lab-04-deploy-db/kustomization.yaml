@@ -3,7 +3,6 @@ kind: Kustomization
 # Lab 4 Deploy DB: adds PostgreSQL StatefulSet + PVC.
 resources:
   - ../lab-04-start/frontend-only.yaml
-  - ../../base/namespace.yaml
   - ../../../../apps/stateful/base/postgres-statefulset.yaml
   - ../../../../apps/stateful/base/postgres-service.yaml
   - ../../../../platform/quotas/resourcequota-demo-app.yaml

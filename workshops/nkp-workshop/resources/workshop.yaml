@@ -53,7 +53,7 @@ spec:
       - name: Grafana
         url: https://$(ingress_domain)/dkp/logging/grafana
       - name: Demo Wall
-        url: http://demo-wall.$(session_name)-ops.svc.cluster.local:9090
+        url: http://demo-wall.$(session_namespace).svc.cluster.local:9090
       - name: NKP Console
         url: https://$(ingress_domain)/dkp/kommander/dashboard
 
@@ -105,6 +105,33 @@ spec:
             repoURL: https://github.com/icediceice/Nutanix-NKP-Workshop.git
             targetRevision: main
             path: workshops/nkp-workshop/apps/storefront/overlays/lab-01-start
+            kustomize:
+              # Override all resource namespaces to the per-session namespace.
+              # kustomize namespace transformer also updates ClusterRoleBinding subjects[].
+              namespace: $(session_namespace)
+              patches:
+                # demo-wall needs to know which namespace to monitor
+                - patch: |-
+                    apiVersion: v1
+                    kind: ConfigMap
+                    metadata:
+                      name: demo-wall-config
+                    data:
+                      APP_NAMESPACE: "$(session_namespace)"
+                  target:
+                    kind: ConfigMap
+                    name: demo-wall-config
+                # loadgen target URL must point to per-session frontend
+                - patch: |-
+                    apiVersion: v1
+                    kind: ConfigMap
+                    metadata:
+                      name: loadgen-config
+                    data:
+                      TARGET_HOST: "http://frontend.$(session_namespace).svc.cluster.local"
+                  target:
+                    kind: ConfigMap
+                    name: loadgen-config
           destination:
             server: https://kubernetes.default.svc
             namespace: $(session_namespace)
