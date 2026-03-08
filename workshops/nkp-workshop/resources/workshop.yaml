@@ -60,8 +60,8 @@ spec:
         url: https://$(ingress_domain)/dkp/logging/grafana
       - name: Demo Wall
         url: http://demo-wall.$(session_namespace).svc.cluster.local:9090
-      - name: K8s Dashboard
-        url: https://$(ingress_domain)/dkp/kubernetes
+      - name: NKP Console
+        url: https://10.8.16.16/dkp/kommander/dashboard
 
     env:
       - name: WORKSHOP_NAMESPACE
