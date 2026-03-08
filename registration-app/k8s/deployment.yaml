@@ -27,12 +27,20 @@ spec:
           envFrom:
             - secretRef:
                 name: nkp-lab-manager-secrets
+          env:
+            - name: KUBECONFIG_PATH
+              value: /app/kubeconfigs/workload01.conf
           volumeMounts:
             - name: data
               mountPath: /app/data
             - name: courses
               mountPath: /app/courses.yaml
               subPath: courses.yaml
+            - name: workshop-ca
+              mountPath: /app/ca
+            - name: kubeconfigs
+              mountPath: /app/kubeconfigs
+              readOnly: true
           livenessProbe:
             httpGet:
               path: /health
@@ -53,6 +61,14 @@ spec:
         - name: courses
           configMap:
             name: nkp-lab-manager-courses
+        - name: workshop-ca
+          configMap:
+            name: workshop-ca-cert
+            optional: true   # pod starts even if ConfigMap not yet created
+        - name: kubeconfigs
+          secret:
+            secretName: nkp-kubeconfigs
+            optional: true   # pod starts even if Secret not yet created
 
 ---
 apiVersion: apps/v1

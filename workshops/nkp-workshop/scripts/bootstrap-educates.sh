@@ -48,6 +48,7 @@ INGRESS_CLASS=""
 TRAEFIK_IP=""
 REGISTRY_HOST=""
 PORTAL_URL=""
+CERT_SETUP_URL=""
 
 # ─── Colors ───────────────────────────────────────────────────────────────────
 if [[ -t 1 ]]; then
@@ -309,6 +310,7 @@ clusterInfrastructure:
 clusterIngress:
   domain: "${INGRESS_DOMAIN}"
   class: "${INGRESS_CLASS}"
+  protocol: https
 
 clusterPackages:
   contour:
@@ -574,7 +576,508 @@ update_env_file() {
 }
 
 # =============================================================================
-# STEP 12 — End-to-end verification
+# STEP 11b — Extract workshop CA certificate from cluster
+# =============================================================================
+# Populates workshops/nkp-workshop/resources/workshop-ca.crt by:
+#   1. Checking for an existing file (idempotent)
+#   2. Scanning cert-manager / Traefik secrets for a CA cert
+#   3. Falling back to a generated self-signed CA (stored in cluster + file)
+# =============================================================================
+extract_workshop_ca_cert() {
+  step "Extract workshop CA certificate"
+
+  local ca_dest="${WORKSHOP_ROOT}/resources/workshop-ca.crt"
+
+  if [[ -f "$ca_dest" ]]; then
+    skip "workshop-ca.crt already present: ${ca_dest}"
+    return
+  fi
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    dry "Would extract CA cert from cluster to ${ca_dest}"
+    return
+  fi
+
+  info "Searching for workshop CA certificate in cluster..."
+
+  local ca_pem=""
+
+  # ── Attempt 1: cert-manager CA secrets ──────────────────────────────────
+  for ns in cert-manager kommander kommander-default-workspace; do
+    local secrets
+    secrets=$(k get secret -n "$ns" --no-headers 2>/dev/null \
+              | awk '{print $1}' || true)
+    for secret in $secrets; do
+      local raw
+      raw=$(k get secret -n "$ns" "$secret" \
+            -o jsonpath='{.data.ca\.crt}' 2>/dev/null || true)
+      if [[ -n "$raw" ]]; then
+        ca_pem=$(echo "$raw" | base64 -d)
+        info "  Found CA cert in secret ${ns}/${secret}"
+        break 2
+      fi
+    done
+  done
+
+  # ── Attempt 2: last cert in Traefik / wildcard TLS chain ─────────────────
+  if [[ -z "$ca_pem" ]]; then
+    for ns in kommander-default-workspace kube-system traefik; do
+      local secrets
+      secrets=$(k get secret -n "$ns" --no-headers 2>/dev/null \
+                | grep -iE "traefik|wildcard|tls|workshop" | awk '{print $1}' || true)
+      for secret in $secrets; do
+        local raw
+        raw=$(k get secret -n "$ns" "$secret" \
+              -o jsonpath='{.data.tls\.crt}' 2>/dev/null || true)
+        if [[ -n "$raw" ]]; then
+          # Extract the last (root CA) cert from the chain
+          local last_cert
+          last_cert=$(echo "$raw" | base64 -d \
+            | awk '/-----BEGIN CERTIFICATE-----/{c=""} {c=c $0 "\n"}
+                   /-----END CERTIFICATE-----/{last=c} END{printf "%s", last}')
+          if [[ -n "$last_cert" ]]; then
+            ca_pem="$last_cert"
+            info "  Extracted CA from TLS chain in ${ns}/${secret}"
+            break 2
+          fi
+        fi
+      done
+    done
+  fi
+
+  # ── Attempt 3: generate self-signed CA and install into cert-manager ─────
+  if [[ -z "$ca_pem" ]]; then
+    warn "No CA cert found in cluster — generating a self-signed workshop CA"
+    local tmpkey="/tmp/workshop-ca.key" tmpcrt="/tmp/workshop-ca.crt"
+    openssl req -x509 -newkey rsa:2048 -keyout "$tmpkey" -out "$tmpcrt" \
+      -days 825 -nodes \
+      -subj "/CN=NKP Workshop CA/O=NKP Workshop" \
+      -addext "basicConstraints=critical,CA:TRUE" \
+      -addext "keyUsage=critical,keyCertSign,cRLSign" 2>/dev/null
+    ca_pem=$(cat "$tmpcrt")
+
+    # Store key + cert as a cluster secret so cert-manager can use it later
+    k create namespace cert-manager --dry-run=client -o yaml | k apply -f - 2>/dev/null || true
+    k create secret tls workshop-ca \
+      --namespace=cert-manager \
+      --cert="$tmpcrt" --key="$tmpkey" \
+      --dry-run=client -o yaml | k apply -f -
+    success "Self-signed CA stored as secret cert-manager/workshop-ca"
+    rm -f "$tmpkey"
+  fi
+
+  mkdir -p "$(dirname "$ca_dest")"
+  printf '%s' "$ca_pem" > "$ca_dest"
+  success "Workshop CA cert saved: ${ca_dest}"
+  openssl x509 -in "$ca_dest" -noout -subject -issuer -dates 2>/dev/null || true
+}
+
+# =============================================================================
+# STEP 11c — Create kubeconfig Secret in cluster
+# =============================================================================
+# Packages all auth/*.conf files as a k8s Secret (nkp-kubeconfigs) in the
+# nkp-lab-manager namespace so the backend pod can reach both clusters.
+# =============================================================================
+create_kubeconfig_secret() {
+  step "Create kubeconfig Secret in cluster"
+
+  local namespace="nkp-lab-manager"
+  local secret_name="nkp-kubeconfigs"
+
+  if ! k get namespace "$namespace" &>/dev/null; then
+    warn "Namespace ${namespace} not found — skipping kubeconfig secret (deploy registration app first)"
+    return
+  fi
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    dry "Would create secret ${namespace}/${secret_name} from auth/*.conf files"
+    return
+  fi
+
+  # Build --from-file args for every kubeconfig present
+  local args=()
+  for conf in "$REPO_ROOT"/auth/*.conf; do
+    [[ -f "$conf" ]] && args+=("--from-file=$(basename "$conf")=$conf")
+  done
+
+  if [[ ${#args[@]} -eq 0 ]]; then
+    warn "No *.conf files found in auth/ — skipping kubeconfig secret"
+    return
+  fi
+
+  k create secret generic "$secret_name" \
+    --namespace="$namespace" \
+    "${args[@]}" \
+    --dry-run=client -o yaml | k apply -f -
+
+  success "Kubeconfig secret created: ${namespace}/${secret_name}"
+  info "  Files: $(printf '%s ' "${args[@]}" | sed 's/--from-file=//g')"
+}
+
+# =============================================================================
+# STEP 12 — Deploy standalone cert setup page (LoadBalancer, port 80)
+# =============================================================================
+deploy_cert_setup_page() {
+  step "Deploy certificate setup page"
+
+  local ca_cert="${WORKSHOP_ROOT}/resources/workshop-ca.crt"
+
+  if [[ ! -f "$ca_cert" ]]; then
+    warn "workshop-ca.crt not found — skipping cert setup page deployment"
+    return
+  fi
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    dry "Would deploy workshop-cert-setup to namespace workshop-setup"
+    return
+  fi
+
+  # Load portal URL from credentials file if available
+  local portal_url="${PORTAL_URL:-}"
+  if [[ -z "$portal_url" && -f "${WORKSHOP_ROOT}/.educates-credentials" ]]; then
+    portal_url=$(grep "^EDUCATES_PORTAL_URL=" "${WORKSHOP_ROOT}/.educates-credentials" \
+                 | cut -d= -f2- | tr -d '"' || true)
+  fi
+
+  local ca_cert_b64
+  ca_cert_b64=$(base64 -w0 < "$ca_cert")
+
+  # ── nginx config ──────────────────────────────────────────────────────────
+  local nginx_conf
+  nginx_conf=$(cat <<'NGINX'
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index setup.html;
+    location / { try_files $uri $uri/ /setup.html; }
+}
+NGINX
+)
+
+  # ── self-contained setup HTML ────────────────────────────────────────────
+  # CA cert and portal URL are baked in at deploy time.
+  local setup_html
+  setup_html=$(cat <<SETUP_HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NKP Workshop — Certificate Setup</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f5f5;color:#131313}
+.header{background:#4B00AA;color:#fff;padding:20px 32px}
+.header .sub{font-size:11px;letter-spacing:2px;opacity:.7;text-transform:uppercase}
+.header .title{font-size:20px;font-weight:700;margin-top:4px}
+.card{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.1);
+      padding:32px;max-width:640px;margin:36px auto;width:calc(100% - 32px)}
+h2{font-size:18px;font-weight:700;margin-bottom:8px}
+h3{font-size:15px;font-weight:700;margin-bottom:10px;margin-top:24px}
+p{font-size:14px;line-height:1.65;color:#555;margin-bottom:16px}
+.badge{background:#f0f0f0;border:1px solid #ddd;border-radius:4px;
+       padding:3px 10px;font-size:13px;font-weight:600;color:#555;display:inline-block;margin-bottom:20px}
+.steps{margin-bottom:24px}
+.step{display:flex;gap:14px;margin-bottom:14px;align-items:flex-start}
+.step-num{width:28px;height:28px;border-radius:50%;background:#4B00AA;color:#fff;
+          display:flex;align-items:center;justify-content:center;
+          font-weight:700;font-size:13px;flex-shrink:0;margin-top:1px}
+.step-text{font-size:14px;line-height:1.6;padding-top:2px}
+.btn{display:inline-block;padding:11px 22px;border-radius:6px;font-size:14px;
+     font-weight:700;cursor:pointer;border:none;text-decoration:none;text-align:center}
+.btn-primary{background:#4B00AA;color:#fff}
+.btn-verify{background:#1FDDE9;color:#131313}
+.btn-go{background:#2E7D32;color:#fff;width:100%;padding:14px;font-size:15px;margin-top:8px}
+.btn-secondary{font-size:13px;color:#7855FA;background:none;border:none;
+               padding:0;cursor:pointer;text-decoration:underline}
+.downloads{margin-bottom:28px}
+.extra-links{margin-top:10px;font-size:13px;color:#777}
+.extra-links a{color:#7855FA}
+hr{border:none;border-top:1px solid #e0e0e0;margin:24px 0}
+.verify-section{}
+.alert{padding:14px 16px;border-radius:6px;font-size:14px;line-height:1.6;margin-top:16px}
+.alert-error{background:#FFEBEE;border-left:4px solid #D32F2F;color:#b71c1c}
+.alert-success{background:#E8F5E9;border-left:4px solid #2E7D32;color:#1b5e20;font-weight:600}
+#verify-btn{margin-top:0}
+#status{}
+#go-btn{display:none}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="sub">Nutanix</div>
+  <div class="title">NKP Partner Workshop — Certificate Setup</div>
+</div>
+<div class="card">
+  <div class="badge" id="os-badge">Detecting your OS...</div>
+
+  <h2>One-time certificate setup required</h2>
+  <p>This workshop runs on an internal cluster with a self-signed TLS certificate.
+     Your browser needs to trust it before you can access your lab session.
+     This takes about 2 minutes and is a one-time step.</p>
+
+  <div class="steps" id="steps"></div>
+
+  <div class="downloads">
+    <a id="dl-cert" class="btn btn-primary" href="#" download="nkp-workshop-ca.crt">
+      &#8659; Download Certificate
+    </a>
+    <div id="extra-links" class="extra-links"></div>
+  </div>
+
+  <hr>
+
+  <div class="verify-section">
+    <h3>Verify your browser trusts the certificate</h3>
+    <p>After installing the certificate and <strong>restarting your browser</strong>,
+       click the button below to confirm it worked.</p>
+    <button id="verify-btn" class="btn btn-verify" onclick="doVerify()">&#10003; Verify Certificate</button>
+    <div id="status"></div>
+    <button id="go-btn" class="btn btn-go" onclick="gotoPortal()">Go to Workshop Portal &rarr;</button>
+  </div>
+</div>
+
+<script>
+// ── Baked in by bootstrap-educates.sh ─────────────────────────────────────
+const CA_CERT_B64  = "${ca_cert_b64}";
+const PORTAL_URL   = "${portal_url}";
+// ──────────────────────────────────────────────────────────────────────────
+
+const PS1 = \`# NKP Workshop CA Certificate Installer — run as Administrator
+\\\$scriptDir = Split-Path -Parent \\\$MyInvocation.MyCommand.Path
+\\\$certFile  = Join-Path \\\$scriptDir "nkp-workshop-ca.crt"
+if (-not (Test-Path \\\$certFile)) { Write-Host "ERROR: nkp-workshop-ca.crt not found next to this script." -ForegroundColor Red; pause; exit 1 }
+Write-Host "Installing..." -ForegroundColor Cyan
+certutil -addstore -f "Root" "\\\$certFile"
+if (\\\$LASTEXITCODE -eq 0) { Write-Host "Done! Restart your browser." -ForegroundColor Green } else { Write-Host "ERROR: run as Administrator." -ForegroundColor Red }
+pause\`;
+
+const BAT = \`@echo off
+echo NKP Workshop CA Certificate Installer - Run as Administrator
+certutil -addstore -f "Root" "%~dp0nkp-workshop-ca.crt"
+if %errorlevel%==0 ( echo Done! Restart your browser. ) else ( echo ERROR: Run as Administrator. )
+pause\`;
+
+function b64ToBlob(b64, mime) {
+  const bin = atob(b64), arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], {type: mime});
+}
+function textBlob(text) { return new Blob([text], {type: 'text/plain'}); }
+function blobUrl(blob) { return URL.createObjectURL(blob); }
+
+function detectOS() {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+  if (/Android/i.test(ua)) return 'android';
+  if (/Macintosh|MacIntel/i.test(ua)) return 'macos';
+  if (/Win/i.test(ua)) return 'windows';
+  if (/Linux/i.test(ua)) return 'linux';
+  return 'unknown';
+}
+
+const STEPS = {
+  macos: [
+    'Click "Download Certificate" below.',
+    'The file opens in Keychain Access automatically. Click <strong>Add</strong>.',
+    'In Keychain Access, find <strong>NKP Workshop CA</strong> under the System keychain. Double-click it.',
+    'Expand <strong>Trust</strong> &rarr; set "When using this certificate" to <strong>Always Trust</strong>. Close the window and enter your password.',
+    'Quit and restart your browser, then click <strong>Verify</strong> below.'
+  ],
+  ios: [
+    'Tap "Download Certificate" below.',
+    'Go to <strong>Settings &rarr; General &rarr; VPN &amp; Device Management</strong> &rarr; tap the downloaded profile &rarr; <strong>Install</strong>.',
+    'Go to <strong>Settings &rarr; General &rarr; About &rarr; Certificate Trust Settings</strong> and enable full trust for <strong>NKP Workshop CA</strong>.',
+    'Return here and tap <strong>Verify</strong>.'
+  ],
+  windows: [
+    'Click "Download Installer (.ps1)" below — save it to a folder.',
+    'Also download the certificate and save it to <strong>the same folder</strong>.',
+    'Right-click <strong>Install-NKP-Workshop-CA.ps1</strong> &rarr; <strong>Run with PowerShell</strong>. Approve any admin prompt.',
+    'Alternatively, rename the .ps1 to .bat and double-click &rarr; Run as administrator.',
+    'Restart your browser, then click <strong>Verify</strong> below.'
+  ],
+  android: [
+    'Tap "Download Certificate" below.',
+    'Go to <strong>Settings &rarr; Security &rarr; Install from storage</strong> (exact wording varies by device).',
+    'Select the downloaded file. Name it <strong>NKP Workshop CA</strong> and install as <strong>CA certificate</strong>.',
+    'Return here and tap <strong>Verify</strong>.'
+  ],
+  linux: [
+    'Click "Download Certificate" below.',
+    'Run: <code>sudo cp nkp-workshop-ca.crt /usr/local/share/ca-certificates/ &amp;&amp; sudo update-ca-certificates</code>',
+    'For Chrome: Settings &rarr; Privacy &amp; Security &rarr; Security &rarr; Manage certificates &rarr; Authorities &rarr; Import.',
+    'Restart your browser, then click <strong>Verify</strong>.'
+  ],
+  unknown: [
+    'Download the certificate below.',
+    'Install it as a trusted root CA in your operating system certificate store.',
+    'Restart your browser, then click <strong>Verify</strong>.'
+  ]
+};
+
+const OS_LABELS = {
+  macos:'macOS \uD83C\uDF4E', ios:'iPhone/iPad \uD83D\uDCF1',
+  windows:'Windows \uD83E\uDE9F', android:'Android \uD83E\uDD16',
+  linux:'Linux \uD83D\uDC27', unknown:'Your Device \uD83D\uDCBB'
+};
+
+const os = detectOS();
+document.getElementById('os-badge').textContent = 'Detected: ' + OS_LABELS[os];
+
+// Render steps
+const stepsEl = document.getElementById('steps');
+(STEPS[os] || STEPS.unknown).forEach((text, i) => {
+  stepsEl.innerHTML += \`<div class="step">
+    <div class="step-num">\${i+1}</div>
+    <div class="step-text">\${text}</div>
+  </div>\`;
+});
+
+// Set up download links
+const certBlob = b64ToBlob(CA_CERT_B64, 'application/x-x509-ca-cert');
+const certUrl  = blobUrl(certBlob);
+const dlCert   = document.getElementById('dl-cert');
+dlCert.href    = certUrl;
+
+const extraEl  = document.getElementById('extra-links');
+if (os === 'windows') {
+  dlCert.textContent = '\u2B07 Download Certificate (.crt)';
+  const ps1Url = blobUrl(textBlob(PS1));
+  const batUrl = blobUrl(textBlob(BAT));
+  extraEl.innerHTML =
+    \`Also: <a href="\${ps1Url}" download="Install-NKP-Workshop-CA.ps1">PowerShell installer (.ps1)</a>
+     &middot; <a href="\${batUrl}" download="install-nkp-workshop-ca.bat">Batch installer (.bat)</a>
+     <br><em>Save cert and installer to the same folder before running.</em>\`;
+}
+
+// Verify
+async function doVerify() {
+  const btn = document.getElementById('verify-btn');
+  const st  = document.getElementById('status');
+  if (!PORTAL_URL) {
+    st.innerHTML = '<div class="alert alert-error"><strong>Portal URL not configured.</strong> Ask your trainer for the correct setup URL.</div>';
+    return;
+  }
+  btn.textContent = '\u23F3 Checking...';
+  btn.disabled = true;
+  try {
+    await fetch(PORTAL_URL, {mode:'no-cors', cache:'no-store'});
+    st.innerHTML = '<div class="alert alert-success">\u2705 Certificate trusted! Your browser can connect to the workshop.</div>';
+    document.getElementById('go-btn').style.display = 'block';
+    btn.style.display = 'none';
+  } catch(_) {
+    st.innerHTML = '<div class="alert alert-error"><strong>Not trusted yet.</strong> Make sure you completed all steps above and restarted your browser completely, then try again.</div>';
+    btn.textContent = '\u2713 Verify Certificate';
+    btn.disabled = false;
+  }
+}
+
+function gotoPortal() { window.location.href = PORTAL_URL; }
+</script>
+</body>
+</html>
+SETUP_HTML
+)
+
+  # Create namespace
+  k create namespace workshop-setup --dry-run=client -o yaml | k apply -f -
+
+  # Create ConfigMaps
+  k create configmap workshop-cert-setup-nginx \
+    --namespace=workshop-setup \
+    --from-literal=default.conf="$nginx_conf" \
+    --dry-run=client -o yaml | k apply -f -
+
+  k create configmap workshop-cert-setup-html \
+    --namespace=workshop-setup \
+    --from-literal=setup.html="$setup_html" \
+    --dry-run=client -o yaml | k apply -f -
+
+  # Deploy
+  k apply -f "${WORKSHOP_ROOT}/resources/cert-setup.yaml"
+
+  # Wait for LB IP
+  info "Waiting for LoadBalancer IP..."
+  local setup_ip="" elapsed=0
+  until [[ -n "$setup_ip" ]]; do
+    (( elapsed >= 120 )) && { warn "Timed out waiting for cert-setup LoadBalancer IP"; return; }
+    setup_ip=$(k get svc workshop-cert-setup -n workshop-setup \
+      -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+    [[ -z "$setup_ip" ]] && { sleep 5; (( elapsed += 5 )); }
+  done
+
+  success "Certificate setup page: http://${setup_ip}/"
+  info "Share this URL with attendees before the workshop starts."
+
+  # Store for use in summary
+  CERT_SETUP_URL="http://${setup_ip}/"
+}
+
+# =============================================================================
+# STEP 13 — Publish CA cert to registration app ConfigMap
+# =============================================================================
+create_ca_configmap() {
+  step "Publish workshop CA cert to registration app ConfigMap"
+
+  local ca_cert="${WORKSHOP_ROOT}/resources/workshop-ca.crt"
+  local namespace="nkp-lab-manager"
+
+  if [[ ! -f "$ca_cert" ]]; then
+    warn "workshop-ca.crt not found at ${ca_cert} — skipping ConfigMap creation"
+    warn "Generate a wildcard cert first and save it to resources/workshop-ca.crt"
+    return
+  fi
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    dry "Would create ConfigMap workshop-ca-cert in namespace ${namespace} from ${ca_cert}"
+    return
+  fi
+
+  if ! k get namespace "$namespace" &>/dev/null; then
+    warn "Namespace ${namespace} not found — skipping CA ConfigMap (registration app not deployed yet)"
+    return
+  fi
+
+  k create configmap workshop-ca-cert \
+    --namespace="$namespace" \
+    --from-file=workshop-ca.crt="$ca_cert" \
+    --dry-run=client -o yaml | k apply -f -
+
+  success "ConfigMap workshop-ca-cert updated in namespace ${namespace}"
+  info "Backend pod will serve CA cert at /setup/ca.crt after next restart"
+}
+
+# =============================================================================
+# STEP 13 — Apply registration app IngressRoute
+# =============================================================================
+apply_registration_ingressroute() {
+  step "Apply registration app IngressRoute"
+
+  local ingressroute="${REPO_ROOT}/registration-app/k8s/ingressroute.yaml"
+  local namespace="nkp-lab-manager"
+
+  if [[ ! -f "$ingressroute" ]]; then
+    warn "ingressroute.yaml not found at ${ingressroute} — skipping"
+    return
+  fi
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    dry "Would apply IngressRoute for nkp-lab-manager.${INGRESS_DOMAIN}"
+    return
+  fi
+
+  if ! k get namespace "$namespace" &>/dev/null; then
+    warn "Namespace ${namespace} not found — skipping IngressRoute (registration app not deployed)"
+    return
+  fi
+
+  DOMAIN="$INGRESS_DOMAIN" envsubst < "$ingressroute" | k apply -f -
+  success "IngressRoute applied: http://nkp-lab-manager.${INGRESS_DOMAIN} and https://nkp-lab-manager.${INGRESS_DOMAIN}"
+}
+
+# =============================================================================
+# STEP 14 — End-to-end verification
 # =============================================================================
 verify_e2e() {
   step "End-to-end verification"
@@ -643,6 +1146,7 @@ verify_e2e() {
     echo -e "${C_BOLD}  ALL CHECKS PASSED — Workshop is live!${C_RESET}"
     echo -e "${C_BOLD}${C_GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${C_RESET}"
     echo "  Portal:  ${PORTAL_URL:-<not available>}"
+    echo "  Setup:   ${CERT_SETUP_URL:-<run deploy_cert_setup_page to get URL>}  ← send this to attendees first"
     echo "  ArgoCD:  http://10.8.16.55  (check ip with: kubectl -n argocd get svc argocd-server)"
     echo "  App:     http://$(k -n istio-system get svc istio-ingressgateway \
       -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo '<detect>')"
@@ -679,6 +1183,11 @@ main() {
   wait_portal_ready
   extract_credentials
   update_env_file
+  extract_workshop_ca_cert
+  deploy_cert_setup_page
+  create_ca_configmap
+  create_kubeconfig_secret
+  apply_registration_ingressroute
   verify_e2e
 
   echo ""
