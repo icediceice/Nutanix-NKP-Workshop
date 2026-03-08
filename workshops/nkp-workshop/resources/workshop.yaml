@@ -19,7 +19,7 @@ spec:
       - git:
           url: https://github.com/icediceice/Nutanix-NKP-Workshop
           ref: main
-        newRootPath: workshops/nkp-workshop/workshop
+        newRootPath: workshops/nkp-workshop
 
   session:
     namespaces:
