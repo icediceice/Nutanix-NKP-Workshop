@@ -7,16 +7,15 @@ spec:
   description: "Deploy, observe, ship, troubleshoot, and govern — hands-on with a live NKP cluster."
   url: https://github.com/icediceice/Nutanix-NKP-Workshop
 
-  publish:
-    image: "$(image_repository)/nkp-workshop-files:$(workshop_version)"
-
   workshop:
     files:
-      - image:
-          url: "$(image_repository)/nkp-workshop-files:$(workshop_version)"
+      - git:
+          url: https://github.com/icediceice/Nutanix-NKP-Workshop
+          ref: main
         includePaths:
-          - /workshop/**
-          - /exercises/**
+          - /workshops/nkp-workshop/workshop/**
+          - /workshops/nkp-workshop/exercises/**
+        newRootPath: workshops/nkp-workshop
 
   session:
     namespaces:
@@ -93,4 +92,29 @@ spec:
               - CreateNamespace=false
 
   environment:
-    objects: []
+    objects:
+      # Fix: Cilium on NKP blocks ClusterIP + kube-dns for session pods via ipBlock rules.
+      # This CiliumNetworkPolicy explicitly allows kube-apiserver + kube-dns egress.
+      - apiVersion: cilium.io/v2
+        kind: CiliumNetworkPolicy
+        metadata:
+          name: educates-allow-cluster-egress
+        spec:
+          endpointSelector: {}
+          egress:
+            - toEntities:
+                - kube-apiserver
+                - world
+            - toEndpoints:
+                - matchLabels:
+                    k8s-app: kube-dns
+                    io.kubernetes.pod.namespace: kube-system
+              toPorts:
+                - ports:
+                    - port: "53"
+                      protocol: UDP
+                    - port: "53"
+                      protocol: TCP
+            - toEndpoints:
+                - matchLabels:
+                    io.kubernetes.pod.namespace: kube-system
