@@ -6,7 +6,7 @@ metadata:
   labels:
     app: demo-wall
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: demo-wall
   ports:

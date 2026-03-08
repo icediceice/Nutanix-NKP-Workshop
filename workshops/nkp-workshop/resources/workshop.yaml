@@ -116,6 +116,27 @@ spec:
               # kustomize namespace transformer also updates ClusterRoleBinding subjects[].
               namespace: $(session_namespace)
               patches:
+                # Rename cluster-scoped RBAC per session to avoid cross-session conflicts.
+                - patch: |-
+                    apiVersion: rbac.authorization.k8s.io/v1
+                    kind: ClusterRole
+                    metadata:
+                      name: demo-wall-reader-$(session_namespace)
+                  target:
+                    kind: ClusterRole
+                    name: demo-wall-reader
+                - patch: |-
+                    apiVersion: rbac.authorization.k8s.io/v1
+                    kind: ClusterRoleBinding
+                    metadata:
+                      name: demo-wall-reader-$(session_namespace)
+                    roleRef:
+                      apiGroup: rbac.authorization.k8s.io
+                      kind: ClusterRole
+                      name: demo-wall-reader-$(session_namespace)
+                  target:
+                    kind: ClusterRoleBinding
+                    name: demo-wall-reader
                 # demo-wall needs to know which namespace to monitor
                 - patch: |-
                     apiVersion: v1
