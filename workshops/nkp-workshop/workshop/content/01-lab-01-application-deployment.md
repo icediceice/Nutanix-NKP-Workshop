@@ -67,7 +67,7 @@ session: 2
 Once all pods are Running, open the ArgoCD UI to see all resources synced:
 
 ```dashboard:open-url
-url: https://argocd.$(ingress_domain)/applications/argocd/rx-demo-$(session_name)
+url: https://$(ingress_domain)/dkp/argocd/applications/argocd/rx-demo-$(session_name)
 name: ArgoCD
 ```
 

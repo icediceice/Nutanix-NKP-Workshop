@@ -51,7 +51,7 @@ spec:
       - name: Storefront
         url: http://frontend.$(session_namespace).svc.cluster.local
       - name: ArgoCD
-        url: http://10.8.16.55/applications/argocd/rx-demo-$(session_name)
+        url: https://$(ingress_domain)/dkp/argocd/applications/argocd/rx-demo-$(session_name)
       - name: Kiali
         url: https://$(ingress_domain)/dkp/kiali/console/graph/namespaces/?namespaces=$(session_namespace)
       - name: Jaeger
@@ -96,6 +96,31 @@ spec:
           apiGroup: rbac.authorization.k8s.io
           kind: ClusterRole
           name: $(session_name)-cluster-reader
+        subjects:
+          - kind: ServiceAccount
+            name: $(session_name)
+            namespace: $(environment_name)
+      # Grant session SA permission to patch its own ArgoCD Application.
+      # Required by switch-lab.sh which runs: kubectl -n argocd patch application rx-demo-$(session_name)
+      - apiVersion: rbac.authorization.k8s.io/v1
+        kind: Role
+        metadata:
+          name: $(session_name)-argocd-app-patcher
+          namespace: argocd
+        rules:
+          - apiGroups: ["argoproj.io"]
+            resources: ["applications"]
+            resourceNames: ["rx-demo-$(session_name)"]
+            verbs: ["get", "patch", "update"]
+      - apiVersion: rbac.authorization.k8s.io/v1
+        kind: RoleBinding
+        metadata:
+          name: $(session_name)-argocd-app-patcher
+          namespace: argocd
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: Role
+          name: $(session_name)-argocd-app-patcher
         subjects:
           - kind: ServiceAccount
             name: $(session_name)
