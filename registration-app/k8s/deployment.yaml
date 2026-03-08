@@ -116,4 +116,4 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: nutanix-volumes
+  storageClassName: nutanix-volume
