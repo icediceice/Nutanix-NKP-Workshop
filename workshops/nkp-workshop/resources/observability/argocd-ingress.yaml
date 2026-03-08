@@ -1,0 +1,25 @@
+---
+# Route ArgoCD through Traefik at /dkp/argocd so it's accessible over HTTPS
+# via $(ingress_domain). Ingress must live in the argocd namespace so Traefik
+# can resolve argocd-server directly (ExternalName services are blocked).
+# ArgoCD must have server.basehref=/dkp/argocd and server.rootpath=/dkp/argocd
+# in argocd-cmd-params-cm for SPA links to work correctly at this subpath.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd
+  namespace: argocd
+  annotations:
+    kubernetes.io/ingress.class: kommander-traefik
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /dkp/argocd
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 80
