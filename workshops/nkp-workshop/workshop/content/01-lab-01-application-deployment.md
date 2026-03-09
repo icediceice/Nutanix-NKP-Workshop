@@ -71,7 +71,10 @@ url: https://%ingress_domain%/dkp/argocd/applications/argocd/rx-demo-%session_na
 name: ArgoCD
 ```
 
-> **Login** — `jovial_haibt` / `yKJFbW9TIVNNyU064dnxmvINmPOrEmHkZzH09OcWTxCwZo4NunvoPgJMJ7j3zKR6`
+```terminal:execute
+command: echo "Platform Login ——  Username: $DKP_USERNAME  |  Password: $DKP_PASSWORD"
+session: 1
+```
 
 Then open the storefront:
 
@@ -113,7 +116,10 @@ url: https://%ingress_domain%/dkp/kiali/console/graph/namespaces/?namespaces=%se
 name: Kiali
 ```
 
-> **Login** — `jovial_haibt` / `yKJFbW9TIVNNyU064dnxmvINmPOrEmHkZzH09OcWTxCwZo4NunvoPgJMJ7j3zKR6`
+```terminal:execute
+command: echo "Platform Login ——  Username: $DKP_USERNAME  |  Password: $DKP_PASSWORD"
+session: 1
+```
 
 You should see traffic flowing: `frontend` → `checkout-api` → `payment-mock-v1`, and `frontend` → `catalog`.
 

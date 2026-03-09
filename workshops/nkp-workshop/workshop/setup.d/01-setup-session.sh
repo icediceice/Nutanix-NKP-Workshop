@@ -22,12 +22,22 @@ _detect_ingress_domain() {
 # Use INGRESS_DOMAIN from Educates env if already set, else auto-detect
 RESOLVED_INGRESS="${INGRESS_DOMAIN:-$(_detect_ingress_domain)}"
 
+# ── Fetch DKP platform credentials from environment-namespace secret ───────────
+# The secret is created by bootstrap-educates.sh; strip -sNNN suffix to get env namespace.
+_ENV_NS=$(echo "${SESSION_NAME}" | sed 's/-s[0-9]*$//')
+_DKP_USER=$(kubectl get secret dkp-workshop-credentials -n "${_ENV_NS}" \
+  -o jsonpath='{.data.username}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+_DKP_PASS=$(kubectl get secret dkp-workshop-credentials -n "${_ENV_NS}" \
+  -o jsonpath='{.data.password}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+
 # ── Write session env vars ─────────────────────────────────────────────────────
 cat >> "$WORKSHOP_ENV" <<EOF
 export SESSION_NS=${SESSION_NAMESPACE}
 export OPS_NS=${SESSION_NAME}-ops
 export ARGOCD_APP=rx-demo-${SESSION_NAME}
 export INGRESS_DOMAIN=${RESOLVED_INGRESS}
+export DKP_USERNAME=${_DKP_USER}
+export DKP_PASSWORD=${_DKP_PASS}
 EOF
 
 # ── Wait for ArgoCD Application (created by session.objects) ──────────────────

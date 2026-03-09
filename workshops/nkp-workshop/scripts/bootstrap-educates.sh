@@ -591,6 +591,53 @@ EOF
 }
 
 # =============================================================================
+# STEP 10b — Create DKP credentials Secret in workshop environment namespace
+# =============================================================================
+create_dkp_credentials_secret() {
+  step "Create DKP credentials Secret for workshop sessions"
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    dry "Would create dkp-workshop-credentials Secret in workshop environment namespace"
+    return
+  fi
+
+  # Derive management cluster kubeconfig path (sibling of workload kubeconfig)
+  local mgmt_kube="${KUBECONFIG_PATH%/*}/nkp.conf"
+  if [[ ! -f "$mgmt_kube" ]]; then
+    warn "Management kubeconfig not found at $mgmt_kube — skipping DKP credentials Secret"
+    return
+  fi
+
+  local dkp_user dkp_pass
+  dkp_user=$(kubectl --kubeconfig="$mgmt_kube" get secret dkp-credentials \
+    -n kommander -o jsonpath='{.data.username}' 2>/dev/null | base64 -d || true)
+  dkp_pass=$(kubectl --kubeconfig="$mgmt_kube" get secret dkp-credentials \
+    -n kommander -o jsonpath='{.data.password}' 2>/dev/null | base64 -d || true)
+
+  if [[ -z "$dkp_user" || -z "$dkp_pass" ]]; then
+    warn "Could not read dkp-credentials from management cluster — skipping"
+    return
+  fi
+
+  # Detect the workshop training environment namespace (nkp-workshop-w*)
+  local env_ns
+  env_ns=$(k get namespace -o name 2>/dev/null \
+    | grep "namespace/nkp-workshop-w[0-9]" | head -1 | cut -d/ -f2 || true)
+  if [[ -z "$env_ns" ]]; then
+    warn "Workshop training environment namespace not found — skipping DKP credentials Secret"
+    return
+  fi
+
+  k create secret generic dkp-workshop-credentials \
+    -n "$env_ns" \
+    --from-literal=username="$dkp_user" \
+    --from-literal=password="$dkp_pass" \
+    --dry-run=client -o yaml | k apply -f -
+
+  success "DKP credentials Secret created in $env_ns"
+}
+
+# =============================================================================
 # STEP 11 — Update registration app .env
 # =============================================================================
 update_env_file() {
@@ -1253,6 +1300,7 @@ main() {
   apply_training_portal
   wait_portal_ready
   extract_credentials
+  create_dkp_credentials_secret
   update_env_file
   extract_workshop_ca_cert
   deploy_cert_setup_page

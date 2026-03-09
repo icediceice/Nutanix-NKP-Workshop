@@ -39,10 +39,10 @@ Your session has:
 All platform dashboards (ArgoCD, Kiali, Jaeger, Grafana, NKP Console) share one login.
 Log in once — your browser session covers all tabs.
 
-| | |
-|---|---|
-| **Username** | `jovial_haibt` |
-| **Password** | `yKJFbW9TIVNNyU064dnxmvINmPOrEmHkZzH09OcWTxCwZo4NunvoPgJMJ7j3zKR6` |
+```terminal:execute
+command: echo "Platform Login ——  Username: $DKP_USERNAME  |  Password: $DKP_PASSWORD"
+session: 1
+```
 
 ---
 

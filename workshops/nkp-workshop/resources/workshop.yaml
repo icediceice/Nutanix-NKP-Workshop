@@ -245,6 +245,29 @@ spec:
 
   environment:
     objects:
+      # Grant all session SAs in this environment read access to the DKP credentials secret.
+      # The secret itself is created by bootstrap-educates.sh (not hardcoded here).
+      - apiVersion: rbac.authorization.k8s.io/v1
+        kind: Role
+        metadata:
+          name: dkp-credentials-reader
+        rules:
+          - apiGroups: [""]
+            resources: ["secrets"]
+            resourceNames: ["dkp-workshop-credentials"]
+            verbs: ["get"]
+      - apiVersion: rbac.authorization.k8s.io/v1
+        kind: RoleBinding
+        metadata:
+          name: dkp-credentials-reader
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: Role
+          name: dkp-credentials-reader
+        subjects:
+          - kind: Group
+            name: system:serviceaccounts:$(environment_name)
+            apiGroup: rbac.authorization.k8s.io
       # Fix: Cilium on NKP blocks ClusterIP + kube-dns for session pods via ipBlock rules.
       # This CiliumNetworkPolicy explicitly allows kube-apiserver + kube-dns egress.
       - apiVersion: cilium.io/v2
