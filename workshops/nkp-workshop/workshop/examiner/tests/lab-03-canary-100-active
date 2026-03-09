@@ -1,0 +1,4 @@
+#!/bin/bash
+V2=$(kubectl -n "$SESSION_NS" get virtualservice payment-mock-vs \
+  -o jsonpath='{.spec.http[0].route[1].weight}' 2>/dev/null)
+[ "$V2" = "100" ] && exit 0 || exit 1

@@ -1,0 +1,3 @@
+#!/bin/bash
+kubectl get storageclass nutanix-volumes &>/dev/null && \
+  kubectl get storageclass nutanix-files &>/dev/null && exit 0 || exit 1

@@ -1,0 +1,4 @@
+#!/bin/bash
+MODE=$(kubectl get k8sdemorequiredlabels demo-required-labels \
+  -o jsonpath='{.spec.enforcementAction}' 2>/dev/null)
+[ "$MODE" = "deny" ] && exit 0 || exit 1

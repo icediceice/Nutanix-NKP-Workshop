@@ -1,0 +1,4 @@
+#!/bin/bash
+STOREFRONT=$(kubectl -n "$SESSION_NS" get svc frontend \
+  -o jsonpath='{.spec.clusterIP}' 2>/dev/null)
+[ -n "$STOREFRONT" ] && exit 0 || exit 1

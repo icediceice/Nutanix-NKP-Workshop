@@ -1,0 +1,4 @@
+#!/bin/bash
+STATUS=$(kubectl -n "$SESSION_NS" get pod postgres-restored-0 \
+  -o jsonpath='{.status.phase}' 2>/dev/null)
+[ "$STATUS" = "Running" ] && exit 0 || exit 1

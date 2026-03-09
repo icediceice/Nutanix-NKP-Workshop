@@ -1,0 +1,3 @@
+#!/bin/bash
+kubectl -n "$SESSION_NS" get virtualservice payment-mock-vs -o yaml 2>/dev/null | \
+  grep -q 'mirror' && exit 0 || exit 1

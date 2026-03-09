@@ -1,0 +1,4 @@
+#!/bin/bash
+LATENCY=$(kubectl -n "$SESSION_NS" get deploy payment-mock-v2 \
+  -o jsonpath='{.spec.template.metadata.annotations.latency}' 2>/dev/null)
+[ "$LATENCY" = "1000" ] && exit 0 || exit 1

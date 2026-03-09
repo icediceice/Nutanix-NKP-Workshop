@@ -1,0 +1,2 @@
+#!/bin/bash
+kubectl -n "$SESSION_NS" get deploy quota-stress &>/dev/null && exit 0 || exit 1

@@ -30,7 +30,7 @@ session: 1
 Open the Demo Wall to see the platform state:
 
 ```dashboard:open-url
-url: http://demo-wall.$(session_name)-ops.svc.cluster.local:9090
+url: http://demo-wall.$(session_namespace).svc.cluster.local:9090
 name: Demo Wall
 ```
 
