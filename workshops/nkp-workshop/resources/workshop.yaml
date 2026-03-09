@@ -28,9 +28,13 @@ spec:
         max:
           cpu: "16"
           memory: "32Gi"
+      security:
+        policy: privileged
       secondary:
         - name: $(session_name)-ops
           budget: small
+          security:
+            policy: baseline
 
     applications:
       workshop:
