@@ -23,14 +23,14 @@ session: 1
 Open the Storefront and click **Checkout** 3 times. Feel the slowness.
 
 ```dashboard:open-url
-url: http://frontend.$(session_namespace).svc.cluster.local
+url: https://frontend-%session_name%.%ingress_domain%/
 name: Storefront
 ```
 
 Open Jaeger and look at recent traces — find a slow one:
 
 ```dashboard:open-url
-url: https://$(ingress_domain)/dkp/jaeger/search?service=frontend&namespace=$(session_namespace)
+url: https://%ingress_domain%/dkp/jaeger/search?service=frontend&namespace=%session_namespace%
 name: Jaeger
 ```
 
@@ -61,7 +61,7 @@ session: 1
 In **Kiali**, watch for **red edges** on the payment-mock-v2 path:
 
 ```dashboard:open-url
-url: https://$(ingress_domain)/dkp/kiali/console/graph/namespaces/?namespaces=$(session_namespace)
+url: https://%ingress_domain%/dkp/kiali/console/graph/namespaces/?namespaces=%session_namespace%
 name: Kiali
 ```
 

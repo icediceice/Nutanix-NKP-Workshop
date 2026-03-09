@@ -25,7 +25,7 @@ In **Kiali**, look for a **dashed line** between `checkout-api` and `payment-moc
 Open the Storefront and refresh several times:
 
 ```dashboard:open-url
-url: http://frontend.$(session_namespace).svc.cluster.local
+url: https://frontend-%session_name%.%ingress_domain%/
 name: Storefront
 ```
 

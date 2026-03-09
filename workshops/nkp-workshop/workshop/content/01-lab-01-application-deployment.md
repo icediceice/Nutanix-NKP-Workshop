@@ -30,7 +30,7 @@ session: 1
 Open the Demo Wall to see the platform state:
 
 ```dashboard:open-url
-url: http://demo-wall.$(session_namespace).svc.cluster.local:9090
+url: https://demo-wall-%session_name%.%ingress_domain%/
 name: Demo Wall
 ```
 
@@ -67,14 +67,14 @@ session: 2
 Once all pods are Running, open the ArgoCD UI to see all resources synced:
 
 ```dashboard:open-url
-url: https://$(ingress_domain)/dkp/argocd/applications/argocd/rx-demo-$(session_name)
+url: https://%ingress_domain%/dkp/argocd/applications/argocd/rx-demo-%session_name%
 name: ArgoCD
 ```
 
 Then open the storefront:
 
 ```dashboard:open-url
-url: http://frontend.$(session_namespace).svc.cluster.local
+url: https://frontend-%session_name%.%ingress_domain%/
 name: Storefront
 ```
 
@@ -107,7 +107,7 @@ session: 1
 Open Kiali and navigate to **Graph → Namespace: your-namespace**:
 
 ```dashboard:open-url
-url: https://$(ingress_domain)/dkp/kiali/console/graph/namespaces/?namespaces=$(session_namespace)
+url: https://%ingress_domain%/dkp/kiali/console/graph/namespaces/?namespaces=%session_namespace%
 name: Kiali
 ```
 

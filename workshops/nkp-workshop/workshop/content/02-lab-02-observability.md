@@ -16,7 +16,7 @@ session: 1
 Open Kiali → Graph:
 
 ```dashboard:open-url
-url: https://$(ingress_domain)/dkp/kiali/console/graph/namespaces/?namespaces=$(session_namespace)
+url: https://%ingress_domain%/dkp/kiali/console/graph/namespaces/?namespaces=%session_namespace%
 name: Kiali
 ```
 
@@ -57,7 +57,7 @@ session: 1
 Open Jaeger and search by Service: `frontend`:
 
 ```dashboard:open-url
-url: https://$(ingress_domain)/dkp/jaeger/search?service=frontend&namespace=$(session_namespace)
+url: https://%ingress_domain%/dkp/jaeger/search?service=frontend&namespace=%session_namespace%
 name: Jaeger
 ```
 
@@ -125,11 +125,11 @@ session: 1
 Open Grafana → Istio Mesh Dashboard:
 
 ```dashboard:open-url
-url: https://$(ingress_domain)/dkp/logging/grafana
+url: https://%ingress_domain%/dkp/logging/grafana
 name: Grafana
 ```
 
-Filter by namespace: `$(session_namespace)`. Watch request rate spike to ~20 RPS.
+Filter by namespace: `%session_namespace%`. Watch request rate spike to ~20 RPS.
 
 ---
 

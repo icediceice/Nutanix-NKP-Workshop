@@ -51,7 +51,7 @@ spec:
 
     dashboards:
       - name: Storefront
-        url: http://frontend.$(session_namespace).svc.cluster.local
+        url: https://frontend-$(session_name).$(ingress_domain)/
       - name: ArgoCD
         url: https://$(ingress_domain)/dkp/argocd/applications/argocd/rx-demo-$(session_name)
       - name: Kiali
@@ -61,7 +61,7 @@ spec:
       - name: Grafana
         url: https://$(ingress_domain)/dkp/logging/grafana
       - name: Demo Wall
-        url: http://demo-wall.$(session_namespace).svc.cluster.local:9090
+        url: https://demo-wall-$(session_name).$(ingress_domain)/
       - name: NKP Console
         url: https://10.8.16.16/dkp/kommander/dashboard
 
@@ -127,6 +127,49 @@ spec:
           - kind: ServiceAccount
             name: $(session_name)
             namespace: $(environment_name)
+      # Expose storefront frontend and demo-wall via Traefik so attendees'
+      # browsers can reach them. svc.cluster.local URLs don't resolve outside
+      # the cluster — these Ingresses create per-session external hostnames.
+      - apiVersion: networking.k8s.io/v1
+        kind: Ingress
+        metadata:
+          name: frontend
+          namespace: $(session_namespace)
+          annotations:
+            kubernetes.io/ingress.class: kommander-traefik
+            traefik.ingress.kubernetes.io/router.tls: "true"
+        spec:
+          rules:
+            - host: frontend-$(session_name).$(ingress_domain)
+              http:
+                paths:
+                  - path: /
+                    pathType: Prefix
+                    backend:
+                      service:
+                        name: frontend
+                        port:
+                          number: 80
+      - apiVersion: networking.k8s.io/v1
+        kind: Ingress
+        metadata:
+          name: demo-wall
+          namespace: $(session_namespace)
+          annotations:
+            kubernetes.io/ingress.class: kommander-traefik
+            traefik.ingress.kubernetes.io/router.tls: "true"
+        spec:
+          rules:
+            - host: demo-wall-$(session_name).$(ingress_domain)
+              http:
+                paths:
+                  - path: /
+                    pathType: Prefix
+                    backend:
+                      service:
+                        name: demo-wall
+                        port:
+                          number: 9090
       - apiVersion: argoproj.io/v1alpha1
         kind: Application
         metadata:
