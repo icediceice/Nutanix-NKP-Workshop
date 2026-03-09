@@ -619,22 +619,25 @@ create_dkp_credentials_secret() {
     return
   fi
 
-  # Detect the workshop training environment namespace (nkp-workshop-w*)
-  local env_ns
-  env_ns=$(k get namespace -o name 2>/dev/null \
-    | grep "namespace/nkp-workshop-w[0-9]" | head -1 | cut -d/ -f2 || true)
-  if [[ -z "$env_ns" ]]; then
+  # Detect ALL workshop training environment namespaces (nkp-workshop-w*).
+  # Multiple namespaces exist when the Workshop resource was updated and Educates
+  # created a new environment (w16 → w17 → w18 etc). Create the secret in each.
+  local env_namespaces
+  mapfile -t env_namespaces < <(k get namespace -o name 2>/dev/null \
+    | grep "namespace/nkp-workshop-w[0-9]" | cut -d/ -f2 || true)
+  if [[ ${#env_namespaces[@]} -eq 0 ]]; then
     warn "Workshop training environment namespace not found — skipping DKP credentials Secret"
     return
   fi
 
-  k create secret generic dkp-workshop-credentials \
-    -n "$env_ns" \
-    --from-literal=username="$dkp_user" \
-    --from-literal=password="$dkp_pass" \
-    --dry-run=client -o yaml | k apply -f -
-
-  success "DKP credentials Secret created in $env_ns"
+  for env_ns in "${env_namespaces[@]}"; do
+    k create secret generic dkp-workshop-credentials \
+      -n "$env_ns" \
+      --from-literal=username="$dkp_user" \
+      --from-literal=password="$dkp_pass" \
+      --dry-run=client -o yaml | k apply -f -
+    success "DKP credentials Secret created/updated in $env_ns"
+  done
 }
 
 # =============================================================================
