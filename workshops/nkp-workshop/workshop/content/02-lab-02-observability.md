@@ -20,6 +20,8 @@ url: https://%ingress_domain%/dkp/kiali/console/graph/namespaces/?namespaces=%se
 name: Kiali
 ```
 
+> **Login** — `%dkp_username%` / `%dkp_password%`
+
 1. Set display options: **Request Rate**, **Response Time**, **Traffic Animation**
 2. Click the edge between `checkout-api` → `payment-mock-v1` to see P50/P99 latency
 3. Click the `frontend` node to see inbound/outbound traffic summary
@@ -60,6 +62,8 @@ Open Jaeger and search by Service: `frontend`:
 url: https://%ingress_domain%/dkp/jaeger/search?service=frontend&namespace=%session_namespace%
 name: Jaeger
 ```
+
+> **Login** — `%dkp_username%` / `%dkp_password%`
 
 1. Click on a trace to expand the **span waterfall**
 2. Identify: `frontend` → `checkout-api` → `payment-mock-v1`
@@ -128,6 +132,8 @@ Open Grafana → Istio Mesh Dashboard:
 url: https://%ingress_domain%/dkp/logging/grafana
 name: Grafana
 ```
+
+> **Login** — `%dkp_username%` / `%dkp_password%`
 
 Filter by namespace: `%session_namespace%`. Watch request rate spike to ~20 RPS.
 

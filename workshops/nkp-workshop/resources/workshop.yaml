@@ -76,6 +76,10 @@ spec:
         value: $(session_name)
       - name: ARGOCD_APP
         value: rx-demo-$(session_name)
+      - name: dkp_username
+        value: jovial_haibt
+      - name: dkp_password
+        value: yKJFbW9TIVNNyU064dnxmvINmPOrEmHkZzH09OcWTxCwZo4NunvoPgJMJ7j3zKR6
 
     objects:
       # Grant cluster-read access so attendees can run kubectl get nodes/namespaces/pv/sc

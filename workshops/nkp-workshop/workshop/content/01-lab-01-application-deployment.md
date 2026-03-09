@@ -71,6 +71,8 @@ url: https://%ingress_domain%/dkp/argocd/applications/argocd/rx-demo-%session_na
 name: ArgoCD
 ```
 
+> **Login** — `%dkp_username%` / `%dkp_password%`
+
 Then open the storefront:
 
 ```dashboard:open-url
@@ -110,6 +112,8 @@ Open Kiali and navigate to **Graph → Namespace: your-namespace**:
 url: https://%ingress_domain%/dkp/kiali/console/graph/namespaces/?namespaces=%session_namespace%
 name: Kiali
 ```
+
+> **Login** — `%dkp_username%` / `%dkp_password%`
 
 You should see traffic flowing: `frontend` → `checkout-api` → `payment-mock-v1`, and `frontend` → `catalog`.
 

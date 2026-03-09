@@ -34,6 +34,18 @@ Your session has:
 - **Dashboard tabs** — Storefront, ArgoCD, Kiali, Jaeger, Grafana, Demo Wall
 - **Dedicated Kubernetes namespace** — you won't affect other participants
 
+## Platform Credentials
+
+All platform dashboards (ArgoCD, Kiali, Jaeger, Grafana, NKP Console) share one login.
+Log in once — your browser session covers all tabs.
+
+| | |
+|---|---|
+| **Username** | `%dkp_username%` |
+| **Password** | `%dkp_password%` |
+
+---
+
 Check your session is ready:
 
 ```terminal:execute
