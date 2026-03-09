@@ -35,7 +35,27 @@ Upcoming work in priority order:
 
 ## Work Log
 
+### 2026-03-09 (continued)
+
+#### session — Jaeger white page fix — complete
+- **What:** Jaeger v2.15.1 (chart 4.5.0) ignores `allInOne.args` — binary runs with `args: null`. `<base href="/">` in HTML caused all JS assets to 404. Fixed by replacing broken flag with `userconfig` (full OTEL Collector config) setting `extensions.jaeger_query.base_path: /dkp/jaeger`. Memory storage via `jaeger_storage.backends.memstore.memory`.
+- **Files:** `workshops/nkp-workshop/resources/observability/jaeger.yaml`
+- **Next:** Apply on cluster: `kubectl apply -f jaeger.yaml -n argocd` then verify `curl https://<ingress>/dkp/jaeger/ | grep 'base href'` returns `/dkp/jaeger/`
+- **Known issues:** No known issues
+
 ### 2026-03-09
+
+#### session — Per-session namespace isolation — complete
+- **What:** All storefront resources had hardcoded `namespace: demo-app`/`demo-ops`, causing all attendees to share one namespace. Fixed via ArgoCD `source.kustomize.namespace: $(session_namespace)` (Educates resolves the var per-session). Added inline kustomize patches for demo-wall `APP_NAMESPACE` and loadgen `TARGET_HOST` ConfigMap values. Removed `namespace.yaml` Namespace creation from all kustomize overlays (8 files). Fixed loadgen FQDN → short name. Fixed Demo Wall dashboard URL.
+- **Files:** `workshop.yaml`, `storefront/base/kustomization.yaml`, 7 overlay kustomizations, `loadgen/base/deployment.yaml`
+- **Next:** Start session from w07 portal and verify: frontend DNS resolves, no SharedResourceWarning, each session isolated
+- **Known issues:** "Workshop Failed" banner still appears — setup script CRLF+pipefail issue is in git but workshop FILES IMAGE (`nkp-workshop-files:latest`) needs rebuild via `educates publish workshop` to pick up the fix
+
+#### session — Workshop Failed fix — complete
+- **What:** `$(workshop_namespace)` is not a valid Educates variable → CiliumNetworkPolicy creation failed → "Workshop Failed". Removed the CNP from session.objects. Fixed ClusterRoleBinding subject namespace to `$(environment_name)`. Fixed setup script: removed `set -eo pipefail`, switched INGRESS_DOMAIN detection from Istio → Traefik (NKP), reduced ArgoCD wait from 120s to 60s.
+- **Files:** `workshops/nkp-workshop/resources/workshop.yaml`, `workshops/nkp-workshop/workshop/setup.d/01-setup-session.sh`
+- **Next:** Re-deploy workshop and verify no "Workshop Failed"; verify `kubectl get nodes` works in session terminal
+- **Known issues:** `$(environment_name)` used for ClusterRoleBinding subject namespace — needs cluster verification that this resolves to `nkp-workshop-w05` (the env namespace where session SAs live)
 
 #### session — Workshop RBAC + Cilium egress fix — complete
 - **What:** `kubectl get nodes` was forbidden because Educates session service accounts have no cluster-level RBAC by default. Added `ClusterRole` + `ClusterRoleBinding` in `session.objects` (nodes/namespaces/pvs/storageclasses). Also added per-session `CiliumNetworkPolicy` in `$(workshop_namespace)` to allow workshop pod egress to session namespace (needed for Storefront dashboard tab proxy). Frontend DNS 404 at session start is by design — `lab-01-start` intentionally deploys no app workloads.
