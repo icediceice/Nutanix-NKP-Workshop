@@ -1,5 +1,8 @@
 ---
-# ArgoCD Application: installs Jaeger all-in-one via Helm into istio-system
+# ArgoCD Application: installs Jaeger all-in-one via Helm into istio-system.
+# Chart 4.5.0 / Jaeger v2.15.1 uses OTEL Collector config format.
+# allInOne.args has no effect (args: null in the generated Deployment).
+# base_path MUST be set via userconfig.extensions.jaeger_query.base_path.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -10,15 +13,11 @@ spec:
   source:
     repoURL: https://jaegertracing.github.io/helm-charts
     chart: jaeger
-    targetRevision: "*"
+    targetRevision: "4.5.0"
     helm:
       valuesObject:
-        # All-in-one mode: single pod with collector + query + agent
         allInOne:
           enabled: true
-          args:
-            - --query.base-path=/dkp/jaeger
-        # Disable individual components (all-in-one handles them)
         collector:
           enabled: false
         query:
@@ -27,6 +26,50 @@ spec:
           enabled: false
         storage:
           type: none
+        # Full OTEL Collector config. Required to set base_path for the
+        # query UI — the allInOne.args field is ignored by chart 4.5.0.
+        userconfig:
+          service:
+            extensions: [jaeger_storage, jaeger_query, healthcheckv2]
+            pipelines:
+              traces:
+                receivers: [otlp, jaeger]
+                processors: [batch]
+                exporters: [jaeger_storage_exporter]
+          extensions:
+            healthcheckv2:
+              use_v2: true
+              http:
+                endpoint: 0.0.0.0:13133
+            jaeger_query:
+              base_path: /dkp/jaeger
+              storage:
+                traces: memstore
+            jaeger_storage:
+              backends:
+                memstore:
+                  memory:
+                    max_traces: 100000
+          receivers:
+            otlp:
+              protocols:
+                grpc:
+                  endpoint: 0.0.0.0:4317
+                http:
+                  endpoint: 0.0.0.0:4318
+            jaeger:
+              protocols:
+                grpc:
+                  endpoint: 0.0.0.0:14250
+                thrift_http:
+                  endpoint: 0.0.0.0:14268
+                thrift_compact:
+                  endpoint: 0.0.0.0:6831
+          processors:
+            batch: {}
+          exporters:
+            jaeger_storage_exporter:
+              trace_storage: memstore
   destination:
     server: https://kubernetes.default.svc
     namespace: istio-system
