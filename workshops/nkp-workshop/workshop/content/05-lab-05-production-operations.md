@@ -27,18 +27,19 @@ url: https://frontend-%session_name%.%ingress_domain%/
 name: Storefront
 ```
 
-Open Jaeger and look at recent traces — find a slow one:
+Get your login credentials, then open Jaeger to find a slow trace:
+
+```terminal:execute
+command: |
+  _NS=${SESSION_NS%-s*}
+  echo "Username: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.username}' | base64 -d)"
+  echo "Password: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.password}' | base64 -d)"
+session: 1
+```
 
 ```dashboard:open-url
 url: https://%ingress_domain%/dkp/jaeger/search?service=frontend&namespace=%session_namespace%
 name: Jaeger
-```
-
-```terminal:execute
-command: |
-  echo "Username: $DKP_USERNAME"
-  echo "Password: $DKP_PASSWORD"
-session: 1
 ```
 
 Find the trace where `payment-mock-v2` span shows ~1000ms. That's the root cause.
@@ -65,18 +66,11 @@ command: switch-lab lab-05-incident-error
 session: 1
 ```
 
-In **Kiali**, watch for **red edges** on the payment-mock-v2 path:
+In **Kiali**, watch for **red edges** on the payment-mock-v2 path (same login):
 
 ```dashboard:open-url
 url: https://%ingress_domain%/dkp/kiali/console/graph/namespaces/?namespaces=%session_namespace%
 name: Kiali
-```
-
-```terminal:execute
-command: |
-  echo "Username: $DKP_USERNAME"
-  echo "Password: $DKP_PASSWORD"
-session: 1
 ```
 
 In **Jaeger**, filter by tag `error=true` to see failed spans.

@@ -64,18 +64,19 @@ command: kubectl -n $SESSION_NS get pods -w
 session: 2
 ```
 
-Once all pods are Running, open the ArgoCD UI to see all resources synced:
+Once all pods are Running, get your login credentials then open the dashboards:
+
+```terminal:execute
+command: |
+  _NS=${SESSION_NS%-s*}
+  echo "Username: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.username}' | base64 -d)"
+  echo "Password: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.password}' | base64 -d)"
+session: 1
+```
 
 ```dashboard:open-url
 url: https://%ingress_domain%/dkp/argocd/applications/argocd/rx-demo-%session_name%
 name: ArgoCD
-```
-
-```terminal:execute
-command: |
-  echo "Username: $DKP_USERNAME"
-  echo "Password: $DKP_PASSWORD"
-session: 1
 ```
 
 Then open the storefront:
@@ -111,18 +112,11 @@ command: switch-lab lab-01-verify
 session: 1
 ```
 
-Open Kiali and navigate to **Graph → Namespace: your-namespace**:
+Open Kiali and navigate to **Graph → Namespace: your-namespace** (same login as above):
 
 ```dashboard:open-url
 url: https://%ingress_domain%/dkp/kiali/console/graph/namespaces/?namespaces=%session_namespace%
 name: Kiali
-```
-
-```terminal:execute
-command: |
-  echo "Username: $DKP_USERNAME"
-  echo "Password: $DKP_PASSWORD"
-session: 1
 ```
 
 You should see traffic flowing: `frontend` → `checkout-api` → `payment-mock-v1`, and `frontend` → `catalog`.
@@ -135,7 +129,7 @@ title: "Load generator is running"
 autostart: true
 timeout: 60
 command: |
-  PODS=$(kubectl -n $OPS_NS get pods -l app=demo-loadgen \
+  PODS=$(kubectl -n $SESSION_NS get pods -l app=demo-loadgen \
     --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
   [ "$PODS" -ge 1 ] && exit 0 || exit 1
 ```

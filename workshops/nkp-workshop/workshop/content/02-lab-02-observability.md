@@ -13,18 +13,19 @@ command: switch-lab lab-02-start
 session: 1
 ```
 
-Open Kiali → Graph:
+Get your login credentials, then open Kiali → Graph:
+
+```terminal:execute
+command: |
+  _NS=${SESSION_NS%-s*}
+  echo "Username: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.username}' | base64 -d)"
+  echo "Password: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.password}' | base64 -d)"
+session: 1
+```
 
 ```dashboard:open-url
 url: https://%ingress_domain%/dkp/kiali/console/graph/namespaces/?namespaces=%session_namespace%
 name: Kiali
-```
-
-```terminal:execute
-command: |
-  echo "Username: $DKP_USERNAME"
-  echo "Password: $DKP_PASSWORD"
-session: 1
 ```
 
 1. Set display options: **Request Rate**, **Response Time**, **Traffic Animation**
@@ -40,7 +41,7 @@ title: "Baseline traffic is flowing (load generator running)"
 autostart: true
 timeout: 30
 command: |
-  PODS=$(kubectl -n $OPS_NS get pods -l app=demo-loadgen \
+  PODS=$(kubectl -n $SESSION_NS get pods -l app=demo-loadgen \
     --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
   [ "$PODS" -ge 1 ] && exit 0 || exit 1
 ```
@@ -61,18 +62,11 @@ command: |
 session: 1
 ```
 
-Open Jaeger and search by Service: `frontend`:
+Open Jaeger and search by Service: `frontend` (same login):
 
 ```dashboard:open-url
 url: https://%ingress_domain%/dkp/jaeger/search?service=frontend&namespace=%session_namespace%
 name: Jaeger
-```
-
-```terminal:execute
-command: |
-  echo "Username: $DKP_USERNAME"
-  echo "Password: $DKP_PASSWORD"
-session: 1
 ```
 
 1. Click on a trace to expand the **span waterfall**
@@ -136,18 +130,11 @@ command: switch-lab lab-02-high-load
 session: 1
 ```
 
-Open Grafana → Istio Mesh Dashboard:
+Open Grafana → Istio Mesh Dashboard (same login):
 
 ```dashboard:open-url
 url: https://%ingress_domain%/dkp/logging/grafana
 name: Grafana
-```
-
-```terminal:execute
-command: |
-  echo "Username: $DKP_USERNAME"
-  echo "Password: $DKP_PASSWORD"
-session: 1
 ```
 
 Filter by namespace: `%session_namespace%`. Watch request rate spike to ~20 RPS.

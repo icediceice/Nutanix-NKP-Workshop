@@ -41,8 +41,9 @@ Log in once — your browser session covers all tabs.
 
 ```terminal:execute
 command: |
-  echo "Username: $DKP_USERNAME"
-  echo "Password: $DKP_PASSWORD"
+  _NS=${SESSION_NS%-s*}
+  echo "Username: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.username}' | base64 -d)"
+  echo "Password: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.password}' | base64 -d)"
 session: 1
 ```
 
