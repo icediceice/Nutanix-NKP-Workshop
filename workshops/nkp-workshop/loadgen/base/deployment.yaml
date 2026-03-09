@@ -79,3 +79,20 @@ spec:
             limits:
               cpu: 50m
               memory: 64Mi
+        # Payment-mock load — drives traffic to payment service
+        - name: loadgen-payment
+          image: fortio/fortio:latest
+          command: ["fortio", "load", "-qps", "0.5", "-t", "0", "-c", "1",
+                    "http://payment-mock:8080/"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
