@@ -20,7 +20,7 @@ url: https://%ingress_domain%/dkp/kiali/console/graph/namespaces/?namespaces=%se
 name: Kiali
 ```
 
-> **Login** — `%dkp_username%` / `%dkp_password%`
+> **Login** — `jovial_haibt` / `yKJFbW9TIVNNyU064dnxmvINmPOrEmHkZzH09OcWTxCwZo4NunvoPgJMJ7j3zKR6`
 
 1. Set display options: **Request Rate**, **Response Time**, **Traffic Animation**
 2. Click the edge between `checkout-api` → `payment-mock-v1` to see P50/P99 latency
@@ -63,7 +63,7 @@ url: https://%ingress_domain%/dkp/jaeger/search?service=frontend&namespace=%sess
 name: Jaeger
 ```
 
-> **Login** — `%dkp_username%` / `%dkp_password%`
+> **Login** — `jovial_haibt` / `yKJFbW9TIVNNyU064dnxmvINmPOrEmHkZzH09OcWTxCwZo4NunvoPgJMJ7j3zKR6`
 
 1. Click on a trace to expand the **span waterfall**
 2. Identify: `frontend` → `checkout-api` → `payment-mock-v1`
@@ -133,7 +133,7 @@ url: https://%ingress_domain%/dkp/logging/grafana
 name: Grafana
 ```
 
-> **Login** — `%dkp_username%` / `%dkp_password%`
+> **Login** — `jovial_haibt` / `yKJFbW9TIVNNyU064dnxmvINmPOrEmHkZzH09OcWTxCwZo4NunvoPgJMJ7j3zKR6`
 
 Filter by namespace: `%session_namespace%`. Watch request rate spike to ~20 RPS.
 

@@ -41,8 +41,8 @@ Log in once — your browser session covers all tabs.
 
 | | |
 |---|---|
-| **Username** | `%dkp_username%` |
-| **Password** | `%dkp_password%` |
+| **Username** | `jovial_haibt` |
+| **Password** | `yKJFbW9TIVNNyU064dnxmvINmPOrEmHkZzH09OcWTxCwZo4NunvoPgJMJ7j3zKR6` |
 
 ---
 

@@ -34,7 +34,7 @@ url: https://%ingress_domain%/dkp/jaeger/search?service=frontend&namespace=%sess
 name: Jaeger
 ```
 
-> **Login** — `%dkp_username%` / `%dkp_password%`
+> **Login** — `jovial_haibt` / `yKJFbW9TIVNNyU064dnxmvINmPOrEmHkZzH09OcWTxCwZo4NunvoPgJMJ7j3zKR6`
 
 Find the trace where `payment-mock-v2` span shows ~1000ms. That's the root cause.
 
@@ -67,7 +67,7 @@ url: https://%ingress_domain%/dkp/kiali/console/graph/namespaces/?namespaces=%se
 name: Kiali
 ```
 
-> **Login** — `%dkp_username%` / `%dkp_password%`
+> **Login** — `jovial_haibt` / `yKJFbW9TIVNNyU064dnxmvINmPOrEmHkZzH09OcWTxCwZo4NunvoPgJMJ7j3zKR6`
 
 In **Jaeger**, filter by tag `error=true` to see failed spans.
 
