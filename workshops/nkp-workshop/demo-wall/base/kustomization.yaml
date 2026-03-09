@@ -3,5 +3,6 @@ kind: Kustomization
 resources:
   - serviceaccount.yaml
   - configmap.yaml
+  - server-script.yaml
   - deployment.yaml
   - service.yaml

@@ -236,7 +236,7 @@ spec:
               # substitution works correctly and avoids cross-session conflicts.
               namespace: $(session_namespace)
               patches:
-                # demo-wall needs to know which namespace to monitor
+                # demo-wall: which namespace to monitor + which ArgoCD app to track
                 - patch: |-
                     apiVersion: v1
                     kind: ConfigMap
@@ -244,6 +244,7 @@ spec:
                       name: demo-wall-config
                     data:
                       APP_NAMESPACE: "$(session_namespace)"
+                      ARGOCD_APP: "rx-demo-$(session_name)"
                   target:
                     kind: ConfigMap
                     name: demo-wall-config
