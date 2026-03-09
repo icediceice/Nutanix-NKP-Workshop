@@ -23,8 +23,8 @@ _detect_ingress_domain() {
 RESOLVED_INGRESS="${INGRESS_DOMAIN:-$(_detect_ingress_domain)}"
 
 # ── Fetch DKP platform credentials from environment-namespace secret ───────────
-# The secret is created by bootstrap-educates.sh; strip -sNNN suffix to get env namespace.
-_ENV_NS=$(echo "${SESSION_NAME}" | sed 's/-s[0-9]*$//')
+# The secret is created by bootstrap-educates.sh; ENVIRONMENT_NAME is set by Educates.
+_ENV_NS="${ENVIRONMENT_NAME:-$(echo "${SESSION_NAME}" | sed 's/-s[0-9]*$//') }"
 _DKP_USER=$(kubectl get secret dkp-workshop-credentials -n "${_ENV_NS}" \
   -o jsonpath='{.data.username}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
 _DKP_PASS=$(kubectl get secret dkp-workshop-credentials -n "${_ENV_NS}" \
