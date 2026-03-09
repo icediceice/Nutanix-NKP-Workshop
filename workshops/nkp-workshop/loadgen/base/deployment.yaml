@@ -25,18 +25,11 @@ spec:
         runAsNonRoot: true
         runAsUser: 65534
       containers:
-        - name: loadgen
+        # Frontend load — hits the main storefront entry point
+        - name: loadgen-frontend
           image: fortio/fortio:latest
-          command: ["/bin/sh", "-c"]
-          args:
-            - |
-              FRONTEND="${TARGET_HOST:-http://frontend:80}"
-              RPS="${BASELINE_RPS:-2}"
-              CRPS="${BASELINE_CHECKOUT_RPS:-0.5}"
-              fortio load -qps "$RPS"  -t 0 -c 2 "$FRONTEND/"           &
-              fortio load -qps "$CRPS" -t 0 -c 1 http://checkout-api:8080/ &
-              fortio load -qps "$RPS"  -t 0 -c 1 http://catalog:8080/      &
-              wait
+          command: ["fortio", "load", "-qps", "2", "-t", "0", "-c", "2"]
+          args: ["$(TARGET_HOST)/"]
           envFrom:
             - configMapRef:
                 name: loadgen-config
@@ -47,8 +40,42 @@ spec:
                 - ALL
           resources:
             requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+        # Checkout-api load — simulates checkout flow (calls payment-mock internally)
+        - name: loadgen-checkout
+          image: fortio/fortio:latest
+          command: ["fortio", "load", "-qps", "0.5", "-t", "0", "-c", "1",
+                    "http://checkout-api:8080/"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
               cpu: 50m
               memory: 64Mi
+        # Catalog load — drives traffic to catalog service
+        - name: loadgen-catalog
+          image: fortio/fortio:latest
+          command: ["fortio", "load", "-qps", "1", "-t", "0", "-c", "1",
+                    "http://catalog:8080/"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
             limits:
-              cpu: 200m
-              memory: 128Mi
+              cpu: 50m
+              memory: 64Mi
