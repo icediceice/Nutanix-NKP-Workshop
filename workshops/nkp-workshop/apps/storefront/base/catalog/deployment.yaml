@@ -19,6 +19,8 @@ spec:
         version: v1
     spec:
       serviceAccountName: catalog
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: catalog
           image: hashicorp/http-echo:latest
@@ -28,6 +30,11 @@ spec:
           env:
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://opentelemetry-collector.monitoring:4317"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           resources:
             requests:
               cpu: 50m

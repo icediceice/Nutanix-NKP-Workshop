@@ -19,6 +19,8 @@ spec:
         version: v2
     spec:
       serviceAccountName: payment-mock
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: payment-mock
           image: hashicorp/http-echo:latest
@@ -34,6 +36,11 @@ spec:
               value: "0.0"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://opentelemetry-collector.monitoring:4317"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           resources:
             requests:
               cpu: 50m

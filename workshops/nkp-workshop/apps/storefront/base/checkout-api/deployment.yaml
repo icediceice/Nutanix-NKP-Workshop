@@ -19,6 +19,8 @@ spec:
         version: v1
     spec:
       serviceAccountName: checkout-api
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: checkout-api
           image: hashicorp/http-echo:latest
@@ -30,6 +32,11 @@ spec:
               value: "http://payment-mock:8080"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://opentelemetry-collector.monitoring:4317"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           resources:
             requests:
               cpu: 100m

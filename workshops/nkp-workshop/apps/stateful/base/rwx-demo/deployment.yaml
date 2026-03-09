@@ -17,6 +17,11 @@ spec:
         app: shared-writer
         version: v1
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
       containers:
         - name: writer
           image: busybox:latest
@@ -24,6 +29,11 @@ spec:
           volumeMounts:
             - name: shared
               mountPath: /shared
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           resources:
             requests:
               cpu: 10m

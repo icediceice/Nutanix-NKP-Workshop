@@ -19,11 +19,13 @@ spec:
         version: v1
     spec:
       serviceAccountName: frontend
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: frontend
-          image: nginx:stable-alpine
+          image: nginxinc/nginx-unprivileged:stable-alpine
           ports:
-            - containerPort: 80
+            - containerPort: 8080
           env:
             - name: CHECKOUT_API_URL
               value: "http://checkout-api:8080"
@@ -31,6 +33,11 @@ spec:
               value: "http://catalog:8080"
             - name: JAEGER_QUERY_URL
               value: ""
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           resources:
             requests:
               cpu: 100m
