@@ -15,6 +15,11 @@ spec:
       labels:
         app: demo-loadgen
         version: v1
+      annotations:
+        sidecar.istio.io/proxyCPU: "10m"
+        sidecar.istio.io/proxyCPULimit: "200m"
+        sidecar.istio.io/proxyMemory: "64Mi"
+        sidecar.istio.io/proxyMemoryLimit: "256Mi"
     spec:
       securityContext:
         runAsNonRoot: true
@@ -22,7 +27,16 @@ spec:
       containers:
         - name: loadgen
           image: fortio/fortio:latest
-          command: ["fortio", "load", "-qps", "5", "-t", "0", "-c", "2", "http://checkout-api:8080/"]
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              FRONTEND="${TARGET_HOST:-http://frontend:80}"
+              RPS="${BASELINE_RPS:-2}"
+              CRPS="${BASELINE_CHECKOUT_RPS:-0.5}"
+              fortio load -qps "$RPS"  -t 0 -c 2 "$FRONTEND/"           &
+              fortio load -qps "$CRPS" -t 0 -c 1 http://checkout-api:8080/ &
+              fortio load -qps "$RPS"  -t 0 -c 1 http://catalog:8080/      &
+              wait
           envFrom:
             - configMapRef:
                 name: loadgen-config
