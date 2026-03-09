@@ -263,6 +263,24 @@ spec:
               selfHeal: true
             syncOptions:
               - CreateNamespace=false
+      # Fix: Cilium on NKP blocks all intra-cluster traffic for app pods (session namespace)
+      # unless a CiliumNetworkPolicy explicitly permits it. Standard K8s NetworkPolicy
+      # ipBlock rules are insufficient — Cilium overrides with its own default-deny logic.
+      # This CNP allows all intra-cluster + world egress/ingress for app pods.
+      - apiVersion: cilium.io/v2
+        kind: CiliumNetworkPolicy
+        metadata:
+          name: allow-all-intra-cluster
+          namespace: $(session_namespace)
+        spec:
+          endpointSelector: {}
+          ingress:
+            - fromEntities:
+                - cluster
+          egress:
+            - toEntities:
+                - cluster
+                - world
 
   environment:
     objects:
