@@ -40,7 +40,9 @@ All platform dashboards (ArgoCD, Kiali, Jaeger, Grafana, NKP Console) share one 
 Log in once — your browser session covers all tabs.
 
 ```terminal:execute
-command: echo "Platform Login ——  Username: $DKP_USERNAME  |  Password: $DKP_PASSWORD"
+command: |
+  echo "Username: $DKP_USERNAME"
+  echo "Password: $DKP_PASSWORD"
 session: 1
 ```
 

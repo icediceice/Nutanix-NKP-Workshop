@@ -21,7 +21,9 @@ name: Kiali
 ```
 
 ```terminal:execute
-command: echo "Platform Login ——  Username: $DKP_USERNAME  |  Password: $DKP_PASSWORD"
+command: |
+  echo "Username: $DKP_USERNAME"
+  echo "Password: $DKP_PASSWORD"
 session: 1
 ```
 
@@ -67,7 +69,9 @@ name: Jaeger
 ```
 
 ```terminal:execute
-command: echo "Platform Login ——  Username: $DKP_USERNAME  |  Password: $DKP_PASSWORD"
+command: |
+  echo "Username: $DKP_USERNAME"
+  echo "Password: $DKP_PASSWORD"
 session: 1
 ```
 
@@ -140,7 +144,9 @@ name: Grafana
 ```
 
 ```terminal:execute
-command: echo "Platform Login ——  Username: $DKP_USERNAME  |  Password: $DKP_PASSWORD"
+command: |
+  echo "Username: $DKP_USERNAME"
+  echo "Password: $DKP_PASSWORD"
 session: 1
 ```
 
