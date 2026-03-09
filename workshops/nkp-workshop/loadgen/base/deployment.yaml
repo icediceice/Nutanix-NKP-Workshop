@@ -18,6 +18,7 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
+        runAsUser: 65534
       containers:
         - name: loadgen
           image: fortio/fortio:latest
