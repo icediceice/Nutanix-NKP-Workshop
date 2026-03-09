@@ -82,6 +82,45 @@ spec:
         value: yKJFbW9TIVNNyU064dnxmvINmPOrEmHkZzH09OcWTxCwZo4NunvoPgJMJ7j3zKR6
 
     objects:
+      # Per-session ClusterRole + ClusterRoleBinding for demo-wall.
+      # These are cluster-scoped and cannot be reliably renamed by kustomize
+      # patches in ArgoCD — managed here instead so Educates substitutes
+      # $(session_namespace) correctly for each session.
+      - apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata:
+          name: demo-wall-reader-$(session_namespace)
+        rules:
+          - apiGroups: [""]
+            resources: ["namespaces", "nodes", "pods", "services", "resourcequotas", "events"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["apps"]
+            resources: ["deployments", "replicasets", "statefulsets"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["argoproj.io"]
+            resources: ["applications"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["networking.istio.io"]
+            resources: ["virtualservices", "destinationrules"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["constraints.gatekeeper.sh"]
+            resources: ["*"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["keda.sh"]
+            resources: ["scaledobjects"]
+            verbs: ["get", "list", "watch"]
+      - apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        metadata:
+          name: demo-wall-reader-$(session_namespace)
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: ClusterRole
+          name: demo-wall-reader-$(session_namespace)
+        subjects:
+          - kind: ServiceAccount
+            name: demo-wall
+            namespace: $(session_namespace)
       # Grant cluster-read access so attendees can run kubectl get nodes/namespaces/pv/sc
       - apiVersion: rbac.authorization.k8s.io/v1
         kind: ClusterRole
@@ -188,29 +227,11 @@ spec:
             kustomize:
               # Override all resource namespaces to the per-session namespace.
               # kustomize namespace transformer also updates ClusterRoleBinding subjects[].
+              # ClusterRole/ClusterRoleBinding for demo-wall are NOT patched here —
+              # they are defined in session.objects above where $(session_namespace)
+              # substitution works correctly and avoids cross-session conflicts.
               namespace: $(session_namespace)
               patches:
-                # Rename cluster-scoped RBAC per session to avoid cross-session conflicts.
-                - patch: |-
-                    apiVersion: rbac.authorization.k8s.io/v1
-                    kind: ClusterRole
-                    metadata:
-                      name: demo-wall-reader-$(session_namespace)
-                  target:
-                    kind: ClusterRole
-                    name: demo-wall-reader
-                - patch: |-
-                    apiVersion: rbac.authorization.k8s.io/v1
-                    kind: ClusterRoleBinding
-                    metadata:
-                      name: demo-wall-reader-$(session_namespace)
-                    roleRef:
-                      apiGroup: rbac.authorization.k8s.io
-                      kind: ClusterRole
-                      name: demo-wall-reader-$(session_namespace)
-                  target:
-                    kind: ClusterRoleBinding
-                    name: demo-wall-reader
                 # demo-wall needs to know which namespace to monitor
                 - patch: |-
                     apiVersion: v1
