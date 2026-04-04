@@ -1,0 +1,58 @@
+# install/values/values-template.yaml
+# Template for deploying NKP Workshop to a new cluster.
+# Copy to values-<clustername>.yaml, fill in all required fields, then run:
+#
+#   ./install/install.sh --values install/values/values-<clustername>.yaml
+#
+# config.local.yaml is generated from this file — gitignored, never commit credentials.
+
+# ── REQUIRED ──────────────────────────────────────────────────────────────────
+
+# Path to the kubeconfig for the TARGET cluster (workload cluster, not Kommander)
+kubeconfig_path: ../auth/<cluster>.conf          # REQUIRED — relative to cluster-init/
+
+# kubectl context name inside that kubeconfig
+cluster_context: <context-name>@<cluster>        # REQUIRED — run: kubectl config get-contexts
+
+# Base domain for all workshop ingress — use <traefik-lb-ip>.nip.io for simplicity
+# Get Traefik LB IP: kubectl get svc -A -l app.kubernetes.io/name=traefik --no-headers | awk '{print $5}'
+ingress_domain: <traefik-lb-ip>.nip.io           # REQUIRED
+
+# Educates ingress domain (usually same as ingress_domain)
+educates_ingress_domain: <traefik-lb-ip>.nip.io  # REQUIRED
+
+# Admin password for the registration app dashboard
+admin_password: ""                               # REQUIRED — set before deploying
+
+# ── PLATFORM ──────────────────────────────────────────────────────────────────
+
+storage_class: nutanix-volume    # Default for NKP clusters — verify with: kubectl get sc
+metallb_ip_range: ""             # Leave empty if MetalLB is already configured on the cluster
+
+# ── EDUCATES ──────────────────────────────────────────────────────────────────
+
+educates_version: "3.7.0"
+educates_ingress_class: "kommander-traefik"   # Verify with: kubectl get ingressclass
+educates_infra_provider: generic              # eks | gke | kind | generic | openshift
+educates_policy_engine: kyverno
+
+# ── REGISTRATION APP ──────────────────────────────────────────────────────────
+
+registration_app_nodeport: 30080
+
+# ── WORKSHOP SESSION ──────────────────────────────────────────────────────────
+
+session_label: "workshop-2026-04"    # Update per event — used to label session namespaces
+max_concurrent_sessions: 30
+
+# ── OPTIONAL — NUS/S3 STORAGE LAB ─────────────────────────────────────────────
+
+s3_endpoint: ""
+s3_access_key: ""
+s3_secret_key: ""
+
+# ── OPTIONAL — DEVELOPER TRACK ────────────────────────────────────────────────
+
+harbor_url: ""
+harbor_project: "workshop"
+gitlab_url: ""
