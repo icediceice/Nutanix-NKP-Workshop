@@ -12,9 +12,11 @@ metallb_ip_range: "10.168.100.20-10.168.100.30"
 ingress_domain: workshop.nkp-lab.local # Base domain for ingress rules
 
 # --- Educates Config ---
-educates_version: "3.2.0"             # Pin to a stable version
+educates_version: "3.7.0"             # Pin to a stable version (tag format: no v-prefix)
 educates_ingress_domain: educates.nkp-lab.local
-educates_policy_engine: kyverno       # kyverno | pod-security (check Educates docs)
+educates_ingress_class: ""            # IngressClass name — leave empty for cluster default, e.g. kommander-traefik
+educates_infra_provider: generic      # eks | gke | kind | custom | vcluster | generic | minikube | openshift
+educates_policy_engine: kyverno       # kyverno | none
 
 # --- Registration App ---
 registration_app_nodeport: 30080

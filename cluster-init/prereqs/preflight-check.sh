@@ -20,7 +20,7 @@ echo ""
 
 # ── kubectl connectivity ──
 echo "1. Cluster connectivity"
-if kubectl version --short >/dev/null 2>&1; then
+if kubectl get nodes >/dev/null 2>&1; then
   CONTEXT=$(kubectl config current-context 2>/dev/null || echo "unknown")
   pass "kubectl connected (context: ${CONTEXT})"
 else
@@ -58,7 +58,7 @@ fi
 
 # ── MetalLB ──
 echo "5. MetalLB"
-if kubectl get pods -A -l "app=metallb" --no-headers 2>/dev/null | grep -q Running; then
+if kubectl get ns metallb-system >/dev/null 2>&1 && kubectl get pods -n metallb-system --no-headers 2>/dev/null | grep -q Running; then
   pass "MetalLB running"
 else
   warn "MetalLB not detected — external LoadBalancer IPs may not work"
@@ -66,13 +66,19 @@ fi
 
 # ── Required tools ──
 echo "6. Required tools"
-for tool in kubectl yq docker; do
+for tool in kubectl yq; do
   if command -v "${tool}" >/dev/null 2>&1; then
     pass "${tool} available"
   else
-    fail "${tool} not found — install it before proceeding"
+    fail "${tool} not found — run: cluster-init/prereqs/install-dependencies.sh"
   fi
 done
+# docker is optional on the bootstrap machine
+if command -v docker >/dev/null 2>&1; then
+  pass "docker available (optional)"
+else
+  warn "docker not found — not required for bootstrap, but needed for local image builds"
+fi
 
 # ── educates CLI ──
 echo "7. Educates CLI"

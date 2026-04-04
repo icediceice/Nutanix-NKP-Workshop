@@ -19,6 +19,9 @@ if [[ ! -f "${CONFIG_FILE}" ]]; then
   CONFIG_FILE="${SCRIPT_DIR}/config.yaml"
 fi
 
+# Ensure ~/.local/bin is in PATH (kubectl/yq may be installed there)
+export PATH="${HOME}/.local/bin:${PATH}"
+
 # Parse flags
 PLATFORM_ONLY=false
 EDUCATES_ONLY=false
@@ -52,6 +55,18 @@ echo "╚═══════════════════════�
 echo "Config: ${CONFIG_FILE}"
 echo ""
 
+# Export KUBECONFIG from config so all kubectl calls target the right cluster
+KUBECONFIG_PATH=$(yq eval ".kubeconfig_path" "${CONFIG_FILE}")
+if [[ -n "${KUBECONFIG_PATH}" && "${KUBECONFIG_PATH}" != "null" ]]; then
+  # Resolve relative paths from SCRIPT_DIR
+  if [[ "${KUBECONFIG_PATH}" != /* ]]; then
+    KUBECONFIG_PATH="${SCRIPT_DIR}/${KUBECONFIG_PATH}"
+  fi
+  export KUBECONFIG="${KUBECONFIG_PATH}"
+  echo "Cluster: $(yq eval '.cluster_context' "${CONFIG_FILE}") (${KUBECONFIG_PATH})"
+  echo ""
+fi
+
 # ──────────────────────────────────────────────
 # Step 1: Pre-flight checks
 # ──────────────────────────────────────────────
@@ -66,15 +81,77 @@ fi
 if [[ "${EDUCATES_ONLY}" == "false" && "${APP_ONLY}" == "false" && "${WORKSHOPS_ONLY}" == "false" ]] || [[ "${PLATFORM_ONLY}" == "true" ]]; then
   echo "[2/6] Platform setup..."
 
-  STORAGE_CLASS=$(cfg kubeconfig_path)
-  echo "  → Verifying StorageClass..."
-  kubectl apply -f "${SCRIPT_DIR}/platform/storage-class.yaml"
+  STORAGE_CLASS=$(cfg storage_class)
+  METALLB_RANGE=$(cfg metallb_ip_range)
+  INGRESS_CLASS=$(cfg educates_ingress_class 2>/dev/null || echo "")
+  [[ "${INGRESS_CLASS}" == "null" ]] && INGRESS_CLASS=""
 
-  echo "  → Applying MetalLB config..."
-  kubectl apply -f "${SCRIPT_DIR}/platform/metallb-config.yaml"
+  # ── StorageClass: only create if not already present ──
+  echo "  → StorageClass '${STORAGE_CLASS}'..."
+  if kubectl get storageclass "${STORAGE_CLASS}" >/dev/null 2>&1; then
+    echo "  ✓ StorageClass '${STORAGE_CLASS}' already exists — skipping"
+  else
+    # Patch storage-class.yaml name to match config before applying
+    yq eval ".metadata.name = \"${STORAGE_CLASS}\"" \
+      "${SCRIPT_DIR}/platform/storage-class.yaml" | kubectl apply -f -
+    echo "  ✓ StorageClass '${STORAGE_CLASS}' created"
+  fi
 
-  echo "  → Applying ingress config..."
-  kubectl apply -f "${SCRIPT_DIR}/platform/ingress-config.yaml"
+  # ── MetalLB: add workshop IP pool (idempotent) ──
+  echo "  → MetalLB pool (${METALLB_RANGE})..."
+  # Check if any existing pool already contains the first IP of the configured range
+  FIRST_IP=$(echo "${METALLB_RANGE}" | cut -d'-' -f1)
+  if kubectl get ipaddresspools -n metallb-system -o json 2>/dev/null | \
+      python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for item in data.get('items', []):
+  for addr in item.get('spec', {}).get('addresses', []):
+    if '${FIRST_IP}' in addr or addr.startswith('${FIRST_IP}'):
+      sys.exit(0)
+sys.exit(1)
+" 2>/dev/null; then
+    echo "  ✓ IP range already in an existing MetalLB pool — skipping"
+  elif kubectl get ipaddresspool workshop-pool -n metallb-system >/dev/null 2>&1; then
+    echo "  ✓ workshop-pool already exists — skipping"
+  else
+    TMPFILE_POOL=$(mktemp /tmp/metallb-pool-XXXXXX.yaml)
+    TMPFILE_ADV=$(mktemp /tmp/metallb-adv-XXXXXX.yaml)
+    cat > "${TMPFILE_POOL}" <<EOPOOL
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: workshop-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    - ${METALLB_RANGE}
+EOPOOL
+    cat > "${TMPFILE_ADV}" <<EOADV
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: workshop-l2
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - workshop-pool
+EOADV
+    kubectl apply -f "${TMPFILE_POOL}" && kubectl apply -f "${TMPFILE_ADV}"
+    rm -f "${TMPFILE_POOL}" "${TMPFILE_ADV}"
+    echo "  ✓ MetalLB workshop-pool configured"
+  fi
+
+  # ── IngressClass: skip if one already exists for the same controller ──
+  echo "  → IngressClass..."
+  if [[ -n "${INGRESS_CLASS}" ]] && kubectl get ingressclass "${INGRESS_CLASS}" >/dev/null 2>&1; then
+    echo "  ✓ IngressClass '${INGRESS_CLASS}' already exists — skipping"
+  elif kubectl get ingressclass traefik >/dev/null 2>&1; then
+    echo "  ✓ IngressClass 'traefik' already exists — skipping"
+  else
+    kubectl apply -f "${SCRIPT_DIR}/platform/ingress-config.yaml"
+    echo "  ✓ IngressClass applied"
+  fi
 
   echo "  ✓ Platform setup complete"
   [[ "${PLATFORM_ONLY}" == "true" ]] && { echo "Done (platform-only)."; exit 0; }

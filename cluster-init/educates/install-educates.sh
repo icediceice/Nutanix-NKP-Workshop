@@ -9,12 +9,18 @@ set -euo pipefail
 CONFIG_FILE="${1:-$(dirname "$0")/../config.yaml}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+export PATH="${HOME}/.local/bin:${PATH}"
+
 cfg() { yq eval ".${1}" "${CONFIG_FILE}"; }
 
 EDUCATES_VERSION=$(cfg educates_version)
 INGRESS_DOMAIN=$(cfg educates_ingress_domain)
 STORAGE_CLASS=$(cfg storage_class)
 POLICY_ENGINE=$(cfg educates_policy_engine)
+INGRESS_CLASS=$(cfg educates_ingress_class 2>/dev/null || echo "")
+[[ "${INGRESS_CLASS}" == "null" ]] && INGRESS_CLASS=""
+INFRA_PROVIDER=$(cfg educates_infra_provider 2>/dev/null || echo "generic")
+[[ "${INFRA_PROVIDER}" == "null" || -z "${INFRA_PROVIDER}" ]] && INFRA_PROVIDER="generic"
 
 echo "=== Installing Educates v${EDUCATES_VERSION} ==="
 echo "  Domain:        ${INGRESS_DOMAIN}"
@@ -31,17 +37,17 @@ fi
 # ── Generate runtime educates-config.yaml from template ──
 RUNTIME_CONFIG=$(mktemp /tmp/educates-config-XXXXXX.yaml)
 cat > "${RUNTIME_CONFIG}" <<EOF
+clusterInfrastructure:
+  provider: ${INFRA_PROVIDER}
+
 clusterIngress:
   domain: ${INGRESS_DOMAIN}
-
+$(if [[ -n "${INGRESS_CLASS}" ]]; then echo "  class: ${INGRESS_CLASS}"; fi)
 clusterStorage:
   class: ${STORAGE_CLASS}
 
-clusterSecurityPolicy:
-  engine: ${POLICY_ENGINE}
-
-workshopSecurity:
-  rulesEngine: ${POLICY_ENGINE}
+clusterSecurity:
+  policyEngine: ${POLICY_ENGINE}
 EOF
 
 # ── Deploy Educates platform ──
@@ -53,9 +59,10 @@ educates admin platform deploy \
 
 rm -f "${RUNTIME_CONFIG}"
 
-# ── Verify ──
-echo "Verifying Educates operator..."
-kubectl rollout status deployment/educates-operator -n educates --timeout=180s
+# ── Verify (v3.7+: secrets-manager + session-manager replace educates-operator) ──
+echo "Verifying Educates components..."
+kubectl rollout status deployment/secrets-manager -n educates --timeout=180s
+kubectl rollout status deployment/session-manager -n educates --timeout=180s
 
 echo ""
 echo "✓ Educates installed and running."

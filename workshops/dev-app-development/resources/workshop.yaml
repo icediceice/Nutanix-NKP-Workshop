@@ -13,6 +13,7 @@ spec:
         includePaths:
           - /workshop/**
           - /exercises/**
+  session:
     env:
       - name: HARBOR_URL
         value: "$(harbor_url)"
@@ -20,7 +21,6 @@ spec:
         value: "$(gitlab_url)"
       - name: HARBOR_PROJECT
         value: "$(harbor_project)"
-  session:
     namespaces:
       budget: large
       security:
