@@ -1,39 +1,49 @@
 // Nutanix brand theme — dark mode
 export const colors = {
-  primary: '#4B00AA',      // Deep purple
-  accent: '#7855FA',       // Violet
-  spark: '#1FDDE9',        // Teal
-  dark: '#131313',
-  white: '#FFFFFF',
+  // Brand
+  primary:  '#4B00AA',      // Deep purple
+  accent:   '#7855FA',      // Violet
+  spark:    '#1FDDE9',      // Teal
 
-  // Dark mode palette
-  bg: '#0D0D0D',           // Page background
-  surface: '#161616',      // Card / panel background
-  elevated: '#1E1E1E',     // Elevated surfaces (modals, dropdowns)
-  border: '#2A2A2A',       // Subtle borders
-  borderStrong: '#3A3A3A', // Visible borders
-  textPrimary: '#F0F0F0',  // Main text
-  textSecondary: '#9A9A9A',// Secondary text
-  textMuted: '#555555',    // Placeholder / muted
+  // Dark surfaces
+  bg:            '#090909',  // Page background
+  surface:       '#111111',  // Card / panel
+  elevated:      '#1A1A1A',  // Elevated surfaces, inputs
+  hover:         '#222222',  // Row / item hover
+  border:        '#242424',  // Subtle border
+  borderStrong:  '#333333',  // Visible border
 
-  // Semantic (dark-adjusted)
-  error: '#F87171',
-  errorBg: '#2D0A0A',
-  success: '#4ADE80',
-  successBg: '#0A2818',
-  warning: '#FBB040',
-  warningBg: '#2D1800',
-  info: '#60A5FA',
-  infoBg: '#0D2847',
+  // Text
+  textPrimary:   '#F0F0F0',
+  textSecondary: '#888888',
+  textMuted:     '#444444',
+
+  // Semantic
+  error:      '#F87171',
+  errorBg:    '#2D0A0A',
+  success:    '#34D399',
+  successBg:  '#0A2818',
+  warning:    '#FBBF24',
+  warningBg:  '#2D1A00',
+  info:       '#60A5FA',
+  infoBg:     '#0D2240',
+
+  // Nutanix gradient
+  gradientStart: '#4B00AA',
+  gradientEnd:   '#1FDDE9',
 }
+
+export const gradient = `linear-gradient(135deg, ${colors.gradientStart}, ${colors.gradientEnd})`
+export const gradientSubtle = `linear-gradient(135deg, ${colors.gradientStart}22, ${colors.gradientEnd}22)`
 
 export const fonts = {
   family: "'Montserrat', sans-serif",
 }
 
 export const shadows = {
-  card: '0 2px 8px rgba(0,0,0,0.5)',
-  elevated: '0 4px 20px rgba(0,0,0,0.7)',
+  card:     '0 1px 3px rgba(0,0,0,0.6)',
+  elevated: '0 4px 24px rgba(0,0,0,0.8)',
+  glow:     `0 0 20px rgba(120,85,250,0.15)`,
 }
 
 export const radius = {
@@ -42,7 +52,6 @@ export const radius = {
   lg: '12px',
 }
 
-// Reusable style objects
 export const styles = {
   page: {
     minHeight: '100vh',
@@ -51,13 +60,16 @@ export const styles = {
     color: colors.textPrimary,
   },
   header: {
-    background: '#0A0A0A',
+    background: '#0D0D0D',
     borderBottom: `1px solid ${colors.border}`,
     color: colors.textPrimary,
-    padding: '16px 32px',
+    padding: '14px 32px',
     display: 'flex',
     alignItems: 'center',
     gap: '16px',
+    position: 'sticky',
+    top: 0,
+    zIndex: 100,
   },
   card: {
     background: colors.surface,
@@ -68,8 +80,8 @@ export const styles = {
   },
   btn: {
     primary: {
-      background: colors.primary,
-      color: colors.white,
+      background: gradient,
+      color: '#fff',
       border: 'none',
       borderRadius: radius.sm,
       padding: '10px 20px',
@@ -80,7 +92,7 @@ export const styles = {
     },
     accent: {
       background: colors.accent,
-      color: colors.white,
+      color: '#fff',
       border: 'none',
       borderRadius: radius.sm,
       padding: '10px 20px',
@@ -113,9 +125,9 @@ export const styles = {
     color: colors.textPrimary,
   },
   badge: {
-    registered: { background: colors.infoBg, color: colors.info, padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 },
-    provisioning: { background: colors.warningBg, color: colors.warning, padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 },
-    ready: { background: colors.successBg, color: colors.success, padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 },
-    error: { background: colors.errorBg, color: colors.error, padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 },
+    registered:  { background: colors.infoBg,    color: colors.info,    padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 },
+    provisioning:{ background: colors.warningBg, color: colors.warning, padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 },
+    ready:       { background: colors.successBg, color: colors.success, padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 },
+    error:       { background: colors.errorBg,   color: colors.error,   padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 },
   },
 }

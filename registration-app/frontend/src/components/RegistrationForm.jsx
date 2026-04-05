@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { register } from '../api.js'
 import ModuleSelector from './ModuleSelector.jsx'
-import { colors, styles, shadows, radius } from '../styles/theme.js'
+import { colors, styles, shadows, radius, gradient } from '../styles/theme.js'
 
 export default function RegistrationForm() {
   const [form, setForm] = useState({ name: '', email: '', company: '', modules: [] })
@@ -31,7 +31,7 @@ export default function RegistrationForm() {
   if (success) {
     return (
       <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-        <div style={{ ...styles.card, borderTop: `4px solid ${colors.spark}`, textAlign: 'center' }}>
+        <div style={{ ...styles.card, borderTop: '4px solid transparent', backgroundImage: `${gradient}, linear-gradient(${colors.surface}, ${colors.surface})`, backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box', textAlign: 'center' }}>
           <div style={{ fontSize: '48px', marginBottom: '12px', color: colors.spark }}>✓</div>
           <h2 style={{ color: colors.accent, marginBottom: '8px' }}>Registration Successful!</h2>
           <p style={{ color: colors.textSecondary, marginBottom: '24px' }}>

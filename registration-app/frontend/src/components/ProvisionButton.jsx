@@ -37,25 +37,18 @@ export default function ProvisionButton({ onRefresh }) {
 
   return (
     <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-      <button
-        onClick={handleProvisionAll}
-        disabled={loading}
-        style={{ ...styles.btn.primary, opacity: loading ? 0.7 : 1 }}
-      >
+      <button onClick={handleProvisionAll} disabled={loading} style={{ ...styles.btn.primary, opacity: loading ? 0.7 : 1 }}>
         {loading ? 'Working…' : 'Provision All'}
       </button>
-      <button
-        onClick={handleCleanup}
-        disabled={loading}
-        style={{ ...styles.btn.outline, color: '#D32F2F', borderColor: '#D32F2F' }}
-      >
+      <button onClick={handleCleanup} disabled={loading} style={{ ...styles.btn.outline, color: colors.error, borderColor: colors.error }}>
         Cleanup Sessions
       </button>
       {result && (
         <span style={{
           fontSize: '13px',
-          color: result.type === 'success' ? '#2E7D32' : '#C62828',
-          background: result.type === 'success' ? '#E8F5E9' : '#FFEBEE',
+          color: result.type === 'success' ? colors.success : colors.error,
+          background: result.type === 'success' ? colors.successBg : colors.errorBg,
+          border: `1px solid ${result.type === 'success' ? colors.success : colors.error}33`,
           padding: '6px 12px',
           borderRadius: radius.sm,
         }}>

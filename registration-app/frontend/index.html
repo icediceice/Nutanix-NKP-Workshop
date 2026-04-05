@@ -11,22 +11,53 @@
       rel="stylesheet"
     />
     <style>
-      * {
+      *, *::before, *::after {
         box-sizing: border-box;
         margin: 0;
         padding: 0;
       }
+
+      html { color-scheme: dark; }
+
       body {
         font-family: 'Montserrat', sans-serif;
-        background-color: #0D0D0D;
+        background-color: #090909;
         color: #F0F0F0;
+        -webkit-font-smoothing: antialiased;
       }
-      input, select, textarea, button {
-        color-scheme: dark;
+
+      /* Scrollbars */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: #111111; }
+      ::-webkit-scrollbar-thumb { background: #333333; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: #7855FA; }
+
+      /* Selection */
+      ::selection { background: rgba(120,85,250,0.35); color: #F0F0F0; }
+
+      /* Placeholder */
+      ::placeholder { color: #444444; }
+
+      /* Focus ring */
+      :focus-visible { outline: 2px solid #7855FA; outline-offset: 2px; }
+
+      /* Native form elements */
+      input, select, textarea, button { color-scheme: dark; font-family: 'Montserrat', sans-serif; }
+
+      /* Remove autofill yellow background */
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover,
+      input:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0 1000px #1A1A1A inset;
+        -webkit-text-fill-color: #F0F0F0;
+        transition: background-color 5000s ease-in-out 0s;
       }
-      ::placeholder {
-        color: #555555;
-      }
+
+      /* Table */
+      table { border-spacing: 0; }
+
+      /* Links */
+      a { color: #1FDDE9; }
     </style>
   </head>
   <body>
