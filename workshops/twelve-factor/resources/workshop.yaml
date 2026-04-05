@@ -9,7 +9,9 @@ spec:
   workshop:
     files:
       - image:
-          url: "$(image_repository)/twelve-factor-files:$(workshop_version)"
+          url: "ghcr.io/icediceice/twelve-factor-files:latest"
+          secretRef:
+            name: ghcr-pull-secret
         includePaths:
           - /workshop/**
   session:

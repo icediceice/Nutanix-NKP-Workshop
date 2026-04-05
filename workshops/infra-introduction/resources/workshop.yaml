@@ -9,7 +9,9 @@ spec:
   workshop:
     files:
       - image:
-          url: "$(image_repository)/infra-introduction-files:$(workshop_version)"
+          url: "ghcr.io/icediceice/infra-introduction-files:latest"
+          secretRef:
+            name: ghcr-pull-secret
         includePaths:
           - /workshop/**
   session:

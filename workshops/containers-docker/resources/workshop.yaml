@@ -9,7 +9,9 @@ spec:
   workshop:
     files:
       - image:
-          url: "$(image_repository)/containers-docker-files:$(workshop_version)"
+          url: "ghcr.io/icediceice/containers-docker-files:latest"
+          secretRef:
+            name: ghcr-pull-secret
         includePaths:
           - /workshop/**
           - /exercises/**
