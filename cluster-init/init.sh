@@ -214,6 +214,10 @@ fi
 if [[ "${APP_ONLY}" == "false" ]] || [[ "${WORKSHOPS_ONLY}" == "true" ]]; then
   echo "[4/6] Publishing workshops..."
 
+  # Apply shared ClusterRole so session.objects bindings resolve on first session start
+  echo "  → Applying cluster-reader ClusterRole..."
+  kubectl apply -f "${SCRIPT_DIR}/../k8s/cluster-reader-role.yaml"
+
   WORKSHOPS_DIR="${SCRIPT_DIR}/../workshops"
   for workshop_dir in "${WORKSHOPS_DIR}"/*/; do
     workshop_id=$(basename "${workshop_dir}")
