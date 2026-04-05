@@ -237,12 +237,33 @@ APP_DIR="${SCRIPT_DIR}/../registration-app"
 kubectl apply -f "${APP_DIR}/k8s/namespace.yaml"
 kubectl apply -f "${APP_DIR}/k8s/rbac.yaml"
 
-# Create secrets from config
+# Create secrets from config + auto-extract Educates robot credentials
 ADMIN_PASSWORD=$(cfg admin_password)
+PORTAL_NAME=$(kubectl get trainingportal -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+EDUCATES_PORTAL_URL=""
+EDUCATES_ROBOT_CLIENT_ID=""
+EDUCATES_ROBOT_CLIENT_SECRET=""
+EDUCATES_ROBOT_USERNAME=""
+EDUCATES_ROBOT_PASSWORD=""
+if [[ -n "${PORTAL_NAME}" ]]; then
+  EDUCATES_PORTAL_URL=$(kubectl get trainingportal "${PORTAL_NAME}" -o jsonpath='{.status.url}' 2>/dev/null || echo "")
+  EDUCATES_ROBOT_CLIENT_ID=$(kubectl get trainingportal "${PORTAL_NAME}" -o jsonpath='{.status.clients.robot.id}' 2>/dev/null || echo "")
+  EDUCATES_ROBOT_CLIENT_SECRET=$(kubectl get trainingportal "${PORTAL_NAME}" -o jsonpath='{.status.clients.robot.secret}' 2>/dev/null || echo "")
+  EDUCATES_ROBOT_USERNAME=$(kubectl get trainingportal "${PORTAL_NAME}" -o jsonpath='{.status.credentials.robot.username}' 2>/dev/null || echo "")
+  EDUCATES_ROBOT_PASSWORD=$(kubectl get trainingportal "${PORTAL_NAME}" -o jsonpath='{.status.credentials.robot.password}' 2>/dev/null || echo "")
+  echo "  ✓ Educates robot credentials extracted for portal '${PORTAL_NAME}'"
+else
+  echo "  ⚠ No TrainingPortal found — Educates credentials will be empty (provision will fail)"
+fi
 kubectl create secret generic nkp-lab-manager-secrets \
   --from-literal=ADMIN_PASSWORD="${ADMIN_PASSWORD}" \
   --from-literal=DRY_RUN=false \
   --from-literal=DATABASE_URL=sqlite:///data/lab-manager.db \
+  --from-literal=EDUCATES_PORTAL_URL="${EDUCATES_PORTAL_URL}" \
+  --from-literal=EDUCATES_ROBOT_CLIENT_ID="${EDUCATES_ROBOT_CLIENT_ID}" \
+  --from-literal=EDUCATES_ROBOT_CLIENT_SECRET="${EDUCATES_ROBOT_CLIENT_SECRET}" \
+  --from-literal=EDUCATES_ROBOT_USERNAME="${EDUCATES_ROBOT_USERNAME}" \
+  --from-literal=EDUCATES_ROBOT_PASSWORD="${EDUCATES_ROBOT_PASSWORD}" \
   --namespace=nkp-lab-manager \
   --dry-run=client -o yaml | kubectl apply -f -
 
