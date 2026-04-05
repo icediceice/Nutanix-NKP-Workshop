@@ -5,11 +5,19 @@ navigation:
   logo: /images/nutanix-logo.png
 
 sections:
-  - title: "Getting Started"
+  - title: "Overview"
+    path: /00-overview
+  - title: "01 — Connect to the Cluster"
     path: /01-connect-cluster
-  - title: "Exploring Your Cluster"
+  - title: "02 — Nodes & Control Plane"
     path: /02-explore-nodes
-  - title: "Running Your First Pod"
+  - title: "03 — Pods"
     path: /03-first-pod
+  - title: "04 — Deployments"
+    path: /04-deployments
+  - title: "05 — Services"
+    path: /05-services
+  - title: "06 — Namespaces"
+    path: /06-namespaces
   - title: "Summary"
     path: /99-summary

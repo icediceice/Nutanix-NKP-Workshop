@@ -1,46 +1,122 @@
 ---
-title: Explore Nodes
+title: Nodes & the Control Plane
 ---
 
-## What We're Doing
+## The Two Kinds of Nodes
 
-Nodes are the worker machines in a Kubernetes cluster — they can be physical servers or virtual
-machines. Understanding node anatomy helps you reason about scheduling, capacity, and failure
-domains. In this exercise you will list nodes, inspect their conditions, and read key metadata.
+A Kubernetes cluster has two types of machines. They have completely different jobs.
 
-## Steps
+```mermaid
+graph TB
+    subgraph CP["🏛️ Control Plane — the brain"]
+        API["⚙️ API Server<br/>single source of truth"]
+        SCH["📋 Scheduler<br/>assigns pods to nodes"]
+        CM["🔄 Controller Manager<br/>watches & reconciles"]
+        ETCD["🗄️ etcd<br/>stores all cluster state"]
+        API --- SCH
+        API --- CM
+        API --- ETCD
+    end
 
-### 1. List all nodes
+    subgraph W1["🖥️ Worker Node"]
+        KL1["kubelet<br/>runs pods"]
+        KP1["kube-proxy<br/>network rules"]
+        CR1["container runtime<br/>containerd"]
+        P1["📦 Pod"]
+        P2["📦 Pod"]
+        KL1 --> P1
+        KL1 --> P2
+    end
+
+    subgraph W2["🖥️ Worker Node"]
+        KL2["kubelet<br/>runs pods"]
+        KP2["kube-proxy<br/>network rules"]
+        CR2["container runtime<br/>containerd"]
+        P3["📦 Pod"]
+        KL2 --> P3
+    end
+
+    API -->|schedule pod| KL1
+    API -->|schedule pod| KL2
+
+    style CP fill:#0ea5e9,color:#fff
+    style W1 fill:#10b981,color:#fff
+    style W2 fill:#10b981,color:#fff
+```
+
+| Component | Lives on | Does what |
+|-----------|----------|-----------|
+| API Server | Control plane | All reads and writes go through here |
+| etcd | Control plane | Stores everything — like a database for cluster state |
+| Scheduler | Control plane | Picks which node a new Pod runs on |
+| Controller Manager | Control plane | Watches state, fixes drift |
+| kubelet | Worker node | Receives pod specs, tells container runtime to start them |
+| kube-proxy | Worker node | Programs network rules so services work |
+
+---
+
+## Exercise 2.1 — List All Nodes
 
 ```terminal:execute
 command: kubectl get nodes -o wide
 ```
 
-**Observe:** Each node shows its STATUS, ROLES, AGE, VERSION, and internal/external IP addresses.
-A STATUS of `Ready` means the node is healthy and accepting workloads.
+**👁 Observe:**
+- `ROLES` — `control-plane` nodes run the brain; plain workers run your apps
+- `STATUS` — must be `Ready` for pods to schedule there
+- `VERSION` — the kubelet version; all should match
 
-### 2. Describe a node in detail
+---
 
-Replace `<node-name>` with the first node shown in the previous output.
+## Exercise 2.2 — Inspect One Node
 
-```terminal:execute
-command: kubectl describe node $(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')
-```
-
-**Observe:** Look at the `Conditions` section (MemoryPressure, DiskPressure, Ready) and the
-`Allocatable` section which shows how much CPU and memory Pods can consume on this node.
-
-### 3. Check node labels
+Pick a worker node from the list above. Describe it to see its full spec:
 
 ```terminal:execute
-command: kubectl get nodes --show-labels
+command: kubectl describe node $(kubectl get nodes --no-headers -l '!node-role.kubernetes.io/control-plane' | head -1 | awk '{print $1}')
 ```
 
-**Observe:** Labels like `kubernetes.io/arch`, `node.kubernetes.io/instance-type`, and
-`topology.kubernetes.io/zone` are used by the scheduler to place Pods intelligently.
+**👁 Observe these sections:**
 
-## What Just Happened
+**Capacity vs Allocatable**
+```
+Capacity:
+  cpu:     8        ← total hardware
+  memory:  32Gi
+Allocatable:
+  cpu:     7800m    ← what pods can actually use (OS overhead reserved)
+  memory:  30Gi
+```
 
-You queried the Kubernetes API for Node objects and read their status conditions. The control plane
-continuously reconciles these conditions — if a node goes NotReady, the scheduler stops placing
-new Pods there and the node controller begins evicting existing ones.
+**Conditions** — `Ready=True` means kubelet is healthy and the node can accept pods.
+
+**Allocated resources** — how much CPU/memory is already claimed by running pods.
+
+---
+
+## Exercise 2.3 — See the Node's Pods
+
+```terminal:execute
+command: kubectl get pods --all-namespaces --field-selector spec.nodeName=$(kubectl get nodes --no-headers -l '!node-role.kubernetes.io/control-plane' | head -1 | awk '{print $1}')
+```
+
+**👁 Observe:** System pods like `kube-proxy` and `coredns` run on every node. They're the
+infrastructure that makes your workloads work.
+
+---
+
+## ✅ Checkpoint
+
+```examiner:execute-test
+name: lab-02-nodes
+title: "At least one worker node is Ready"
+autostart: true
+timeout: 15
+command: |
+  kubectl get nodes --no-headers | grep -v control-plane | grep -c "Ready" | grep -q "^[1-9]" && echo "PASS" || echo "FAIL"
+```
+
+> **What just happened?**
+> You looked at the physical (and virtual) machines that form your cluster. The control plane
+> nodes run the management software; worker nodes run your application containers. Kubernetes
+> continuously monitors all of them and reschedules pods if a node goes unhealthy.
