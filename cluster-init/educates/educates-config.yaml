@@ -25,3 +25,262 @@ workshopSecurity:
 #     kind: Secret
 #     name: wildcard-tls
 #     namespace: educates
+
+# Nutanix dark theme — injected into <head> of all three Educates UIs.
+# Apply with: educates deploy-platform --config educates-config.yaml
+websiteStyling:
+  trainingPortal:
+    html: |
+      <style>
+      /* ── Nutanix Dark Theme: Training Portal ── */
+      html, body {
+        background-color: #090909 !important;
+        color: #F0F0F0 !important;
+      }
+      /* Gradient accent stripe below existing navbar */
+      .navbar { border-bottom: 2px solid #7855FA !important; }
+      /* Cards — workshop listing tiles */
+      .card, .panel, .well {
+        background-color: #111111 !important;
+        border-color: #242424 !important;
+        color: #F0F0F0 !important;
+      }
+      .card-header, .card-footer, .panel-heading {
+        background-color: #1A1A1A !important;
+        border-color: #242424 !important;
+      }
+      .card-body, .card-text, .panel-body { color: #F0F0F0 !important; }
+      /* Tables */
+      .table, table { color: #F0F0F0 !important; }
+      .table thead th, th {
+        background-color: #1A1A1A !important;
+        border-color: #242424 !important;
+        color: #1FDDE9 !important;
+      }
+      .table td, td { border-color: #242424 !important; }
+      .table-striped tbody tr:nth-of-type(odd) { background-color: #111111 !important; }
+      .table-striped tbody tr:nth-of-type(even) { background-color: #0D0D0D !important; }
+      .table-hover tbody tr:hover { background-color: #1A1A1A !important; }
+      /* Buttons */
+      .btn-primary {
+        background: linear-gradient(135deg, #4B00AA, #1FDDE9) !important;
+        border: none !important;
+        color: #fff !important;
+      }
+      .btn-secondary, .btn-default, .btn-light {
+        background-color: #1A1A1A !important;
+        border-color: #242424 !important;
+        color: #F0F0F0 !important;
+      }
+      .btn-success {
+        background-color: #1A6E3C !important;
+        border-color: #1A6E3C !important;
+      }
+      .btn-danger { background-color: #8B1A1A !important; border-color: #8B1A1A !important; }
+      /* Inputs */
+      input, select, textarea, .form-control {
+        background-color: #1A1A1A !important;
+        border-color: #242424 !important;
+        color: #F0F0F0 !important;
+      }
+      input::placeholder, .form-control::placeholder { color: #666 !important; }
+      /* Alerts */
+      .alert {
+        background-color: #1A1A1A !important;
+        border-color: #242424 !important;
+        color: #F0F0F0 !important;
+      }
+      .alert-info { border-left: 4px solid #1FDDE9 !important; }
+      .alert-warning { border-left: 4px solid #F5A623 !important; }
+      .alert-danger { border-left: 4px solid #E05252 !important; }
+      .alert-success { border-left: 4px solid #3DD68C !important; }
+      /* Misc overrides */
+      .bg-light, .bg-white { background-color: #111111 !important; }
+      .text-dark { color: #F0F0F0 !important; }
+      .text-muted { color: #A0A0A0 !important; }
+      hr { border-color: #242424 !important; }
+      a { color: #1FDDE9; }
+      a:hover { color: #7855FA; }
+      h1, h2, h3, h4, h5, h6 { color: #F0F0F0 !important; }
+      /* Breadcrumb */
+      .breadcrumb { background-color: #1A1A1A !important; }
+      .breadcrumb-item.active { color: #A0A0A0 !important; }
+      /* Badge */
+      .badge-secondary { background-color: #1A1A1A !important; color: #A0A0A0 !important; }
+      /* Modal */
+      .modal-content {
+        background-color: #111111 !important;
+        border-color: #242424 !important;
+        color: #F0F0F0 !important;
+      }
+      .modal-header { border-color: #242424 !important; }
+      .modal-footer { border-color: #242424 !important; }
+      /* Dropdown */
+      .dropdown-menu {
+        background-color: #111111 !important;
+        border-color: #242424 !important;
+      }
+      .dropdown-item { color: #F0F0F0 !important; }
+      .dropdown-item:hover { background-color: #1A1A1A !important; }
+      /* List group */
+      .list-group-item {
+        background-color: #111111 !important;
+        border-color: #242424 !important;
+        color: #F0F0F0 !important;
+      }
+      .list-group-item:hover { background-color: #1A1A1A !important; }
+      /* Pagination */
+      .page-link {
+        background-color: #111111 !important;
+        border-color: #242424 !important;
+        color: #1FDDE9 !important;
+      }
+      .page-item.active .page-link {
+        background-color: #7855FA !important;
+        border-color: #7855FA !important;
+      }
+      /* Nutanix gradient top stripe */
+      body::before {
+        content: '';
+        display: block;
+        height: 3px;
+        background: linear-gradient(135deg, #4B00AA, #1FDDE9);
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 9999;
+        pointer-events: none;
+      }
+      </style>
+
+  workshopDashboard:
+    html: |
+      <style>
+      /* ── Nutanix Dark Theme: Workshop Dashboard ── */
+      html, body {
+        background-color: #090909 !important;
+        color: #F0F0F0 !important;
+      }
+      /* Top bar */
+      header, .header, [class*="Header"], [class*="header"] {
+        background-color: #0D0D0D !important;
+        border-bottom: 1px solid #242424 !important;
+        color: #F0F0F0 !important;
+      }
+      /* Tab bars */
+      [class*="Tab"], [class*="tab"], [role="tablist"] {
+        background-color: #111111 !important;
+        border-color: #242424 !important;
+      }
+      [class*="Tab"]:hover, [class*="tab"]:hover {
+        background-color: #1A1A1A !important;
+      }
+      /* Panels and frames */
+      [class*="Panel"], [class*="panel"], [class*="Frame"], [class*="frame"],
+      [class*="Content"], [class*="content"], .split-pane {
+        background-color: #090909 !important;
+      }
+      /* Sidebar / nav */
+      [class*="Sidebar"], [class*="sidebar"], nav, aside {
+        background-color: #0D0D0D !important;
+        border-color: #242424 !important;
+      }
+      /* Buttons */
+      button:not([disabled]) {
+        background-color: #1A1A1A;
+        border-color: #242424;
+        color: #F0F0F0;
+      }
+      /* Links */
+      a { color: #1FDDE9; }
+      a:hover { color: #7855FA; }
+      /* Scrollbars */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: #111111; }
+      ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: #7855FA; }
+      /* Nutanix gradient top stripe */
+      body::before {
+        content: '';
+        display: block;
+        height: 3px;
+        background: linear-gradient(135deg, #4B00AA, #1FDDE9);
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 9999;
+        pointer-events: none;
+      }
+      </style>
+
+  workshopInstructions:
+    html: |
+      <style>
+      /* ── Nutanix Dark Theme: Workshop Instructions ── */
+      html, body {
+        background-color: #090909 !important;
+        color: #F0F0F0 !important;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      }
+      h1, h2, h3, h4, h5, h6 { color: #F0F0F0 !important; }
+      h1, h2 { border-bottom: 1px solid #242424 !important; padding-bottom: 8px; }
+      /* Links */
+      a { color: #1FDDE9 !important; }
+      a:hover { color: #7855FA !important; }
+      /* Code blocks */
+      pre {
+        background-color: #0D0D0D !important;
+        border: 1px solid #242424 !important;
+        border-radius: 6px !important;
+        color: #F0F0F0 !important;
+        padding: 16px !important;
+      }
+      code {
+        background-color: #1A1A1A !important;
+        color: #1FDDE9 !important;
+        border-radius: 3px !important;
+        padding: 2px 5px !important;
+      }
+      pre code { background: transparent !important; color: #F0F0F0 !important; padding: 0 !important; }
+      /* Blockquotes / callouts */
+      blockquote, .note, .warning, .tip, .info {
+        background-color: #111111 !important;
+        border-left: 4px solid #7855FA !important;
+        color: #F0F0F0 !important;
+        padding: 12px 16px !important;
+        margin: 16px 0 !important;
+        border-radius: 0 6px 6px 0;
+      }
+      /* Tables */
+      table { color: #F0F0F0 !important; border-collapse: collapse; width: 100%; }
+      th {
+        background-color: #1A1A1A !important;
+        color: #1FDDE9 !important;
+        border: 1px solid #242424 !important;
+        padding: 8px 12px;
+      }
+      td { border: 1px solid #242424 !important; padding: 8px 12px; }
+      tr:nth-child(even) { background-color: #111111 !important; }
+      tr:nth-child(odd) { background-color: #0D0D0D !important; }
+      /* Sidebar navigation (if present) */
+      nav, .sidebar, [class*="sidebar"], [class*="nav"] {
+        background-color: #0D0D0D !important;
+        color: #A0A0A0 !important;
+      }
+      /* Mermaid diagrams — keep readable */
+      .mermaid { background: #111111 !important; border-radius: 8px; padding: 16px; }
+      /* Scrollbars */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: #111111; }
+      ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: #7855FA; }
+      /* Nutanix gradient top stripe */
+      body::before {
+        content: '';
+        display: block;
+        height: 3px;
+        background: linear-gradient(135deg, #4B00AA, #1FDDE9);
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 9999;
+        pointer-events: none;
+      }
+      </style>

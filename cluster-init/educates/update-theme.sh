@@ -1,14 +1,14 @@
 #!/bin/bash
-# install-educates.sh — Install Educates Training Platform on the NKP cluster
+# update-theme.sh — Re-apply Nutanix dark theme to the live Educates platform.
 #
-# Usage: ./install-educates.sh [config.yaml]
-# Reference: https://docs.educates.dev/en/stable/installation-guides/cli-based-installation.html
+# Run this after any change to the websiteStyling CSS in install-educates.sh.
+# Safe to run on a live cluster — educates admin platform deploy is idempotent.
+#
+# Usage: ./update-theme.sh [config.yaml]
 
 set -euo pipefail
 
 CONFIG_FILE="${1:-$(dirname "$0")/../config.yaml}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 export PATH="${HOME}/.local/bin:${PATH}"
 
 cfg() { yq eval ".${1}" "${CONFIG_FILE}"; }
@@ -20,22 +20,11 @@ POLICY_ENGINE=$(cfg educates_policy_engine)
 INGRESS_CLASS=$(cfg educates_ingress_class 2>/dev/null || echo "")
 [[ "${INGRESS_CLASS}" == "null" ]] && INGRESS_CLASS=""
 INFRA_PROVIDER=$(cfg educates_infra_provider 2>/dev/null || echo "generic")
-[[ "${INFRA_PROVIDER}" == "null" || -z "${INFRA_PROVIDER}" ]] && INFRA_PROVIDER="generic"
+[[ "${INFRA_PROVIDER}" == "null" ]] && INFRA_PROVIDER="generic"
 
-echo "=== Installing Educates v${EDUCATES_VERSION} ==="
-echo "  Domain:        ${INGRESS_DOMAIN}"
-echo "  Storage:       ${STORAGE_CLASS}"
-echo "  Policy engine: ${POLICY_ENGINE}"
-echo ""
-
-# ── Ensure educates CLI is available ──
-if ! command -v educates >/dev/null 2>&1; then
-  echo "Educates CLI not found. Running install-dependencies.sh..."
-  "${SCRIPT_DIR}/../prereqs/install-dependencies.sh"
-fi
-
-# ── Generate runtime educates-config.yaml from template ──
 RUNTIME_CONFIG=$(mktemp /tmp/educates-config-XXXXXX.yaml)
+
+# Generate config (mirrors websiteStyling block from install-educates.sh)
 cat > "${RUNTIME_CONFIG}" <<EOF
 clusterInfrastructure:
   provider: ${INFRA_PROVIDER}
@@ -52,7 +41,6 @@ clusterStorage:
 clusterSecurity:
   policyEngine: ${POLICY_ENGINE}
 
-# ── Nutanix dark theme injected into all three Educates UIs ──
 websiteStyling:
   trainingPortal:
     html: |
@@ -138,44 +126,11 @@ websiteStyling:
       </style>
 EOF
 
-# ── Create wildcard TLS cert for session ingresses (NKP/Traefik requires HTTPS) ──
-# Traefik has a global HTTP→HTTPS redirect. Without TLS on session ingresses,
-# the HTTPS request has no matching route and falls through to the portal.
-echo "  → Creating wildcard TLS cert for *.${INGRESS_DOMAIN}..."
-kubectl create namespace educates --dry-run=client -o yaml | kubectl apply -f - >/dev/null
-kubectl apply -f - <<EOCERT
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: educates-wildcard-tls
-  namespace: educates
-spec:
-  secretName: educates-wildcard-tls
-  dnsNames:
-    - "*.${INGRESS_DOMAIN}"
-    - "${INGRESS_DOMAIN}"
-  issuerRef:
-    name: kommander-ca
-    kind: ClusterIssuer
-EOCERT
-kubectl wait certificate educates-wildcard-tls -n educates --for=condition=Ready --timeout=60s
-echo "  ✓ Wildcard TLS cert ready"
-
-# ── Deploy Educates platform ──
-echo "Deploying Educates platform (this may take 2–5 minutes)..."
+echo "Applying Nutanix dark theme to Educates platform..."
 educates admin platform deploy \
   --config "${RUNTIME_CONFIG}" \
   --version "${EDUCATES_VERSION}" \
   --skip-image-resolution
 
 rm -f "${RUNTIME_CONFIG}"
-
-# ── Verify (v3.7+: secrets-manager + session-manager replace educates-operator) ──
-echo "Verifying Educates components..."
-kubectl rollout status deployment/secrets-manager -n educates --timeout=180s
-kubectl rollout status deployment/session-manager -n educates --timeout=180s
-
-echo ""
-echo "✓ Educates installed and running."
-echo "  Portal will be available at: https://training.${INGRESS_DOMAIN}"
-echo "  (after training-portal.yaml is applied)"
+echo "✓ Theme applied. Reload any open workshop tabs to see the change."
