@@ -108,7 +108,10 @@ class ClusterMonitor:
         if not settings.educates_portal_url:
             return {"status": "not_configured"}
         try:
-            with httpx.Client(timeout=5.0) as http:
+            import os
+            _ca_path = "/app/ca/ca.crt"
+            _ssl = _ca_path if os.path.exists(_ca_path) else False
+            with httpx.Client(timeout=5.0, verify=_ssl) as http:
                 resp = http.get(settings.educates_portal_url)
             return {"status": "ok", "http_status": resp.status_code}
         except Exception as exc:
