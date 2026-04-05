@@ -6,12 +6,12 @@ export const colors = {
   spark:    '#1FDDE9',      // Teal
 
   // Dark surfaces
-  bg:            '#090909',  // Page background
-  surface:       '#111111',  // Card / panel
-  elevated:      '#1A1A1A',  // Elevated surfaces, inputs
-  hover:         '#222222',  // Row / item hover
-  border:        '#242424',  // Subtle border
-  borderStrong:  '#333333',  // Visible border
+  bg:            '#0D0D0D',  // Page background
+  surface:       '#161616',  // Card / panel
+  elevated:      '#1E1E1E',  // Elevated surfaces, inputs
+  hover:         '#242424',  // Row / item hover
+  border:        '#2A2A2A',  // Subtle border
+  borderStrong:  '#3A3A3A',  // Visible border
 
   // Text
   textPrimary:   '#F0F0F0',
@@ -23,8 +23,8 @@ export const colors = {
   errorBg:    '#2D0A0A',
   success:    '#34D399',
   successBg:  '#0A2818',
-  warning:    '#FBBF24',
-  warningBg:  '#2D1A00',
+  warning:    '#FBB040',
+  warningBg:  '#2D1800',
   info:       '#60A5FA',
   infoBg:     '#0D2240',
 

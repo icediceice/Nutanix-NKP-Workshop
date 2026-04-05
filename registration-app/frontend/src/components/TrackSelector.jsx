@@ -34,10 +34,10 @@ export default function TrackSelector({ value, onChange }) {
               type="button"
               onClick={() => onChange(track.id)}
               style={{
-                border: `2px solid ${selected ? track.color : '#E0E0E0'}`,
+                border: `2px solid ${selected ? track.color : colors.border}`,
                 borderRadius: radius.md,
                 padding: '16px',
-                background: selected ? `${track.color}18` : '#fff',
+                background: selected ? `${track.color}18` : colors.surface,
                 cursor: 'pointer',
                 textAlign: 'left',
                 transition: 'all 0.15s',
