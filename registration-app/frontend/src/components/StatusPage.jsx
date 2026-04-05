@@ -111,10 +111,29 @@ function StatusBanner({ status, errorMessage }) {
   return null
 }
 
+function extractSessionSubdomain(activationUrl) {
+  // e.g. https://portal-ui.10.8.33.19.nip.io/workshops/session/nkp-workshop-portal-w04-s004/activate/...
+  // → https://nkp-workshop-portal-w04-s004.10.8.33.19.nip.io
+  try {
+    const u = new URL(activationUrl)
+    const match = u.pathname.match(/\/workshops\/session\/([^/]+)\//)
+    if (!match) return null
+    const sessionName = match[1]
+    // derive base domain by stripping first subdomain from portal hostname
+    const hostParts = u.hostname.split('.')
+    const baseDomain = hostParts.slice(1).join('.')
+    return `${u.protocol}//${sessionName}.${baseDomain}`
+  } catch {
+    return null
+  }
+}
+
 function WorkshopUrlCard({ name, url }) {
   const displayName = name
     .replace(/-/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase())
+
+  const sessionOrigin = extractSessionSubdomain(url)
 
   return (
     <div
@@ -134,9 +153,26 @@ function WorkshopUrlCard({ name, url }) {
       <div style={{ fontWeight: 700, fontSize: '17px', color: colors.primary }}>
         {displayName}
       </div>
-      <div style={{ fontSize: '12px', color: '#999', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-        {url}
-      </div>
+
+      {/* Step 1: pre-accept cert for session subdomain */}
+      {sessionOrigin && (
+        <div style={{ background: '#FFF8E1', border: '1px solid #FFE082', borderRadius: radius.sm, padding: '10px 12px', fontSize: '13px' }}>
+          <div style={{ fontWeight: 700, color: '#7B5800', marginBottom: '6px' }}>Before opening:</div>
+          <div style={{ color: '#7B5800', marginBottom: '8px', lineHeight: 1.5 }}>
+            1. Click below &rarr; accept the cert warning &rarr; close that tab<br />
+            2. Then click <strong>Open Workshop</strong>
+          </div>
+          <a
+            href={sessionOrigin}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: 'inline-block', background: '#F59E0B', color: '#fff', padding: '6px 12px', borderRadius: radius.sm, fontWeight: 600, fontSize: '12px', textDecoration: 'none' }}
+          >
+            &#128274; Accept certificate for this session
+          </a>
+        </div>
+      )}
+
       <a
         href={url}
         target="_blank"
