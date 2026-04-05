@@ -51,7 +51,7 @@ def provision_all(background_tasks: BackgroundTasks, db: DBSession = Depends(get
         db.query(Participant)
         .filter(
             Participant.session_id == active_session.id,
-            Participant.status == "registered",
+            Participant.status.in_(["registered", "error"]),
         )
         .all()
     )
