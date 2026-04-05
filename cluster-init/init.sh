@@ -255,10 +255,12 @@ if [[ -n "${PORTAL_NAME}" ]]; then
 else
   echo "  ⚠ No TrainingPortal found — Educates credentials will be empty (provision will fail)"
 fi
+CLUSTER_CONTEXT=$(kubectl config current-context 2>/dev/null || echo "")
 kubectl create secret generic nkp-lab-manager-secrets \
   --from-literal=ADMIN_PASSWORD="${ADMIN_PASSWORD}" \
   --from-literal=DRY_RUN=false \
   --from-literal=DATABASE_URL=sqlite:///data/lab-manager.db \
+  --from-literal=CLUSTER_CONTEXT="${CLUSTER_CONTEXT}" \
   --from-literal=EDUCATES_PORTAL_URL="${EDUCATES_PORTAL_URL}" \
   --from-literal=EDUCATES_ROBOT_CLIENT_ID="${EDUCATES_ROBOT_CLIENT_ID}" \
   --from-literal=EDUCATES_ROBOT_CLIENT_SECRET="${EDUCATES_ROBOT_CLIENT_SECRET}" \
@@ -266,6 +268,13 @@ kubectl create secret generic nkp-lab-manager-secrets \
   --from-literal=EDUCATES_ROBOT_PASSWORD="${EDUCATES_ROBOT_PASSWORD}" \
   --namespace=nkp-lab-manager \
   --dry-run=client -o yaml | kubectl apply -f -
+
+# Kubeconfig secret for ClusterMonitor (reads cluster health from inside the pod)
+kubectl create secret generic nkp-kubeconfigs \
+  --from-file=workload01.conf="${KUBECONFIG}" \
+  --namespace=nkp-lab-manager \
+  --dry-run=client -o yaml | kubectl apply -f -
+echo "  ✓ nkp-kubeconfigs secret created"
 
 # Create ConfigMap from courses.yaml
 kubectl create configmap nkp-lab-manager-courses \
