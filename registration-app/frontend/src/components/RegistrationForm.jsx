@@ -59,6 +59,41 @@ export default function RegistrationForm() {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+      {/* Certificate setup notice */}
+      <div style={{
+        background: '#EFF6FF',
+        border: '1px solid #BFDBFE',
+        borderLeft: '4px solid #3B82F6',
+        borderRadius: radius.md,
+        padding: '14px 18px',
+        marginBottom: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+        flexWrap: 'wrap',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '20px' }}>&#128274;</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '14px', color: '#1E40AF' }}>First time? Install the cluster certificate</div>
+            <div style={{ fontSize: '13px', color: '#3B82F6', marginTop: '2px' }}>Required so workshop links load in your browser. Takes 2 minutes.</div>
+          </div>
+        </div>
+        <a href="/setup" style={{
+          background: '#3B82F6',
+          color: '#fff',
+          padding: '8px 16px',
+          borderRadius: radius.sm,
+          fontWeight: 600,
+          fontSize: '13px',
+          textDecoration: 'none',
+          whiteSpace: 'nowrap',
+        }}>
+          Setup Guide &rarr;
+        </a>
+      </div>
+
       <div style={{ ...styles.card, boxShadow: shadows.elevated }}>
         <h1 style={{ color: colors.primary, fontSize: '24px', marginBottom: '4px' }}>
           Workshop Registration

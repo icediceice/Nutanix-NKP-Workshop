@@ -2,12 +2,14 @@ import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import RegistrationForm from './components/RegistrationForm.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
 import StatusPage from './components/StatusPage.jsx'
+import SetupPage from './components/SetupPage.jsx'
 import { colors, styles } from './styles/theme.js'
 
 function Header() {
   const location = useLocation()
   const isAdmin = location.pathname.startsWith('/admin')
   const isStatus = location.pathname.startsWith('/status')
+  const isSetup = location.pathname.startsWith('/setup')
 
   return (
     <header style={styles.header}>
@@ -20,12 +22,15 @@ function Header() {
         </div>
       </div>
       <nav style={{ display: 'flex', gap: '20px', fontSize: '14px', alignItems: 'center' }}>
-        {isAdmin || isStatus ? (
+        {isAdmin || isStatus || isSetup ? (
           <Link to="/" style={{ color: colors.spark, textDecoration: 'none', fontWeight: 600 }}>
             ← Registration
           </Link>
         ) : (
           <>
+            <Link to="/setup" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'none', fontWeight: 500 }}>
+              &#128274; Cert Setup
+            </Link>
             <Link to="/status" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'none', fontWeight: 500 }}>
               Check My Status
             </Link>
@@ -47,6 +52,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<RegistrationForm />} />
           <Route path="/status" element={<StatusPage />} />
+          <Route path="/setup" element={<SetupPage />} />
           <Route path="/admin/*" element={<AdminPanel />} />
         </Routes>
       </main>
