@@ -376,55 +376,30 @@ class EducatesProvisioner:
 
     def _request_sessions(self, username: str, email: str, workshops: List[str]) -> Dict[str, str]:
         """
-        Request an Educates workshop session for each workshop.
-        Returns {workshop_id: activation_url}.
+        Return direct session creation URLs for each workshop.
 
-        The activation URL is valid for 24 hours (timeout=86400). Once the
-        participant clicks it, their session starts and the URL is consumed.
+        With registration.type: anonymous, participants must NOT be sent to
+        /activate/?token= URLs (those require portal login). Instead, use the
+        /create/ endpoint which auto-creates an anonymous portal account on first
+        visit — no login required.
+
+        Reference: https://docs.educates.dev/en/stable/portal-rest-api/anonymous-access.html
         """
         token = self._get_token()
         headers = {"Authorization": f"Bearer {token}"}
 
+        # Fall back to portal URL as index if localhost default is still set
+        index_url = self.index_url if "localhost" not in self.index_url else self.portal_url
+
         urls: Dict[str, str] = {}
         for workshop_name in workshops:
             env_name = self._get_env_name(workshop_name, headers)
-
-            with self._client(30.0) as client:
-                resp = client.post(
-                    f"{self.portal_url}/workshops/environment/{env_name}/request/",
-                    headers=headers,
-                    params={
-                        "user": username,
-                        "email": email,
-                        "index_url": self.index_url,
-                        "timeout": 86400,  # 24 hours activation window
-                    },
-                )
-
-            if resp.status_code == 503:
-                raise RuntimeError(
-                    f"No capacity for workshop '{workshop_name}' "
-                    f"(environment '{env_name}'). "
-                    "Increase TrainingPortal capacity or reduce registered participants."
-                )
-            if resp.status_code not in (200, 201):
-                raise RuntimeError(
-                    f"Educates session request failed for '{workshop_name}': "
-                    f"{resp.status_code} {resp.text}"
-                )
-
-            session_data = resp.json()
-            # url is a relative path — prepend portal base URL
-            relative_url = session_data.get("url", "")
-            activation_url = f"{self.portal_url}{relative_url}" if relative_url else self.portal_url
-            urls[workshop_name] = activation_url
-
-            logger.debug(
-                "Session %s created for %s → %s",
-                session_data.get("name"),
-                username,
-                workshop_name,
+            create_url = (
+                f"{self.portal_url}/workshops/environment/{env_name}/create/"
+                f"?index_url={index_url}"
             )
+            urls[workshop_name] = create_url
+            logger.debug("Create URL for %s (%s) → %s", workshop_name, username, create_url)
 
         return urls
 
