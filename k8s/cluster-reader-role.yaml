@@ -6,10 +6,12 @@ kind: ClusterRole
 metadata:
   name: nkp-workshop-cluster-reader
 rules:
+# Cluster-scoped resources
 - apiGroups: [""]
   resources:
   - nodes
   - persistentvolumes
+  - namespaces
   verbs: ["get", "list", "watch"]
 - apiGroups: ["storage.k8s.io"]
   resources:
@@ -18,4 +20,34 @@ rules:
 - apiGroups: ["metrics.k8s.io"]
   resources:
   - nodes
+  verbs: ["get", "list", "watch"]
+# Namespace-scoped resources (needed for kubectl cluster-info, get pods, etc.)
+- apiGroups: [""]
+  resources:
+  - services
+  - endpoints
+  - pods
+  - pods/log
+  - configmaps
+  - events
+  - replicationcontrollers
+  - resourcequotas
+  - limitranges
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources:
+  - deployments
+  - replicasets
+  - statefulsets
+  - daemonsets
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch"]
+  resources:
+  - jobs
+  - cronjobs
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources:
+  - ingresses
+  - networkpolicies
   verbs: ["get", "list", "watch"]
