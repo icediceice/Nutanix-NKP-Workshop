@@ -67,6 +67,7 @@ header, .header, [class*="Header"], [class*="header"] { background-color: #0D0D0
 [class*="Panel"], [class*="panel"], [class*="Frame"], [class*="Content"], .split-pane { background-color: #0D0D0D !important; }
 [class*="Sidebar"], [class*="sidebar"], nav, aside { background-color: #0D0D0D !important; border-color: #2A2A2A !important; }
 a { color: #1FDDE9; } a:hover { color: #7855FA; }
+.terminal { background-color: #0D0D0D !important; }
 #startup-cover-panel { background: #0D0D0D !important; color: #F0F0F0 !important; }
 div#terminate-session-dialog, div#workshop-expired-dialog, div#workshop-failed-dialog, div#finished-workshop-dialog, div#started-workshop-dialog { background-color: #161616 !important; color: #F0F0F0 !important; border-color: #2A2A2A !important; }
 .modal-content { background-color: #161616 !important; border-color: #2A2A2A !important; color: #F0F0F0 !important; }
@@ -114,12 +115,40 @@ tr:nth-child(even) { background-color: #161616 !important; } tr:nth-child(odd) {
 body::before { content: ''; display: block; height: 3px; background: linear-gradient(135deg, #4B00AA, #1FDDE9); position: fixed; top: 0; left: 0; right: 0; z-index: 9999; pointer-events: none; }
 CSSEOF
 
-# workshop-instructions.html — kept for Educates versions that also inject HTML into <head>
+# workshop-instructions.html — injected into <head> of the instructions iframe.
+# Adds mermaid.js support (renderer uses marked+hljs which outputs div.highlight-mermaid)
+# and repeats minimal dark overrides for versions that use .html instead of .css injection.
 cat > "${TMP}/workshop-instructions.html" << 'CSSEOF'
 <style>
 html, body { background-color: #0D0D0D !important; color: #F0F0F0 !important; }
 .page-content { background-color: #0D0D0D !important; border-color: #2A2A2A !important; color: #F0F0F0 !important; box-shadow: none !important; }
+.mermaid-rendered { background: #161616; border-radius: 8px; padding: 16px; margin: 16px 0; overflow: auto; }
+.mermaid-rendered svg { max-width: 100%; height: auto; }
 </style>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+
+async function renderMermaid() {
+  const blocks = document.querySelectorAll('div.highlight-mermaid:not([data-mmd])');
+  for (const block of blocks) {
+    block.setAttribute('data-mmd', '1');
+    const code = (block.querySelector('pre')?.textContent || block.querySelector('code')?.textContent || '').trim();
+    if (!code) continue;
+    try {
+      const id = 'mmd' + Math.random().toString(36).slice(2, 9);
+      const { svg } = await mermaid.render(id, code);
+      const div = document.createElement('div');
+      div.className = 'mermaid-rendered';
+      div.innerHTML = svg;
+      block.replaceWith(div);
+    } catch(e) { console.warn('Mermaid render failed:', e); }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', renderMermaid);
+new MutationObserver(renderMermaid).observe(document.documentElement, { childList: true, subtree: true });
+</script>
 CSSEOF
 
 # ── Base64-encode the theme files ────────────────────────────────────────────
