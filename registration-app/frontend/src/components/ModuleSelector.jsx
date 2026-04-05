@@ -26,9 +26,8 @@ export default function ModuleSelector({ value = [], onChange, onCoursesLoaded }
     onChange(next)
   }
 
-  if (loading) return <div style={{ color: '#999', fontSize: '14px' }}>Loading modules…</div>
+  if (loading) return <div style={{ color: colors.textSecondary, fontSize: '14px' }}>Loading modules…</div>
 
-  // Group by category
   const grouped = {}
   for (const [id, bundle] of Object.entries(bundles)) {
     const cat = bundle.category || 'other'
@@ -38,22 +37,22 @@ export default function ModuleSelector({ value = [], onChange, onCoursesLoaded }
 
   return (
     <div>
-      <label style={{ display: 'block', fontWeight: 600, fontSize: '14px', marginBottom: '6px', color: '#222' }}>
-        Learning Modules <span style={{ color: 'red' }}>*</span>
+      <label style={{ display: 'block', fontWeight: 600, fontSize: '14px', marginBottom: '6px', color: colors.textPrimary }}>
+        Learning Modules <span style={{ color: colors.error }}>*</span>
       </label>
-      <p style={{ fontSize: '12px', color: '#666', marginBottom: '14px' }}>
+      <p style={{ fontSize: '12px', color: colors.textSecondary, marginBottom: '14px' }}>
         Foundation workshops (Intro to K8s, Twelve-Factor, Containers, K8s Architecture) are included for all participants.
         Select the additional topics you want to learn — you can mix developer and infrastructure modules.
       </p>
 
       {Object.entries(grouped).map(([category, items]) => {
-        const cat = CATEGORY_LABELS[category] || { label: category, color: '#888' }
+        const cat = CATEGORY_LABELS[category] || { label: category, color: colors.textSecondary }
         return (
           <div key={category} style={{ marginBottom: '20px' }}>
             <div style={{
               fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase',
               color: cat.color, marginBottom: '10px', paddingBottom: '6px',
-              borderBottom: `2px solid ${cat.color}22`,
+              borderBottom: `2px solid ${cat.color}33`,
             }}>
               {cat.label}
             </div>
@@ -66,10 +65,10 @@ export default function ModuleSelector({ value = [], onChange, onCoursesLoaded }
                     type="button"
                     onClick={() => toggle(bundle.id)}
                     style={{
-                      border: `2px solid ${selected ? cat.color : '#E0E0E0'}`,
+                      border: `2px solid ${selected ? cat.color : colors.border}`,
                       borderRadius: radius.md,
                       padding: '12px 14px',
-                      background: selected ? `${cat.color}12` : '#fafafa',
+                      background: selected ? `${cat.color}18` : colors.elevated,
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'all 0.15s',
@@ -85,7 +84,7 @@ export default function ModuleSelector({ value = [], onChange, onCoursesLoaded }
                         {selected && <span style={{ color: '#fff', fontSize: '12px', fontWeight: 700 }}>✓</span>}
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, fontSize: '13px', color: '#222', marginBottom: '3px' }}>
+                        <div style={{ fontWeight: 700, fontSize: '13px', color: colors.textPrimary, marginBottom: '3px' }}>
                           {bundle.title}
                         </div>
                         {bundle.duration_hours && (
@@ -93,16 +92,16 @@ export default function ModuleSelector({ value = [], onChange, onCoursesLoaded }
                             {bundle.duration_hours}h
                           </div>
                         )}
-                        <div style={{ fontSize: '12px', color: '#555', lineHeight: 1.4, marginBottom: bundle.includes_tools ? '6px' : 0 }}>
+                        <div style={{ fontSize: '12px', color: colors.textSecondary, lineHeight: 1.4, marginBottom: bundle.includes_tools ? '6px' : 0 }}>
                           {bundle.description}
                         </div>
                         {bundle.includes_tools && (
-                          <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+                          <div style={{ fontSize: '11px', color: colors.textMuted, marginTop: '4px' }}>
                             Includes: {bundle.includes_tools.join(' · ')}
                           </div>
                         )}
                         {bundle.coherent_with && (
-                          <div style={{ fontSize: '11px', color: '#aaa', marginTop: '3px', fontStyle: 'italic' }}>
+                          <div style={{ fontSize: '11px', color: colors.textMuted, marginTop: '3px', fontStyle: 'italic' }}>
                             Pairs well with: {bundle.coherent_with.join(', ')}
                           </div>
                         )}
@@ -117,7 +116,7 @@ export default function ModuleSelector({ value = [], onChange, onCoursesLoaded }
       })}
 
       {value.length > 0 && (
-        <div style={{ marginTop: '12px', fontSize: '12px', color: colors.primary }}>
+        <div style={{ marginTop: '12px', fontSize: '12px', color: colors.accent }}>
           Selected: <strong>{value.length}</strong> module{value.length !== 1 ? 's' : ''} — {value.join(', ')}
         </div>
       )}

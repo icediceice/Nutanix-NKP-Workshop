@@ -32,24 +32,24 @@ export default function RegistrationForm() {
     return (
       <div style={{ maxWidth: '600px', margin: '0 auto' }}>
         <div style={{ ...styles.card, borderTop: `4px solid ${colors.spark}`, textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '12px' }}>✓</div>
-          <h2 style={{ color: colors.primary, marginBottom: '8px' }}>Registration Successful!</h2>
-          <p style={{ color: '#555', marginBottom: '24px' }}>
-            Welcome, <strong>{success.participant.name}</strong>. You are registered for the{' '}
-            <strong>{success.participant.session}</strong> session.
+          <div style={{ fontSize: '48px', marginBottom: '12px', color: colors.spark }}>✓</div>
+          <h2 style={{ color: colors.accent, marginBottom: '8px' }}>Registration Successful!</h2>
+          <p style={{ color: colors.textSecondary, marginBottom: '24px' }}>
+            Welcome, <strong style={{ color: colors.textPrimary }}>{success.participant.name}</strong>. You are registered for the{' '}
+            <strong style={{ color: colors.textPrimary }}>{success.participant.session}</strong> session.
           </p>
-          <div style={{ background: colors.lightGray, borderRadius: radius.md, padding: '16px', textAlign: 'left' }}>
-            <div style={{ fontSize: '13px', color: '#555', marginBottom: '4px' }}>Your username:</div>
-            <div style={{ fontWeight: 700, fontSize: '18px', color: colors.primary, fontFamily: 'monospace' }}>
+          <div style={{ background: colors.elevated, borderRadius: radius.md, padding: '16px', textAlign: 'left', border: `1px solid ${colors.border}` }}>
+            <div style={{ fontSize: '13px', color: colors.textSecondary, marginBottom: '4px' }}>Your username:</div>
+            <div style={{ fontWeight: 700, fontSize: '18px', color: colors.spark, fontFamily: 'monospace' }}>
               {success.participant.username}
             </div>
             {success.participant.modules?.length > 0 && (
-              <div style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
+              <div style={{ fontSize: '12px', color: colors.textSecondary, marginTop: '8px' }}>
                 Modules: {success.participant.modules.join(', ')}
               </div>
             )}
           </div>
-          <p style={{ fontSize: '13px', color: '#888', marginTop: '16px' }}>
+          <p style={{ fontSize: '13px', color: colors.textSecondary, marginTop: '16px' }}>
             Your trainer will provision your workshop environments and share the access links.
           </p>
         </div>
@@ -61,9 +61,9 @@ export default function RegistrationForm() {
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       {/* Certificate setup notice */}
       <div style={{
-        background: '#EFF6FF',
-        border: '1px solid #BFDBFE',
-        borderLeft: '4px solid #3B82F6',
+        background: colors.infoBg,
+        border: `1px solid ${colors.info}33`,
+        borderLeft: `4px solid ${colors.info}`,
         borderRadius: radius.md,
         padding: '14px 18px',
         marginBottom: '20px',
@@ -76,12 +76,12 @@ export default function RegistrationForm() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '20px' }}>&#128274;</span>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '14px', color: '#1E40AF' }}>First time? Install the cluster certificate</div>
-            <div style={{ fontSize: '13px', color: '#3B82F6', marginTop: '2px' }}>Required so workshop links load in your browser. Takes 2 minutes.</div>
+            <div style={{ fontWeight: 700, fontSize: '14px', color: colors.info }}>First time? Install the cluster certificate</div>
+            <div style={{ fontSize: '13px', color: colors.textSecondary, marginTop: '2px' }}>Required so workshop links load in your browser. Takes 2 minutes.</div>
           </div>
         </div>
         <a href="/setup" style={{
-          background: '#3B82F6',
+          background: colors.info,
           color: '#fff',
           padding: '8px 16px',
           borderRadius: radius.sm,
@@ -95,18 +95,18 @@ export default function RegistrationForm() {
       </div>
 
       <div style={{ ...styles.card, boxShadow: shadows.elevated }}>
-        <h1 style={{ color: colors.primary, fontSize: '24px', marginBottom: '4px' }}>
+        <h1 style={{ color: colors.textPrimary, fontSize: '24px', marginBottom: '4px' }}>
           Workshop Registration
         </h1>
-        <p style={{ color: '#666', fontSize: '14px', marginBottom: '28px' }}>
+        <p style={{ color: colors.textSecondary, fontSize: '14px', marginBottom: '28px' }}>
           Register to get access to your hands-on lab environments.
         </p>
 
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
-                Full Name <span style={{ color: 'red' }}>*</span>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: colors.textSecondary }}>
+                Full Name <span style={{ color: colors.error }}>*</span>
               </label>
               <input
                 style={styles.input}
@@ -118,8 +118,8 @@ export default function RegistrationForm() {
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
-                Email <span style={{ color: 'red' }}>*</span>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: colors.textSecondary }}>
+                Email <span style={{ color: colors.error }}>*</span>
               </label>
               <input
                 style={styles.input}
@@ -133,7 +133,7 @@ export default function RegistrationForm() {
           </div>
 
           <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: colors.textSecondary }}>
               Company
             </label>
             <input
@@ -163,19 +163,19 @@ export default function RegistrationForm() {
               ...form.modules.flatMap((id) => bundles[id]?.workshops || []),
             ])
             return (
-              <div style={{ background: `${colors.primary}08`, border: `1px solid ${colors.primary}22`, borderRadius: radius.md, padding: '14px 16px', marginBottom: '28px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: colors.primary, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ background: colors.elevated, border: `1px solid ${colors.border}`, borderLeft: `3px solid ${colors.accent}`, borderRadius: radius.md, padding: '14px 16px', marginBottom: '28px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: colors.accent, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Your Workshop Plan
                 </div>
                 <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', color: '#333' }}>
-                    <strong>{uniqueWorkshops.size}</strong> workshops total
+                  <span style={{ fontSize: '13px', color: colors.textSecondary }}>
+                    <strong style={{ color: colors.textPrimary }}>{uniqueWorkshops.size}</strong> workshops total
                   </span>
-                  <span style={{ fontSize: '13px', color: '#333' }}>
-                    <strong>~{totalHours + 2}h</strong> estimated duration
+                  <span style={{ fontSize: '13px', color: colors.textSecondary }}>
+                    <strong style={{ color: colors.textPrimary }}>~{totalHours + 2}h</strong> estimated duration
                   </span>
-                  <span style={{ fontSize: '13px', color: '#333' }}>
-                    <strong>{foundationCount}</strong> foundation + <strong>{form.modules.length}</strong> selected bundle{form.modules.length !== 1 ? 's' : ''}
+                  <span style={{ fontSize: '13px', color: colors.textSecondary }}>
+                    <strong style={{ color: colors.textPrimary }}>{foundationCount}</strong> foundation + <strong style={{ color: colors.textPrimary }}>{form.modules.length}</strong> selected bundle{form.modules.length !== 1 ? 's' : ''}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -190,7 +190,7 @@ export default function RegistrationForm() {
           })()}
 
           {error && (
-            <div style={{ background: '#FFEBEE', color: colors.error, padding: '10px 14px', borderRadius: radius.sm, fontSize: '14px', marginBottom: '16px' }}>
+            <div style={{ background: colors.errorBg, color: colors.error, border: `1px solid ${colors.error}44`, padding: '10px 14px', borderRadius: radius.sm, fontSize: '14px', marginBottom: '16px' }}>
               {error}
             </div>
           )}

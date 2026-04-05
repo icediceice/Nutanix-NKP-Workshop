@@ -13,8 +13,8 @@ const STATUS_OPTIONS = ['', 'registered', 'provisioning', 'ready', 'error']
 
 function Section({ title, children }) {
   return (
-    <div style={{ background: '#fff', borderRadius: radius.md, boxShadow: shadows.card, padding: '20px', marginBottom: '20px' }}>
-      {title && <h3 style={{ color: colors.primary, fontSize: '15px', marginBottom: '16px', fontWeight: 700 }}>{title}</h3>}
+    <div style={{ background: colors.surface, borderRadius: radius.md, border: `1px solid ${colors.border}`, padding: '20px', marginBottom: '20px' }}>
+      {title && <h3 style={{ color: colors.accent, fontSize: '15px', marginBottom: '16px', fontWeight: 700 }}>{title}</h3>}
       {children}
     </div>
   )
@@ -73,7 +73,6 @@ export default function AdminPanel() {
     URL.revokeObjectURL(url)
   }
 
-  // Client-side search + status filter
   const filteredParticipants = participants.filter((p) => {
     const q = search.toLowerCase()
     const matchSearch = !q || [p.name, p.email, p.company].some((f) => f?.toLowerCase().includes(q))
@@ -85,8 +84,8 @@ export default function AdminPanel() {
     return (
       <div style={{ maxWidth: '400px', margin: '60px auto' }}>
         <div style={{ ...styles.card, boxShadow: shadows.elevated }}>
-          <h2 style={{ color: colors.primary, marginBottom: '8px' }}>Admin Login</h2>
-          <p style={{ fontSize: '13px', color: '#888', marginBottom: '20px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '8px' }}>Admin Login</h2>
+          <p style={{ fontSize: '13px', color: colors.textSecondary, marginBottom: '20px' }}>
             Leave blank and press Sign In if no password is set (local dev).
           </p>
           <form onSubmit={handleAuth}>
@@ -98,7 +97,7 @@ export default function AdminPanel() {
               onChange={(e) => setPassword(e.target.value)}
               autoFocus
             />
-            {authError && <div style={{ color: '#C62828', fontSize: '13px', marginBottom: '12px' }}>{authError}</div>}
+            {authError && <div style={{ color: colors.error, fontSize: '13px', marginBottom: '12px' }}>{authError}</div>}
             <button type="submit" disabled={authLoading} style={{ ...styles.btn.primary, width: '100%', opacity: authLoading ? 0.7 : 1 }}>
               {authLoading ? 'Checking…' : 'Sign In'}
             </button>
@@ -110,25 +109,24 @@ export default function AdminPanel() {
 
   return (
     <div>
-      {/* Active session banner */}
       {activeSession && (
-        <div style={{ background: colors.primary, color: '#fff', borderRadius: radius.md, padding: '10px 20px', marginBottom: '20px', fontSize: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: colors.elevated, border: `1px solid ${colors.primary}44`, borderLeft: `4px solid ${colors.primary}`, borderRadius: radius.md, padding: '10px 20px', marginBottom: '20px', fontSize: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>
-            Active Session: <strong>{activeSession.name}</strong>
+            Active Session: <strong style={{ color: colors.accent }}>{activeSession.name}</strong>
             {activeSession.event_date && (
-              <span style={{ opacity: 0.7, marginLeft: '10px', fontSize: '12px' }}>
+              <span style={{ color: colors.textSecondary, marginLeft: '10px', fontSize: '12px' }}>
                 {new Date(activeSession.event_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             )}
           </span>
-          <span style={{ opacity: 0.7, fontSize: '12px' }}>
+          <span style={{ color: colors.textSecondary, fontSize: '12px' }}>
             {participants.length} participant{participants.length !== 1 ? 's' : ''}
           </span>
         </div>
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: `2px solid ${colors.primary}` }}>
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: `1px solid ${colors.border}` }}>
         {TABS.map((t) => (
           <button
             key={t}
@@ -136,9 +134,9 @@ export default function AdminPanel() {
             style={{
               padding: '8px 20px', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
               fontWeight: 600, fontSize: '14px', background: 'none',
-              color: tab === t ? colors.primary : '#888',
-              borderBottom: tab === t ? `3px solid ${colors.accent}` : '3px solid transparent',
-              marginBottom: '-2px',
+              color: tab === t ? colors.accent : colors.textSecondary,
+              borderBottom: tab === t ? `2px solid ${colors.accent}` : '2px solid transparent',
+              marginBottom: '-1px',
             }}
           >
             {t}
@@ -150,7 +148,6 @@ export default function AdminPanel() {
         <>
           <StatsBar participants={participants} />
           <Section>
-            {/* Toolbar */}
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
               <input
                 style={{ ...styles.input, flex: '2 1 200px', marginBottom: 0 }}
@@ -179,17 +176,15 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            {search || filterStatus ? (
-              <div style={{ fontSize: '12px', color: '#888', marginBottom: '10px' }}>
+            {(search || filterStatus) ? (
+              <div style={{ fontSize: '12px', color: colors.textSecondary, marginBottom: '10px' }}>
                 Showing {filteredParticipants.length} of {participants.length} participants
-                {(search || filterStatus) && (
-                  <button
-                    onClick={() => { setSearch(''); setFilterStatus('') }}
-                    style={{ marginLeft: '10px', background: 'none', border: 'none', color: colors.accent, cursor: 'pointer', fontSize: '12px', textDecoration: 'underline' }}
-                  >
-                    Clear filters
-                  </button>
-                )}
+                <button
+                  onClick={() => { setSearch(''); setFilterStatus('') }}
+                  style={{ marginLeft: '10px', background: 'none', border: 'none', color: colors.accent, cursor: 'pointer', fontSize: '12px', textDecoration: 'underline' }}
+                >
+                  Clear filters
+                </button>
               </div>
             ) : null}
 

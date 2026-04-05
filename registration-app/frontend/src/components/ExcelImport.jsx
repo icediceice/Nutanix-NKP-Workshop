@@ -47,13 +47,13 @@ export default function ExcelImport({ onImported }) {
       </button>
 
       {result && !result.error && (
-        <span style={{ fontSize: '13px', color: '#2E7D32', background: '#E8F5E9', padding: '6px 12px', borderRadius: radius.sm }}>
+        <span style={{ fontSize: '13px', color: colors.success, background: colors.successBg, border: `1px solid ${colors.success}33`, padding: '6px 12px', borderRadius: radius.sm }}>
           Imported {result.imported} • Skipped {result.skipped}
           {result.errors?.length > 0 && ` • ${result.errors.length} error(s)`}
         </span>
       )}
       {result?.error && (
-        <span style={{ fontSize: '13px', color: '#C62828', background: '#FFEBEE', padding: '6px 12px', borderRadius: radius.sm }}>
+        <span style={{ fontSize: '13px', color: colors.error, background: colors.errorBg, border: `1px solid ${colors.error}33`, padding: '6px 12px', borderRadius: radius.sm }}>
           {result.error}
         </span>
       )}

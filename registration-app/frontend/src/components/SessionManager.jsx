@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react'
 import { getSessions, createSession, updateSession, activateSession, archiveSession } from '../api.js'
 import { colors, styles, radius } from '../styles/theme.js'
 
-const STATUS_COLOR = { active: '#2E7D32', completed: '#888', archived: '#bbb' }
+const STATUS_COLOR = {
+  active: colors.success,
+  completed: colors.textSecondary,
+  archived: colors.textMuted,
+}
 
 function EditSessionModal({ session, onSave, onClose }) {
   const [name, setName] = useState(session.name)
@@ -20,30 +24,20 @@ function EditSessionModal({ session, onSave, onClose }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
     }}>
-      <div style={{ background: '#fff', borderRadius: radius.lg, padding: '28px', width: '400px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
-        <h3 style={{ color: colors.primary, marginBottom: '20px', fontSize: '16px' }}>Edit Session</h3>
+      <div style={{ background: colors.elevated, border: `1px solid ${colors.border}`, borderRadius: radius.lg, padding: '28px', width: '400px', boxShadow: '0 8px 40px rgba(0,0,0,0.6)' }}>
+        <h3 style={{ color: colors.accent, marginBottom: '20px', fontSize: '16px' }}>Edit Session</h3>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Session Name</label>
-          <input
-            style={styles.input}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Partner Workshop March 2026"
-          />
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: colors.textSecondary }}>Session Name</label>
+          <input style={styles.input} value={name} onChange={(e) => setName(e.target.value)} placeholder="Partner Workshop March 2026" />
         </div>
 
         <div style={{ marginBottom: '24px' }}>
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Event Date</label>
-          <input
-            style={styles.input}
-            type="date"
-            value={eventDate}
-            onChange={(e) => setEventDate(e.target.value)}
-          />
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: colors.textSecondary }}>Event Date</label>
+          <input style={styles.input} type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
         </div>
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
@@ -111,16 +105,12 @@ export default function SessionManager({ onSessionChange }) {
     onSessionChange?.()
   }
 
-  if (loading) return <div style={{ color: '#999', fontSize: '14px' }}>Loading sessions…</div>
+  if (loading) return <div style={{ color: colors.textSecondary, fontSize: '14px' }}>Loading sessions…</div>
 
   return (
     <div>
       {editing && (
-        <EditSessionModal
-          session={editing}
-          onSave={handleUpdate}
-          onClose={() => setEditing(null)}
-        />
+        <EditSessionModal session={editing} onSave={handleUpdate} onClose={() => setEditing(null)} />
       )}
 
       <form onSubmit={handleCreate} style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
@@ -145,35 +135,28 @@ export default function SessionManager({ onSessionChange }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {sessions.map((s) => (
-          <div
-            key={s.id}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '10px 14px', borderRadius: radius.sm,
-              border: `1px solid ${s.status === 'active' ? colors.spark : '#E0E0E0'}`,
-              background: s.status === 'active' ? '#F0FFFE' : '#FAFAFA',
-              flexWrap: 'wrap',
-            }}
-          >
-            <span style={{ flex: 1, fontWeight: s.status === 'active' ? 700 : 400, fontSize: '14px' }}>
+          <div key={s.id} style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            padding: '10px 14px', borderRadius: radius.sm,
+            border: `1px solid ${s.status === 'active' ? colors.spark + '55' : colors.border}`,
+            background: s.status === 'active' ? `${colors.spark}0A` : colors.elevated,
+            flexWrap: 'wrap',
+          }}>
+            <span style={{ flex: 1, fontWeight: s.status === 'active' ? 700 : 400, fontSize: '14px', color: colors.textPrimary }}>
               {s.name}
               {s.event_date && (
-                <span style={{ fontSize: '12px', color: '#999', fontWeight: 400, marginLeft: '8px' }}>
+                <span style={{ fontSize: '12px', color: colors.textSecondary, fontWeight: 400, marginLeft: '8px' }}>
                   {new Date(s.event_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
               )}
             </span>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: STATUS_COLOR[s.status] || '#888', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: STATUS_COLOR[s.status] || colors.textSecondary, textTransform: 'uppercase' }}>
               {s.status}
             </span>
-            <span style={{ fontSize: '12px', color: '#aaa' }}>
+            <span style={{ fontSize: '12px', color: colors.textMuted }}>
               Created {new Date(s.created_at).toLocaleDateString()}
             </span>
-            <button
-              onClick={() => setEditing(s)}
-              style={{ ...styles.btn.outline, padding: '4px 10px', fontSize: '12px' }}
-              title="Edit session name / date"
-            >
+            <button onClick={() => setEditing(s)} style={{ ...styles.btn.outline, padding: '4px 10px', fontSize: '12px' }} title="Edit session name / date">
               Edit
             </button>
             {s.status !== 'active' && (
@@ -182,14 +165,14 @@ export default function SessionManager({ onSessionChange }) {
               </button>
             )}
             {s.status !== 'archived' && (
-              <button onClick={() => handleArchive(s.id)} style={{ ...styles.btn.outline, padding: '4px 10px', fontSize: '12px', color: '#d32f2f', borderColor: '#d32f2f' }}>
+              <button onClick={() => handleArchive(s.id)} style={{ ...styles.btn.outline, padding: '4px 10px', fontSize: '12px', color: colors.error, borderColor: colors.error }}>
                 Archive
               </button>
             )}
           </div>
         ))}
         {!sessions.length && (
-          <div style={{ color: '#999', fontSize: '14px' }}>No sessions yet. Create one to get started.</div>
+          <div style={{ color: colors.textSecondary, fontSize: '14px' }}>No sessions yet. Create one to get started.</div>
         )}
       </div>
     </div>
