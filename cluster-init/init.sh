@@ -167,6 +167,30 @@ if [[ "${APP_ONLY}" == "false" && "${WORKSHOPS_ONLY}" == "false" ]] || [[ "${EDU
   echo "  → Deploying Training Portal..."
   kubectl apply -f "${SCRIPT_DIR}/educates/training-portal.yaml"
 
+  echo "  → Waiting for workshop environment namespaces..."
+  for i in $(seq -w 01 09); do
+    ns="nkp-workshop-portal-w${i}"
+    for attempt in $(seq 1 30); do
+      if kubectl get ns "${ns}" >/dev/null 2>&1; then
+        kubectl apply -f - <<EOF
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-kube-apiserver
+  namespace: ${ns}
+spec:
+  endpointSelector: {}
+  egress:
+  - toEntities:
+    - kube-apiserver
+EOF
+        echo "  ✓ kube-apiserver egress allowed: ${ns}"
+        break
+      fi
+      [[ $attempt -eq 30 ]] && echo "  ⚠ Namespace ${ns} not ready after 60s — skipping" || sleep 2
+    done
+  done
+
   echo "  ✓ Educates ready"
   [[ "${EDUCATES_ONLY}" == "true" ]] && { echo "Done (educates-only)."; exit 0; }
 fi
