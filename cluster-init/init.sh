@@ -180,10 +180,6 @@ if [[ "${APP_ONLY}" == "false" && "${WORKSHOPS_ONLY}" == "false" ]] || [[ "${EDU
   echo "  → Deploying Training Portal..."
   kubectl apply -f "${SCRIPT_DIR}/educates/training-portal.yaml"
 
-  # ── GHCR pull token for workshop files images ──
-  GHCR_TOKEN=$(cfg ghcr_token 2>/dev/null || echo "")
-  [[ "${GHCR_TOKEN}" == "null" ]] && GHCR_TOKEN=""
-
   echo "  → Waiting for workshop environment namespaces..."
   for i in $(seq -w 01 09); do
     ns="nkp-workshop-portal-w${i}"
@@ -202,17 +198,6 @@ spec:
     - kube-apiserver
 EOF
         echo "  ✓ kube-apiserver egress allowed: ${ns}"
-
-        # Create GHCR pull secret so vendir can fetch workshop files images
-        if [[ -n "${GHCR_TOKEN}" ]]; then
-          kubectl create secret docker-registry ghcr-pull-secret \
-            --docker-server=ghcr.io \
-            --docker-username=icediceice \
-            --docker-password="${GHCR_TOKEN}" \
-            --namespace="${ns}" \
-            --dry-run=client -o yaml | kubectl apply -f - >/dev/null
-          echo "  ✓ ghcr-pull-secret created: ${ns}"
-        fi
         break
       fi
       [[ $attempt -eq 30 ]] && echo "  ⚠ Namespace ${ns} not ready after 60s — skipping" || sleep 2
