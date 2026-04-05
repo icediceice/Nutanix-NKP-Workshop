@@ -73,13 +73,15 @@ body::before { content: ''; display: block; height: 3px; background: linear-grad
 </style>
 CSSEOF
 
-cat > "${TMP}/workshop-instructions.html" << 'CSSEOF'
-<style>
+# workshop-instructions.css — loaded by Educates as a <link> stylesheet.
+# Must be raw CSS (no <style> tags). Overrides educates.css including .page-content.
+cat > "${TMP}/workshop-instructions.css" << 'CSSEOF'
 html, body { background-color: #0D0D0D !important; color: #F0F0F0 !important; font-family: 'Segoe UI', system-ui, sans-serif; }
+.page-content { background-color: #0D0D0D !important; border-color: #2A2A2A !important; color: #F0F0F0 !important; box-shadow: none !important; }
 h1, h2, h3, h4, h5, h6 { color: #F0F0F0 !important; }
 h1, h2 { border-bottom: 1px solid #2A2A2A !important; padding-bottom: 8px; }
 a { color: #1FDDE9 !important; } a:hover { color: #7855FA !important; }
-pre { background-color: #0D0D0D !important; border: 1px solid #2A2A2A !important; border-radius: 6px !important; color: #F0F0F0 !important; padding: 16px !important; }
+pre, .highlight, .page-content pre { background-color: #161616 !important; border: 1px solid #2A2A2A !important; border-radius: 6px !important; color: #F0F0F0 !important; padding: 16px !important; }
 code { background-color: #1E1E1E !important; color: #1FDDE9 !important; border-radius: 3px !important; padding: 2px 5px !important; }
 pre code { background: transparent !important; color: #F0F0F0 !important; padding: 0 !important; }
 blockquote, .note, .warning, .tip, .info { background-color: #161616 !important; border-left: 4px solid #7855FA !important; color: #F0F0F0 !important; padding: 12px 16px !important; border-radius: 0 6px 6px 0; }
@@ -91,19 +93,29 @@ tr:nth-child(even) { background-color: #161616 !important; } tr:nth-child(odd) {
 ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #161616; }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; } ::-webkit-scrollbar-thumb:hover { background: #7855FA; }
 body::before { content: ''; display: block; height: 3px; background: linear-gradient(135deg, #4B00AA, #1FDDE9); position: fixed; top: 0; left: 0; right: 0; z-index: 9999; pointer-events: none; }
+CSSEOF
+
+# workshop-instructions.html — kept for Educates versions that also inject HTML into <head>
+cat > "${TMP}/workshop-instructions.html" << 'CSSEOF'
+<style>
+html, body { background-color: #0D0D0D !important; color: #F0F0F0 !important; }
+.page-content { background-color: #0D0D0D !important; border-color: #2A2A2A !important; color: #F0F0F0 !important; box-shadow: none !important; }
 </style>
 CSSEOF
 
-# ── Base64-encode the CSS files ──────────────────────────────────────────────
+# ── Base64-encode the theme files ────────────────────────────────────────────
 PORTAL_B64=$(base64 -w0 "${TMP}/training-portal.html")
 DASH_B64=$(base64 -w0 "${TMP}/workshop-dashboard.html")
-INST_B64=$(base64 -w0 "${TMP}/workshop-instructions.html")
+INST_HTML_B64=$(base64 -w0 "${TMP}/workshop-instructions.html")
+INST_CSS_B64=$(base64 -w0 "${TMP}/workshop-instructions.css")
 
 # ── Patch educates/default-website-theme (source for SecretCopier) ───────────
-# SecretCopier syncs this to every session namespace's workshop-theme secret.
+# SecretCopier syncs this to every env namespace's workshop-theme secret.
+# workshop-instructions.css is loaded via <link> — must be raw CSS, no <style> tags.
 echo "  Patching educates/default-website-theme (session source)..."
 kubectl patch secret default-website-theme -n educates --type=json -p "[
-  {\"op\":\"replace\",\"path\":\"/data/workshop-instructions.html\",\"value\":\"${INST_B64}\"},
+  {\"op\":\"replace\",\"path\":\"/data/workshop-instructions.css\",\"value\":\"${INST_CSS_B64}\"},
+  {\"op\":\"replace\",\"path\":\"/data/workshop-instructions.html\",\"value\":\"${INST_HTML_B64}\"},
   {\"op\":\"replace\",\"path\":\"/data/workshop-dashboard.html\",\"value\":\"${DASH_B64}\"}
 ]"
 
@@ -111,7 +123,8 @@ kubectl patch secret default-website-theme -n educates --type=json -p "[
 echo "  Patching ${PORTAL_NS}/default-website-theme (portal catalog)..."
 kubectl patch secret default-website-theme -n "${PORTAL_NS}" --type=json -p "[
   {\"op\":\"replace\",\"path\":\"/data/training-portal.html\",\"value\":\"${PORTAL_B64}\"},
-  {\"op\":\"replace\",\"path\":\"/data/workshop-instructions.html\",\"value\":\"${INST_B64}\"},
+  {\"op\":\"replace\",\"path\":\"/data/workshop-instructions.css\",\"value\":\"${INST_CSS_B64}\"},
+  {\"op\":\"replace\",\"path\":\"/data/workshop-instructions.html\",\"value\":\"${INST_HTML_B64}\"},
   {\"op\":\"replace\",\"path\":\"/data/workshop-dashboard.html\",\"value\":\"${DASH_B64}\"}
 ]"
 
