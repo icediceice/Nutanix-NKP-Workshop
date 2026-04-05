@@ -106,6 +106,13 @@ def cleanup_all_sessions(db: DBSession = Depends(get_db)):
     return {"message": "Cleanup complete. All participants reset to 'registered'."}
 
 
+@router.get("/educates/health")
+def educates_health():
+    """Check Educates portal connectivity and robot credential validity."""
+    provisioner = _get_provisioner()
+    return provisioner.check_health()
+
+
 @router.get("/cluster/status")
 def cluster_status():
     monitor = ClusterMonitor(
