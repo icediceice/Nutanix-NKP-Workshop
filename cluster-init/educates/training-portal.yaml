@@ -23,42 +23,42 @@ spec:
     # ── Shared Foundation ──
     - name: k8s-intro
       capacity: 30
-      initial: 5
+      initial: 1
       reserved: 2
 
     - name: twelve-factor
       capacity: 30
-      initial: 5
+      initial: 1
       reserved: 2
 
     - name: containers-docker
       capacity: 30
-      initial: 5
+      initial: 1
       reserved: 2
 
     - name: k8s-architecture
       capacity: 30
-      initial: 5
+      initial: 1
       reserved: 2
 
     # ── Developer Track ──
     - name: dev-app-development
       capacity: 20
-      initial: 3
+      initial: 1
       reserved: 2
 
     - name: dev-nkp-platform
       capacity: 20
-      initial: 3
+      initial: 1
       reserved: 2
 
     # ── Infrastructure Track ──
     - name: infra-introduction
       capacity: 20
-      initial: 3
+      initial: 1
       reserved: 2
 
     - name: infra-nkp-platform
       capacity: 20
-      initial: 3
+      initial: 1
       reserved: 2

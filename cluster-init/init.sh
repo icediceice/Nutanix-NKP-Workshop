@@ -164,6 +164,19 @@ if [[ "${APP_ONLY}" == "false" && "${WORKSHOPS_ONLY}" == "false" ]] || [[ "${EDU
   echo "[3/6] Installing Educates..."
   "${SCRIPT_DIR}/educates/install-educates.sh" "${CONFIG_FILE}"
 
+  # ── Scale Kyverno to 2 replicas + increase webhook timeout ──
+  # NKP/Kyverno has 19+ ClusterPolicies. Creating all 8 workshop environments
+  # simultaneously floods the admission webhook and causes context deadline exceeded
+  # (pykube has a 10s read timeout). Two replicas and 25s webhook timeout prevents this.
+  echo "  → Tuning Kyverno for Educates burst load..."
+  kubectl scale deployment kyverno-admission-controller -n kyverno --replicas=2 >/dev/null 2>&1 || true
+  kubectl rollout status deployment/kyverno-admission-controller -n kyverno --timeout=60s >/dev/null 2>&1 || true
+  for vwc in $(kubectl get validatingwebhookconfiguration 2>/dev/null | grep kyverno | awk '{print $1}'); do
+    kubectl patch validatingwebhookconfiguration "${vwc}" --type='json' \
+      -p='[{"op":"replace","path":"/webhooks/0/timeoutSeconds","value":25}]' >/dev/null 2>&1 || true
+  done
+  echo "  ✓ Kyverno: 2 replicas, webhook timeout 25s"
+
   echo "  → Deploying Training Portal..."
   kubectl apply -f "${SCRIPT_DIR}/educates/training-portal.yaml"
 

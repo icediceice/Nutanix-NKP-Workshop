@@ -43,12 +43,38 @@ clusterInfrastructure:
 clusterIngress:
   domain: ${INGRESS_DOMAIN}
 $(if [[ -n "${INGRESS_CLASS}" ]]; then echo "  class: ${INGRESS_CLASS}"; fi)
+  tlsCertificateRef:
+    namespace: educates
+    name: educates-wildcard-tls
 clusterStorage:
   class: ${STORAGE_CLASS}
 
 clusterSecurity:
   policyEngine: ${POLICY_ENGINE}
 EOF
+
+# ── Create wildcard TLS cert for session ingresses (NKP/Traefik requires HTTPS) ──
+# Traefik has a global HTTP→HTTPS redirect. Without TLS on session ingresses,
+# the HTTPS request has no matching route and falls through to the portal.
+echo "  → Creating wildcard TLS cert for *.${INGRESS_DOMAIN}..."
+kubectl create namespace educates --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+kubectl apply -f - <<EOCERT
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: educates-wildcard-tls
+  namespace: educates
+spec:
+  secretName: educates-wildcard-tls
+  dnsNames:
+    - "*.${INGRESS_DOMAIN}"
+    - "${INGRESS_DOMAIN}"
+  issuerRef:
+    name: kommander-ca
+    kind: ClusterIssuer
+EOCERT
+kubectl wait certificate educates-wildcard-tls -n educates --for=condition=Ready --timeout=60s
+echo "  ✓ Wildcard TLS cert ready"
 
 # ── Deploy Educates platform ──
 echo "Deploying Educates platform (this may take 2–5 minutes)..."
