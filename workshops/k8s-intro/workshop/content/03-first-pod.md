@@ -31,6 +31,43 @@ From the outside, the Pod looks like a single machine with one IP address.
 
 ---
 
+## A Pod is a Separate World
+
+This is the most important thing to understand before running your first pod.
+
+**Right now**, you are running commands inside your workshop session — a Linux environment with
+its own hostname, its own IP, its own filesystem, its own OS packages.
+
+**When a pod starts**, Kubernetes creates a completely separate environment on one of the cluster's
+worker nodes. It has its own hostname, its own IP, its own filesystem. It cannot see your files.
+You cannot reach it directly. It is isolated.
+
+```mermaid
+graph LR
+    subgraph YOU["💻 Your Workshop Session\n(where you are now)"]
+        SH["$ your shell\nhostname: session-abc\nIP: 10.0.1.5\nOS: Ubuntu 22.04"]
+    end
+
+    subgraph CLUSTER["⚙️ Kubernetes Cluster\n(somewhere else)"]
+        subgraph NODE["🖥️ Worker Node\n(a different machine)"]
+            POD["📦 my-pod\nhostname: my-pod\nIP: 10.244.2.7\nOS: Alpine Linux\nfiles: nginx image only"]
+        end
+    end
+
+    SH -->|"kubectl run → creates pod"| POD
+    SH -->|"kubectl exec → step inside"| POD
+    SH -->|"kubectl logs → read its output"| POD
+
+    style YOU fill:#6366f1,color:#fff
+    style CLUSTER fill:#64748b,color:#fff
+    style NODE fill:#0ea5e9,color:#fff
+    style POD fill:#10b981,color:#fff
+```
+
+`kubectl` is the bridge. Without it, you and the pod are two separate, isolated worlds.
+
+---
+
 ## Pod Lifecycle
 
 A Pod moves through a defined set of phases:
@@ -74,8 +111,8 @@ command: kubectl describe pod my-pod
 
 **👁 Focus on these sections:**
 
-- **Node:** — which worker node Kubernetes chose
-- **IP:** — the Pod's private cluster IP
+- **Node:** — which worker node Kubernetes chose (a different machine from your session)
+- **IP:** — the Pod's private cluster IP (different from yours)
 - **Image:** — the exact image pulled (with digest)
 - **Events:** — the timeline of what happened (pull → create → start)
 
@@ -94,30 +131,57 @@ anything — Kubernetes captures and stores them for you.
 
 ---
 
-## Exercise 3.4 — Run a Command Inside the Container
+## Exercise 3.4 — Cross the Boundary
+
+This exercise makes the isolation tangible. You will run the same three commands **in your
+current environment** and then **inside the pod** — and see completely different answers.
+
+**First — check where you are right now:**
+
+```terminal:execute
+command: echo "=== YOUR ENVIRONMENT ===" && hostname && ip route get 1 | awk '{print "IP:", $7; exit}' && cat /etc/os-release | grep PRETTY
+```
+
+Note your hostname, IP, and OS. These are properties of your workshop session.
+
+---
+
+**Now — step into the pod:**
 
 ```terminal:execute
 command: kubectl exec -it my-pod -- sh
 ```
 
-You're now inside the container. Explore:
+Your prompt changes. You have crossed into a different environment running on a different machine
+in the cluster. Run the same three checks:
 
 ```terminal:execute
-command: hostname && ip addr show eth0 | grep inet
+command: echo "=== INSIDE THE POD ===" && hostname && ip addr show eth0 | grep "inet " && cat /etc/os-release | grep PRETTY
 ```
 
-```terminal:execute
-command: cat /etc/os-release
-```
+**👁 Compare what you see:**
+
+| | Your Session | Inside the Pod |
+|--|-------------|----------------|
+| **Hostname** | your session name | `my-pod` |
+| **IP address** | your node's IP | a cluster-internal IP (10.244.x.x) |
+| **OS** | Ubuntu / your host OS | Alpine Linux (from the image) |
+| **Filesystem** | your workshop files | only what nginx:alpine ships |
+
+The pod cannot see your files. You cannot ping the pod's IP from outside the cluster.
+They are isolated worlds — connected only through `kubectl`.
+
+Exit the pod and return to your session:
 
 ```terminal:execute
 command: exit
 ```
 
-**👁 Observe:** The hostname is the Pod name. The IP matches what `describe` showed. The OS is
-Alpine Linux — what the image was built from — not the host node's OS.
+**👁 Confirm you're back:** Run `hostname` again — you should see your session hostname, not `my-pod`.
 
-This is the power of containers: **the environment inside is completely isolated from the host**.
+```terminal:execute
+command: hostname
+```
 
 ---
 
@@ -151,4 +215,6 @@ command: kubectl get pod my-pod &>/dev/null && echo "FAIL" || echo "PASS"
 > **What just happened?**
 > You ran a container on a real Kubernetes cluster. The scheduler picked a node, the kubelet
 > pulled the image and started the container, and Kubernetes gave it a unique IP and captured
-> its logs. You inspected it, shelled into it, and deleted it — all without touching a server.
+> its logs. You stepped inside it with `kubectl exec` — crossing from your environment into a
+> completely separate one with a different hostname, IP, OS, and filesystem. Then you stepped
+> back out and deleted it — all without touching a server.
