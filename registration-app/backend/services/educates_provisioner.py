@@ -97,6 +97,14 @@ class EducatesProvisioner:
         self._env_cache_at: float = 0.0
         self._ENV_CACHE_TTL = 300  # 5 minutes
 
+        # SSL: use CA bundle from mounted ConfigMap if present, else skip verify
+        _ca_path = "/app/ca/ca.crt"
+        self._ssl_verify = _ca_path if os.path.exists(_ca_path) else False
+
+    def _client(self, timeout: float = 15.0) -> httpx.Client:
+        """Return an httpx.Client with correct SSL settings for the portal."""
+        return httpx.Client(timeout=timeout, verify=self._ssl_verify)
+
     # -------------------------------------------------------------------------
     # Public interface
     # -------------------------------------------------------------------------
@@ -151,7 +159,7 @@ class EducatesProvisioner:
         token = self._get_token()
         headers = {"Authorization": f"Bearer {token}"}
 
-        with httpx.Client(timeout=30.0) as client:
+        with self._client(30.0) as client:
             resp = client.get(
                 f"{self.portal_url}/workshops/user/{participant.username}/sessions/",
                 headers=headers,
@@ -165,7 +173,7 @@ class EducatesProvisioner:
         for session in sessions:
             session_name = session["name"]
             try:
-                with httpx.Client(timeout=30.0) as client:
+                with self._client(30.0) as client:
                     r = client.get(
                         f"{self.portal_url}/workshops/session/{session_name}/terminate/",
                         headers=headers,
@@ -188,7 +196,7 @@ class EducatesProvisioner:
         token = self._get_token()
         headers = {"Authorization": f"Bearer {token}"}
 
-        with httpx.Client(timeout=30.0) as client:
+        with self._client(30.0) as client:
             resp = client.get(
                 f"{self.portal_url}/workshops/catalog/environments/",
                 headers=headers,
@@ -201,7 +209,7 @@ class EducatesProvisioner:
             for session in env.get("sessions", []):
                 session_name = session["name"]
                 try:
-                    with httpx.Client(timeout=30.0) as client:
+                    with self._client(30.0) as client:
                         r = client.get(
                             f"{self.portal_url}/workshops/session/{session_name}/terminate/",
                             headers=headers,
@@ -224,7 +232,7 @@ class EducatesProvisioner:
         try:
             token = self._get_token()
             headers = {"Authorization": f"Bearer {token}"}
-            with httpx.Client(timeout=10.0) as client:
+            with self._client(10.0) as client:
                 resp = client.get(
                     f"{self.portal_url}/workshops/catalog/environments/",
                     headers=headers,
@@ -270,7 +278,7 @@ class EducatesProvisioner:
                 "Set EDUCATES_ROBOT_CLIENT_ID and EDUCATES_ROBOT_CLIENT_SECRET."
             )
 
-        with httpx.Client(timeout=15.0) as client:
+        with self._client(15.0) as client:
             resp = client.post(
                 f"{self.portal_url}/oauth2/token/",
                 auth=(self.robot_client_id, self.robot_client_secret),
@@ -295,7 +303,7 @@ class EducatesProvisioner:
 
     def _refresh_access_token(self) -> str:
         """Use the refresh token to obtain a new access token."""
-        with httpx.Client(timeout=15.0) as client:
+        with self._client(15.0) as client:
             resp = client.post(
                 f"{self.portal_url}/oauth2/token/",
                 data={
@@ -344,7 +352,7 @@ class EducatesProvisioner:
 
     def _refresh_env_cache(self, headers: dict) -> None:
         """Fetch the workshop catalog and rebuild the workshop_name→env_name map."""
-        with httpx.Client(timeout=15.0) as client:
+        with self._client(15.0) as client:
             resp = client.get(
                 f"{self.portal_url}/workshops/catalog/environments/",
                 headers=headers,
@@ -381,7 +389,7 @@ class EducatesProvisioner:
         for workshop_name in workshops:
             env_name = self._get_env_name(workshop_name, headers)
 
-            with httpx.Client(timeout=30.0) as client:
+            with self._client(30.0) as client:
                 resp = client.post(
                     f"{self.portal_url}/workshops/environment/{env_name}/request/",
                     headers=headers,
