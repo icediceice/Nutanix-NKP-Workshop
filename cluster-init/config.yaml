@@ -22,6 +22,12 @@ educates_policy_engine: kyverno       # kyverno | none
 registration_app_nodeport: 30080
 admin_password: ""                    # Set per-session — leave empty during testing
 
+# --- GHCR Pull Token ---
+# GitHub Personal Access Token with read:packages scope.
+# Used to pull workshop files OCI images from ghcr.io/icediceice/*-files:latest.
+# Generate at: https://github.com/settings/tokens → read:packages
+ghcr_token: ""
+
 # --- NUS / S3 Config (for storage course exercises) ---
 s3_endpoint: "https://objects.nkp-lab.local"
 s3_access_key: ""
