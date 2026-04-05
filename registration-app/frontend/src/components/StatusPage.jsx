@@ -114,12 +114,25 @@ function extractSessionUrls(activationUrl) {
   }
 }
 
+// Wrap the activation URL with /accounts/create/?next= so clicking it auto-creates
+// an anonymous Educates portal account, bypassing the "Login to your account" wall.
+function anonLoginUrl(activationUrl) {
+  try {
+    const u = new URL(activationUrl)
+    const relativePath = u.pathname + u.search
+    return `${u.protocol}//${u.hostname}/accounts/create/?next=${encodeURIComponent(relativePath)}`
+  } catch {
+    return activationUrl
+  }
+}
+
 function WorkshopUrlCard({ name, url }) {
   const displayName = name
     .replace(/-/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase())
 
   const sessionUrls = extractSessionUrls(url)
+  const openUrl = anonLoginUrl(url)
 
   return (
     <div style={{
@@ -158,7 +171,7 @@ function WorkshopUrlCard({ name, url }) {
         </div>
       )}
 
-      <a href={url} target="_blank" rel="noopener noreferrer"
+      <a href={openUrl} target="_blank" rel="noopener noreferrer"
         style={{ ...styles.btn.primary, background: colors.accent, display: 'inline-block', textAlign: 'center', textDecoration: 'none', marginTop: 'auto', padding: '11px 20px', fontSize: '14px' }}>
         Open Workshop &rarr;
       </a>
