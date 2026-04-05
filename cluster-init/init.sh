@@ -280,6 +280,20 @@ kubectl create secret generic nkp-kubeconfigs \
   --dry-run=client -o yaml | kubectl apply -f -
 echo "  ✓ nkp-kubeconfigs secret created"
 
+# CA cert ConfigMap — backend uses this for SSL verification against kommander-ca
+if kubectl get secret kommander-ca -n cert-manager &>/dev/null; then
+  kubectl get secret kommander-ca -n cert-manager \
+    -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/workshop-ca.crt
+  kubectl create configmap workshop-ca-cert \
+    --from-file=workshop-ca.crt=/tmp/workshop-ca.crt \
+    --namespace=nkp-lab-manager \
+    --dry-run=client -o yaml | kubectl apply -f -
+  rm -f /tmp/workshop-ca.crt
+  echo "  ✓ workshop-ca-cert ConfigMap created"
+else
+  echo "  ⚠ kommander-ca secret not found in cert-manager — workshop-ca-cert ConfigMap skipped (SSL verify will fall back to disabled)"
+fi
+
 # Create ConfigMap from courses.yaml
 kubectl create configmap nkp-lab-manager-courses \
   --from-file=courses.yaml="${SCRIPT_DIR}/../courses.yaml" \
