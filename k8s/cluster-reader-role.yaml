@@ -1,0 +1,21 @@
+# Shared ClusterRole granting workshop session service accounts read-only access
+# to cluster-scoped resources needed for workshop exercises.
+# Applied once at cluster setup; sessions bind to it via session.objects in each Workshop spec.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nkp-workshop-cluster-reader
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - persistentvolumes
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["storage.k8s.io"]
+  resources:
+  - storageclasses
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources:
+  - nodes
+  verbs: ["get", "list", "watch"]

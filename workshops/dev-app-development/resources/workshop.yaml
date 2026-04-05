@@ -36,3 +36,17 @@ spec:
         enabled: true     # For .NET container builds
       registry:
         enabled: false    # Using Harbor instead
+
+    objects:
+    - apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: $(session_name)-cluster-reader
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: nkp-workshop-cluster-reader
+      subjects:
+      - kind: ServiceAccount
+        name: $(session_name)
+        namespace: $(session_namespace)

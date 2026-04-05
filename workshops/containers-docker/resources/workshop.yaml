@@ -29,3 +29,17 @@ spec:
         enabled: true     # Docker-in-Docker for container build exercises
       registry:
         enabled: true     # Local registry for push/pull exercises
+
+    objects:
+    - apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: $(session_name)-cluster-reader
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: nkp-workshop-cluster-reader
+      subjects:
+      - kind: ServiceAccount
+        name: $(session_name)
+        namespace: $(session_namespace)
