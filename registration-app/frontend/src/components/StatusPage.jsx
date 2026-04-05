@@ -114,15 +114,15 @@ function extractSessionUrls(activationUrl) {
   }
 }
 
-// Wrap the activation URL with /accounts/create/?next= so clicking it auto-creates
-// an anonymous Educates portal account, bypassing the "Login to your account" wall.
-function anonLoginUrl(activationUrl) {
+// Derive the Educates portal account-creation URL from any workshop activation URL.
+// Participants visit this once per browser session to create their anonymous portal
+// account; after that, all activation links work without showing the login wall.
+function portalAccountUrl(activationUrl) {
   try {
     const u = new URL(activationUrl)
-    const relativePath = u.pathname + u.search
-    return `${u.protocol}//${u.hostname}/accounts/create/?next=${encodeURIComponent(relativePath)}`
+    return `${u.protocol}//${u.hostname}/accounts/create/`
   } catch {
-    return activationUrl
+    return null
   }
 }
 
@@ -132,7 +132,6 @@ function WorkshopUrlCard({ name, url }) {
     .replace(/\b\w/g, (c) => c.toUpperCase())
 
   const sessionUrls = extractSessionUrls(url)
-  const openUrl = anonLoginUrl(url)
 
   return (
     <div style={{
@@ -156,7 +155,8 @@ function WorkshopUrlCard({ name, url }) {
           <div style={{ color: colors.textSecondary, marginBottom: '8px', lineHeight: 1.8 }}>
             1. Click <strong style={{ color: colors.textPrimary }}>Session</strong> below &rarr; accept cert warning if shown &rarr; close that tab<br />
             2. Click <strong style={{ color: colors.textPrimary }}>Console</strong> below &rarr; wait for it to load &rarr; close that tab<br />
-            3. Then click <strong style={{ color: colors.textPrimary }}>Open Workshop</strong>
+            3. Then click <strong style={{ color: colors.textPrimary }}>Open Workshop</strong><br />
+            <span style={{ fontSize: '12px', color: colors.textSecondary }}>If asked to log in, your trainer will provide the portal password.</span>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <a href={sessionUrls.session} target="_blank" rel="noopener noreferrer"
@@ -171,7 +171,7 @@ function WorkshopUrlCard({ name, url }) {
         </div>
       )}
 
-      <a href={openUrl} target="_blank" rel="noopener noreferrer"
+      <a href={url} target="_blank" rel="noopener noreferrer"
         style={{ ...styles.btn.primary, background: colors.accent, display: 'inline-block', textAlign: 'center', textDecoration: 'none', marginTop: 'auto', padding: '11px 20px', fontSize: '14px' }}>
         Open Workshop &rarr;
       </a>
@@ -183,6 +183,7 @@ function ReadySection({ data }) {
   const urls = data.workshop_urls || {}
   const urlEntries = Object.entries(urls)
   const modules = Array.isArray(data.modules) ? data.modules : []
+  const accountUrl = urlEntries.length > 0 ? portalAccountUrl(urlEntries[0][1]) : null
 
   return (
     <div>
@@ -192,7 +193,7 @@ function ReadySection({ data }) {
         borderLeft: `4px solid ${colors.success}`,
         borderRadius: radius.md,
         padding: '16px 20px',
-        marginBottom: '24px',
+        marginBottom: '16px',
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
@@ -200,9 +201,37 @@ function ReadySection({ data }) {
         <span style={{ fontSize: '26px', lineHeight: 1, color: colors.success }}>&#10003;</span>
         <div>
           <div style={{ fontWeight: 700, fontSize: '16px', color: colors.success }}>Your environments are ready!</div>
-          <div style={{ fontSize: '14px', color: colors.textSecondary, marginTop: '2px' }}>Click any workshop card below to open it in a new tab.</div>
+          <div style={{ fontSize: '14px', color: colors.textSecondary, marginTop: '2px' }}>Follow the steps below to access your workshops.</div>
         </div>
       </div>
+
+      {accountUrl && (
+        <div style={{
+          background: colors.elevated,
+          border: `1px solid ${colors.accent}44`,
+          borderLeft: `4px solid ${colors.accent}`,
+          borderRadius: radius.md,
+          padding: '14px 16px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          flexWrap: 'wrap',
+        }}>
+          <div style={{ flex: 1, minWidth: '200px' }}>
+            <div style={{ fontWeight: 700, fontSize: '14px', color: colors.textPrimary, marginBottom: '2px' }}>
+              Step 1: Create your workshop account <span style={{ fontWeight: 400, color: colors.textSecondary }}>(one time per browser)</span>
+            </div>
+            <div style={{ fontSize: '13px', color: colors.textSecondary }}>
+              This sets up anonymous access to the portal. After this, workshop links open directly.
+            </div>
+          </div>
+          <a href={accountUrl} target="_blank" rel="noopener noreferrer"
+            style={{ background: colors.accent, color: '#fff', padding: '8px 16px', borderRadius: radius.sm, fontWeight: 600, fontSize: '13px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            Create Account &rarr;
+          </a>
+        </div>
+      )}
 
       {modules.length > 0 && (
         <div style={{ marginBottom: '20px' }}>
