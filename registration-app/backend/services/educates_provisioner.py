@@ -98,7 +98,7 @@ class EducatesProvisioner:
         self._ENV_CACHE_TTL = 300  # 5 minutes
 
         # SSL: use CA bundle from mounted ConfigMap if present, else skip verify
-        _ca_path = "/app/ca/ca.crt"
+        _ca_path = "/app/ca/workshop-ca.crt"
         self._ssl_verify = _ca_path if os.path.exists(_ca_path) else False
 
     def _client(self, timeout: float = 15.0) -> httpx.Client:
