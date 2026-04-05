@@ -1,20 +1,22 @@
 #!/bin/bash
-# update-theme.sh — Apply Nutanix dark theme to the live Educates portal.
+# update-theme.sh — Apply Nutanix dark theme to the live Educates platform.
 #
-# Patches the default-website-theme Secret directly — NO platform redeploy,
-# NO session disruption. Safe to run while workshops are in progress.
+# Theme architecture:
+#   educates/default-website-theme   — source secret, SecretCopier syncs it to
+#                                      every session namespace automatically
+#   nkp-workshop-portal-ui/default-website-theme — training portal catalog UI
 #
-# Usage: ./update-theme.sh [kubeconfig] [portal-namespace]
-#   kubeconfig        path to kubeconfig (default: ~/.kube/config)
-#   portal-namespace  namespace of the training portal (default: nkp-workshop-portal-ui)
+# NO platform redeploy, NO session disruption. Safe to run mid-workshop.
+#
+# Usage: ./update-theme.sh [kubeconfig]
 
 set -euo pipefail
 
 KUBECONFIG="${1:-$HOME/.kube/config}"
-PORTAL_NS="${2:-nkp-workshop-portal-ui}"
+PORTAL_NS="nkp-workshop-portal-ui"
 export KUBECONFIG
 
-echo "Applying Nutanix dark theme to ${PORTAL_NS}..."
+echo "Applying Nutanix dark theme..."
 
 # ── Write CSS files to temp dir ──────────────────────────────────────────────
 TMP=$(mktemp -d)
@@ -92,25 +94,32 @@ body::before { content: ''; display: block; height: 3px; background: linear-grad
 </style>
 CSSEOF
 
-# ── Patch the theme Secret ────────────────────────────────────────────────────
-kubectl create secret generic default-website-theme \
-  -n "${PORTAL_NS}" \
-  --from-literal=training-portal.css="" \
-  --from-literal=training-portal.js="" \
-  --from-literal=workshop-dashboard.css="" \
-  --from-literal=workshop-dashboard.js="" \
-  --from-literal=workshop-instructions.css="" \
-  --from-literal=workshop-instructions.js="" \
-  --from-literal=workshop-started.html="" \
-  --from-literal=workshop-finished.html="" \
-  --from-file=training-portal.html="${TMP}/training-portal.html" \
-  --from-file=workshop-dashboard.html="${TMP}/workshop-dashboard.html" \
-  --from-file=workshop-instructions.html="${TMP}/workshop-instructions.html" \
-  --dry-run=client -o yaml | kubectl apply -f -
+# ── Base64-encode the CSS files ──────────────────────────────────────────────
+PORTAL_B64=$(base64 -w0 "${TMP}/training-portal.html")
+DASH_B64=$(base64 -w0 "${TMP}/workshop-dashboard.html")
+INST_B64=$(base64 -w0 "${TMP}/workshop-instructions.html")
+
+# ── Patch educates/default-website-theme (source for SecretCopier) ───────────
+# SecretCopier syncs this to every session namespace's workshop-theme secret.
+echo "  Patching educates/default-website-theme (session source)..."
+kubectl patch secret default-website-theme -n educates --type=json -p "[
+  {\"op\":\"replace\",\"path\":\"/data/workshop-instructions.html\",\"value\":\"${INST_B64}\"},
+  {\"op\":\"replace\",\"path\":\"/data/workshop-dashboard.html\",\"value\":\"${DASH_B64}\"}
+]"
+
+# ── Patch portal namespace secret (training portal catalog UI) ────────────────
+echo "  Patching ${PORTAL_NS}/default-website-theme (portal catalog)..."
+kubectl patch secret default-website-theme -n "${PORTAL_NS}" --type=json -p "[
+  {\"op\":\"replace\",\"path\":\"/data/training-portal.html\",\"value\":\"${PORTAL_B64}\"},
+  {\"op\":\"replace\",\"path\":\"/data/workshop-instructions.html\",\"value\":\"${INST_B64}\"},
+  {\"op\":\"replace\",\"path\":\"/data/workshop-dashboard.html\",\"value\":\"${DASH_B64}\"}
+]"
 
 # ── Restart only the training portal (sessions unaffected) ───────────────────
+echo "  Restarting training portal..."
 kubectl rollout restart deployment/training-portal -n "${PORTAL_NS}"
 kubectl rollout status deployment/training-portal -n "${PORTAL_NS}" --timeout=90s
 
-echo "✓ Theme applied. Reload any open workshop tabs to see the change."
-echo "  Note: active sessions keep their current OAuth2 tokens — no disruption."
+echo "✓ Theme applied."
+echo "  Session pods pick up the new CSS via volume mount refresh (~60s)."
+echo "  Hard-reload any open workshop tab to see the change."
