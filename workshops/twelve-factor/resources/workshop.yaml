@@ -12,6 +12,7 @@ spec:
           url: "ghcr.io/icediceice/twelve-factor-files:latest"
         includePaths:
           - /workshop/**
+          - /exercises/**
   session:
     namespaces:
       budget: small

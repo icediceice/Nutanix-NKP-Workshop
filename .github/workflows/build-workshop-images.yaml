@@ -1,0 +1,58 @@
+name: Build & Push Workshop Files Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "workshops/**"
+      - ".github/workflows/build-workshop-images.yaml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.workshop }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - workshop: containers-docker
+            image: ghcr.io/icediceice/containers-docker-files
+          - workshop: dev-app-development
+            image: ghcr.io/icediceice/dev-app-development-files
+          - workshop: dev-nkp-platform
+            image: ghcr.io/icediceice/dev-nkp-platform-files
+          - workshop: infra-introduction
+            image: ghcr.io/icediceice/infra-introduction-files
+          - workshop: infra-nkp-platform
+            image: ghcr.io/icediceice/infra-nkp-platform-files
+          - workshop: k8s-architecture
+            image: ghcr.io/icediceice/k8s-architecture-files
+          - workshop: k8s-intro
+            image: ghcr.io/icediceice/k8s-intro-files
+          - workshop: nkp-workshop
+            image: ghcr.io/icediceice/nkp-workshop-files
+          - workshop: twelve-factor
+            image: ghcr.io/icediceice/twelve-factor-files
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build & push ${{ matrix.workshop }}
+        run: |
+          docker build \
+            -f workshops/${{ matrix.workshop }}/Dockerfile.files \
+            --build-arg WORKSHOP_NAME=${{ matrix.workshop }} \
+            -t ${{ matrix.image }}:latest \
+            -t ${{ matrix.image }}:${{ github.sha }} \
+            workshops/${{ matrix.workshop }}/
+          docker push ${{ matrix.image }}:latest
+          docker push ${{ matrix.image }}:${{ github.sha }}

@@ -1,0 +1,4 @@
+FROM busybox:glibc
+ARG WORKSHOP_NAME=twelve-factor
+COPY workshop /workshop
+COPY exercises /exercises

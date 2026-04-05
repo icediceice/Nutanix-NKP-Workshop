@@ -1,0 +1,40 @@
+# Factor XII — Admin Processes: run as one-off processes
+# AppCo's database migration runs as a Kubernetes Job using the same container
+# image as the web Deployment. No SSH, no manual steps, fully auditable.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: appco-migrate
+  labels:
+    app: appco
+    factor: xii
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app: appco
+        job: migration
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: migrate
+        image: php:8.2-fpm
+        command: ["php", "artisan", "migrate", "--force"]
+        env:
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: appco-config
+              key: DB_HOST
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: appco-config
+              key: APP_ENV
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: appco-secret
+              key: DB_PASSWORD
+              optional: true

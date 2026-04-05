@@ -1,0 +1,3 @@
+FROM busybox:glibc
+ARG WORKSHOP_NAME
+COPY workshop /workshop
