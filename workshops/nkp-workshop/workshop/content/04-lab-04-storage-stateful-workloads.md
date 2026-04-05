@@ -1,10 +1,67 @@
-# Lab 4 — Storage & Stateful Workloads
+---
+title: "Lab 4 — Storage & Stateful Workloads"
+---
 
-**Duration**: 45–60 min | **Goal**: Deploy PostgreSQL with Nutanix CSI block storage, snapshot it, restore it, and prove point-in-time capture.
+## The Problem with Stateful Apps in Kubernetes
+
+Pods are ephemeral — when a pod is deleted, its local filesystem is gone. Databases need storage
+that **outlives the pod**. Kubernetes solves this with PersistentVolumes backed by a storage provider.
+
+```mermaid
+graph TB
+    subgraph PROBLEM["❌ Without persistent storage"]
+        PD1["📦 postgres pod"] -->|"pod deleted"| LOST["💀 Data gone forever"]
+    end
+
+    subgraph SOLUTION["✅ With Nutanix CSI + PersistentVolume"]
+        PVC["📋 PersistentVolumeClaim<br/>request: 10Gi RWO"]
+        PV["💾 PersistentVolume<br/>Nutanix AOS block volume"]
+        PD2["📦 postgres pod\nmounts /var/lib/postgresql"]
+        PD3["📦 postgres pod (new)\nsame PVC — same data"]
+        PVC --> PV
+        PD2 -->|"writes data"| PVC
+        PD2 -->|"deleted"| PD3
+        PD3 -->|"mounts same PVC"| PVC
+    end
+
+    style PVC fill:#6366f1,color:#fff
+    style PV fill:#0ea5e9,color:#fff
+    style PD2 fill:#10b981,color:#fff
+    style PD3 fill:#10b981,color:#fff
+```
 
 ---
 
-## Exercise 4.1: Explore Storage Classes
+## How Nutanix CSI Works
+
+The CSI (Container Storage Interface) driver translates Kubernetes storage requests into Nutanix
+AOS API calls — creating, attaching, and snapshotting volumes automatically.
+
+```mermaid
+graph LR
+    subgraph K8S["Kubernetes"]
+        SC["📋 StorageClass<br/>nutanix-volumes<br/>(RWO block)"]
+        PVC["📋 PersistentVolumeClaim<br/>size: 10Gi"]
+        PV["💾 PersistentVolume<br/>(auto-provisioned)"]
+        SC --> PVC
+        PVC --> PV
+    end
+    subgraph NUTANIX["Nutanix AOS"]
+        VOL["🗄️ Nutanix Volume<br/>backed by NVMe SSD"]
+    end
+    PV <-->|"CSI driver"| VOL
+
+    style SC fill:#6366f1,color:#fff
+    style PVC fill:#0ea5e9,color:#fff
+    style PV fill:#10b981,color:#fff
+    style VOL fill:#f59e0b,color:#fff
+```
+
+---
+
+## Exercise 4.1 — Explore Storage Classes
+
+**Duration**: 45–60 min | **Goal**: Deploy PostgreSQL with Nutanix CSI, snapshot it, restore it, prove point-in-time capture.
 
 ```terminal:execute
 command: kubectl get storageclass
@@ -21,6 +78,11 @@ command: kubectl get volumesnapshotclass
 session: 1
 ```
 
+**👁 Observe:**
+- `nutanix-volumes` — block storage (RWO), ideal for databases
+- `nutanix-files` — file storage (RWX), ideal for shared data across pods
+- `VolumeSnapshotClass` — enables point-in-time snapshots via the CSI driver
+
 ### Checkpoint ✅
 
 ```examiner:execute-test
@@ -35,7 +97,7 @@ command: |
 
 ---
 
-## Exercise 4.2: Deploy PostgreSQL
+## Exercise 4.2 — Deploy PostgreSQL
 
 ```terminal:execute
 command: switch-lab lab-04-deploy-db
@@ -49,7 +111,7 @@ command: kubectl -n $SESSION_NS get pods,pvc -w
 session: 2
 ```
 
-When postgres-0 is Running, connect and insert data:
+When `postgres-0` is Running, connect and insert data:
 
 ```terminal:execute
 command: |
@@ -64,6 +126,10 @@ command: |
   "
 session: 1
 ```
+
+**👁 Observe:** PostgreSQL is a StatefulSet — it gets a stable identity (`postgres-0`) and a
+dedicated PVC that follows it. Even if the pod is rescheduled to another node, the volume
+reattaches automatically.
 
 ### Checkpoint ✅
 
@@ -82,7 +148,7 @@ command: |
 
 ---
 
-## Exercise 4.3: Kill the Pod — Prove Data Survives
+## Exercise 4.3 — Kill the Pod: Prove Data Survives
 
 ```terminal:execute
 command: kubectl -n $SESSION_NS delete pod postgres-0
@@ -105,11 +171,28 @@ command: |
 session: 1
 ```
 
-The 3 rows are still there. Persistent storage survives pod restarts.
+**👁 Observe:** All 3 rows are still there. The pod is new — the data is not. The Nutanix volume
+was already attached to the replacement pod before PostgreSQL even started.
 
 ---
 
-## Exercise 4.4: VolumeSnapshot — Point-in-Time Backup
+## Exercise 4.4 — VolumeSnapshot: Point-in-Time Backup
+
+```mermaid
+sequenceDiagram
+    participant APP as 📦 postgres-0
+    participant PVC as 💾 PVC (live data)
+    participant SNAP as 📸 VolumeSnapshot
+    participant AOS as 🗄️ Nutanix AOS
+
+    APP->>PVC: writes 3 rows (NKP License, AHV Cluster, Files)
+    Note over PVC: state = 3 rows
+    SNAP->>PVC: snapshot requested
+    PVC->>AOS: create immutable copy at this instant
+    AOS-->>SNAP: snapshot ready
+    APP->>PVC: INSERT 4th row (Post-Snapshot Order)
+    Note over PVC: live = 4 rows | snapshot = 3 rows
+```
 
 ```terminal:execute
 command: switch-lab lab-04-snapshot
@@ -137,7 +220,7 @@ The live database now has 4 rows. The snapshot captured 3.
 
 ---
 
-## Exercise 4.5: Restore — Prove Point-in-Time Capture
+## Exercise 4.5 — Restore: Prove Point-in-Time Capture
 
 ```terminal:execute
 command: switch-lab lab-04-restore
@@ -153,7 +236,7 @@ command: |
 session: 1
 ```
 
-**Expected: 3 rows** — the post-snapshot insert is NOT here. The snapshot captured the state at snapshot time.
+**Expected: 3 rows** — the post-snapshot insert is NOT here.
 
 Compare with the live database:
 
@@ -165,6 +248,9 @@ session: 1
 ```
 
 **Expected: 4 rows** — live database has the post-snapshot insert.
+
+**👁 The delta is the proof:** restored has exactly what existed at snapshot time. The CSI driver
+created a new PVC pre-populated from the snapshot — no pg_restore, no manual data copy.
 
 ### Checkpoint ✅
 
