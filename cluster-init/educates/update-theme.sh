@@ -181,11 +181,54 @@ new MutationObserver(() => { clearTimeout(t); t = setTimeout(renderMermaid, 300)
 </script>
 CSSEOF
 
+# workshop-instructions.js — loaded by Hugo footer.html as a regular <script> (end of body).
+# DOM is ready at this point. Hugo + Chroma renders mermaid as:
+#   <pre tabindex="0"><code class="language-mermaid" data-lang="mermaid">...</code></pre>
+# Dynamic import() works in regular scripts in all modern browsers.
+cat > "${TMP}/workshop-instructions.js" << 'JSEOF'
+(function () {
+  if (!document.querySelector('code[class*="mermaid"]')) return;
+
+  import('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs').then(function (mod) {
+    var mermaid = mod.default;
+    mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+
+    function renderMermaid() {
+      var blocks = document.querySelectorAll('pre:not([data-mmd]) code[class*="mermaid"]');
+      if (!blocks.length) return Promise.resolve();
+      var nodes = [];
+      blocks.forEach(function (code) {
+        var pre = code.closest('pre');
+        if (!pre) return;
+        pre.setAttribute('data-mmd', '1');
+        var src = (code.textContent || '').trim();
+        if (!src) return;
+        var div = document.createElement('div');
+        div.className = 'mermaid mermaid-rendered';
+        div.textContent = src;
+        pre.replaceWith(div);
+        nodes.push(div);
+      });
+      return nodes.length
+        ? mermaid.run({ nodes: nodes, suppressErrors: true }).catch(function (e) { console.warn('Mermaid run failed:', e); })
+        : Promise.resolve();
+    }
+
+    renderMermaid();
+
+    var t;
+    new MutationObserver(function () { clearTimeout(t); t = setTimeout(renderMermaid, 300); })
+      .observe(document.documentElement, { childList: true, subtree: true });
+  }).catch(function (e) { console.warn('Mermaid load failed:', e); });
+})();
+JSEOF
+
 # ── Base64-encode the theme files ────────────────────────────────────────────
 PORTAL_B64=$(base64 -w0 "${TMP}/training-portal.html")
 DASH_B64=$(base64 -w0 "${TMP}/workshop-dashboard.html")
 INST_HTML_B64=$(base64 -w0 "${TMP}/workshop-instructions.html")
 INST_CSS_B64=$(base64 -w0 "${TMP}/workshop-instructions.css")
+INST_JS_B64=$(base64 -w0 "${TMP}/workshop-instructions.js")
 
 # ── Patch educates/default-website-theme (source for SecretCopier) ───────────
 # SecretCopier syncs this to every env namespace's workshop-theme secret.
@@ -194,6 +237,7 @@ echo "  Patching educates/default-website-theme (session source)..."
 kubectl patch secret default-website-theme -n educates --type=json -p "[
   {\"op\":\"replace\",\"path\":\"/data/workshop-instructions.css\",\"value\":\"${INST_CSS_B64}\"},
   {\"op\":\"replace\",\"path\":\"/data/workshop-instructions.html\",\"value\":\"${INST_HTML_B64}\"},
+  {\"op\":\"add\",\"path\":\"/data/workshop-instructions.js\",\"value\":\"${INST_JS_B64}\"},
   {\"op\":\"replace\",\"path\":\"/data/workshop-dashboard.html\",\"value\":\"${DASH_B64}\"}
 ]"
 
@@ -203,6 +247,7 @@ kubectl patch secret default-website-theme -n "${PORTAL_NS}" --type=json -p "[
   {\"op\":\"replace\",\"path\":\"/data/training-portal.html\",\"value\":\"${PORTAL_B64}\"},
   {\"op\":\"replace\",\"path\":\"/data/workshop-instructions.css\",\"value\":\"${INST_CSS_B64}\"},
   {\"op\":\"replace\",\"path\":\"/data/workshop-instructions.html\",\"value\":\"${INST_HTML_B64}\"},
+  {\"op\":\"add\",\"path\":\"/data/workshop-instructions.js\",\"value\":\"${INST_JS_B64}\"},
   {\"op\":\"replace\",\"path\":\"/data/workshop-dashboard.html\",\"value\":\"${DASH_B64}\"}
 ]"
 
