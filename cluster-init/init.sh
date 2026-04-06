@@ -418,20 +418,26 @@ echo "  ✓ Theme applied"
 echo "[6/6] Verification..."
 
 # ── Repair any session pods that failed to download workshop content ──
-# Vendir may fail on first start if DNS wasn't ready. Scan all reserved session pods
-# and run update-workshop (re-sync vendir + rebuild Hugo) on any that have the failed flag.
-echo "  → Scanning session pods for content download failures..."
+# Vendir may fail on first start if DNS wasn't ready. Scan all reserved session pods for:
+# 1. download-workshop.failed flag → re-run update-workshop (vendir + Hugo rebuild)
+# 2. workshop renderer not started (ENABLE_WORKSHOP_PROCESS=false at container start)
+#    → start via supervisorctl after content is ready
+echo "  → Scanning session pods for content/renderer failures..."
 REPAIR_COUNT=0
 for ns in $(kubectl get ns --no-headers 2>/dev/null | awk '{print $1}' | grep "nkp-workshop-portal-w[0-9]*$"); do
   for pod in $(kubectl get pods -n "${ns}" --no-headers 2>/dev/null | grep -v registry | grep Running | awk '{print $1}'); do
     failed=$(kubectl exec -n "${ns}" "${pod}" -c workshop -- \
       bash -c "test -f /home/eduk8s/.local/share/workshop/download-workshop.failed && echo Y || echo N" \
       2>/dev/null || echo "N")
-    if [[ "${failed}" == "Y" ]]; then
-      echo "  ⚠ Repairing ${ns}/${pod}..."
+    renderer=$(kubectl exec -n "${ns}" "${pod}" -c workshop -- \
+      bash -c "supervisorctl status workshop 2>/dev/null | awk '{print \$2}'" \
+      2>/dev/null || echo "UNKNOWN")
+    if [[ "${failed}" == "Y" || "${renderer}" != "RUNNING" ]]; then
+      echo "  ⚠ Repairing ${ns}/${pod} (failed=${failed} renderer=${renderer})..."
       kubectl exec -n "${ns}" "${pod}" -c workshop -- bash -c "
         rm -f /home/eduk8s/.local/share/workshop/download-workshop.failed
         update-workshop >/tmp/update-workshop.log 2>&1
+        supervisorctl start workshop 2>/dev/null || true
       " 2>/dev/null &
       REPAIR_COUNT=$((REPAIR_COUNT + 1))
     fi
