@@ -308,6 +308,11 @@ kubectl rollout status deployment/nkp-lab-manager-backend -n nkp-lab-manager --t
 
 echo "  ✓ Registration app deployed"
 
+# ── Apply Nutanix dark theme to Educates ──────
+echo "  → Applying Nutanix dark theme..."
+bash "${SCRIPT_DIR}/educates/update-theme.sh" "${KUBECONFIG_PATH}"
+echo "  ✓ Theme applied"
+
 # ──────────────────────────────────────────────
 # Step 6: Verify and print access info
 # ──────────────────────────────────────────────
