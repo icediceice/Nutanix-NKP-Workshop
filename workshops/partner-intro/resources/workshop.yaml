@@ -29,11 +29,11 @@ spec:
     - apiVersion: rbac.authorization.k8s.io/v1
       kind: ClusterRoleBinding
       metadata:
-        name: $(session_name)-cluster-reader
+        name: $(session_name)-cluster-admin
       roleRef:
         apiGroup: rbac.authorization.k8s.io
         kind: ClusterRole
-        name: nkp-workshop-cluster-reader
+        name: cluster-admin
       subjects:
       - kind: ServiceAccount
         name: $(session_name)
