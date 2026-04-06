@@ -14,9 +14,9 @@ spec:
           - /workshop/**
   session:
     namespaces:
-      budget: medium
+      budget: custom
       security:
-        policy: baseline
+        policy: privileged
     applications:
       terminal:
         enabled: true
