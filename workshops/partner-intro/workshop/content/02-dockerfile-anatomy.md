@@ -1,86 +1,75 @@
 ---
-title: "How a Container Image Is Built"
+title: "How Container Images Are Built"
 ---
 
-## From Code to Image
+## Inspect a Real Image
 
-A container image is built from a **Dockerfile** — a plain text recipe that describes every layer.
-Each instruction adds a layer. The final stack of layers is the image.
+Before we talk about Dockerfiles, let's look at what is already running:
 
-Here is a minimal Dockerfile for a Python web service:
+```terminal:execute
+command: kubectl get pods -n educates -o jsonpath='{range .items[*]}{.spec.containers[*].image}{"\n"}{end}' | sort -u
+```
+
+**What happened?** Every pod has an `image` field -- the container image it was built from. These images were built from Dockerfiles and stored in a registry.
+
+---
+
+## The Recipe -- A Dockerfile
+
+```mermaid
+graph LR
+    D["Dockerfile"] -->|docker build| I["Image"]
+    I -->|docker push| R["Registry (Harbor/GHCR)"]
+    R -->|kubectl apply| P["Running Pod"]
+    style D fill:#1A1A1A,stroke:#1FDDE9,color:#F0F0F0
+    style I fill:#1A1A1A,stroke:#7855FA,color:#F0F0F0
+    style R fill:#1A1A1A,stroke:#F5A623,color:#F0F0F0
+    style P fill:#1A1A1A,stroke:#3DD68C,color:#F0F0F0
+```
+
+A Dockerfile is a plain text recipe. Each instruction creates a **layer**:
 
 ```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-EXPOSE 8080
-CMD ["python", "app.py"]
+FROM python:3.11-slim          # Start from a base image
+WORKDIR /app                   # Set working directory
+COPY requirements.txt .        # Copy dependency list
+RUN pip install -r requirements.txt  # Install dependencies (cached layer)
+COPY . .                       # Copy application code
+EXPOSE 8080                    # Document the port
+CMD ["python", "app.py"]       # Default startup command
 ```
 
 ---
 
-## What Each Instruction Does
+## Layer Caching -- Why Order Matters
 
-| Instruction | Purpose |
-|------------|---------|
-| `FROM` | Base image — every Dockerfile starts here. `python:3.11-slim` is a minimal Python image. |
-| `WORKDIR` | Sets the working directory for all following instructions. |
-| `COPY` | Copies files from the build machine into the image. |
-| `RUN` | Executes a shell command and commits the result as a new layer. |
-| `EXPOSE` | Documents which port the app listens on (does not publish it). |
-| `CMD` | The default command when the container starts. |
-
----
-
-## Layer Caching — Why Order Matters
-
-The build engine caches each layer. If nothing changed in that layer's inputs, it reuses the
-cache. This has a big practical consequence for build speed:
-
-**Slow (cache always misses on code change):**
-```dockerfile
-COPY . .                        # ← any code change invalidates from here
-RUN pip install -r requirements.txt
+```mermaid
+graph TB
+    subgraph Fast["Dependencies first = fast rebuilds"]
+        F1["COPY requirements.txt"] --> F2["RUN pip install"]
+        F2 --> F3["COPY . ."]
+        F3 --> F4["CMD"]
+        style F2 fill:#3DD68C,color:#000
+    end
+    subgraph Slow["Code first = slow rebuilds"]
+        S1["COPY . ."] --> S2["RUN pip install"]
+        S2 --> S3["CMD"]
+        style S2 fill:#E05252,color:#fff
+    end
+    style Fast fill:#111,stroke:#3DD68C,color:#F0F0F0
+    style Slow fill:#111,stroke:#E05252,color:#F0F0F0
 ```
 
-**Fast (dependencies cached separately from code):**
-```dockerfile
-COPY requirements.txt .         # ← only changes when deps change
-RUN pip install -r requirements.txt   # ← cached most of the time
-COPY . .                        # ← code changes here, only re-runs COPY
+Copy dependencies **before** code. When only code changes, the `pip install` layer is cached and the rebuild takes seconds instead of minutes.
+
+---
+
+## See Image Layers Live
+
+```terminal:execute
+command: kubectl get pod -n educates -l deployment=secrets-manager -o jsonpath='{.items[0].status.containerStatuses[0].imageID}' | cut -d@ -f1
 ```
 
-Put the things that change least at the top. Put application code near the bottom.
+**What happened?** Every running container has an `imageID` -- a content-addressable hash. Two pods from the same image share layers on disk. This is why you can run 100 containers of the same image with minimal extra storage.
 
----
-
-## The VM Analogy
-
-Think of the Dockerfile as an **automation script for building a VM template**:
-- `FROM` = start with a base OS snapshot
-- `RUN` = install software, configure the OS
-- `COPY` = drop your application files in
-- `CMD` = set the startup command
-
-The difference: the result is megabytes instead of gigabytes, builds in seconds instead of
-minutes, and is byte-for-byte reproducible on any machine that runs the same build.
-
----
-
-## What Happens at Runtime
-
-When NKP schedules your container, it:
-1. Pulls the image from a registry (Harbor, GHCR, Docker Hub)
-2. Mounts the image layers read-only
-3. Adds a thin writable layer on top
-4. Starts the `CMD` process inside the isolated namespace
-
-The image never changes. The writable layer is discarded when the container stops.
-This is why containers are stateless by design — persistent data lives outside the container
-in a volume (which NKP and Nutanix storage provide).
+> **Key takeaway**: Images are immutable. Once built, they never change. You deploy new versions by building a new image, not by modifying a running container.

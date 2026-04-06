@@ -1,89 +1,81 @@
 ---
-title: "Workspaces and Groups"
+title: "Workspaces and Multi-Tenancy"
 ---
 
-## The Multi-Tenancy Problem
+## The Problem
 
-A large enterprise runs dozens of teams — platform engineering, application teams, security,
-and more — all needing different levels of access to different clusters.
-
-Without a management layer, an operator must configure RBAC on every cluster individually.
-Add a new team member → update N clusters. Add a new cluster → re-apply all policies.
-This does not scale.
+A large enterprise runs dozens of teams needing different access to different clusters. Without a management layer, an operator must configure RBAC on every cluster individually. Add a team member -- update N clusters. Add a cluster -- re-apply all policies. **This does not scale.**
 
 ---
 
 ## How Kommander Solves It
 
-Kommander introduces two objects:
+```mermaid
+graph TB
+    IDP["Identity Provider<br/>(LDAP / OIDC / AD)"]
+    IDP --> G1["Group: platform-team"]
+    IDP --> G2["Group: app-developers"]
 
-- **Workspace** — a logical grouping of clusters, users, and policies. Think of it as a
-  "project" or "environment boundary." One workspace per business unit or environment is common.
+    G1 --> WRB1["WorkspaceRoleBinding<br/>Role: admin"]
+    G2 --> WRB2["WorkspaceRoleBinding<br/>Role: edit"]
 
-- **Group** — maps to a group in your identity provider (LDAP, OIDC, Active Directory).
-  Assign a group to a workspace with a role, and every member of that IdP group gets the
-  appropriate permissions on every cluster in the workspace — automatically.
+    subgraph WS["Workspace: production"]
+        WRB1 --> C1["cluster-east<br/>admin access"]
+        WRB1 --> C2["cluster-west<br/>admin access"]
+        WRB2 --> C1
+        WRB2 --> C2
+    end
 
+    style IDP fill:#4B00AA,color:#fff
+    style WS fill:#1A1A1A,stroke:#7855FA,color:#F0F0F0
+    style G1 fill:#111,stroke:#1FDDE9,color:#F0F0F0
+    style G2 fill:#111,stroke:#3DD68C,color:#F0F0F0
 ```
-Identity Provider (LDAP / SSO)
-  └── Group: "platform-team"
-        │
-        └── WorkspaceRoleBinding
-              ├── Workspace: "production"
-              │     └── Role: admin  →  propagated to cluster-A, cluster-B
-              └── Workspace: "staging"
-                    └── Role: edit   →  propagated to cluster-C
-```
+
+**One binding, every cluster.** Assign a group to a workspace with a role, and every member gets the right permissions on every cluster in that workspace -- automatically. Add a new cluster to the workspace and it inherits all policies instantly.
 
 ---
 
-## Exercise — Explore Workspaces
+## Exercise -- Explore Workspaces
 
 ```terminal:execute
-command: kubectl get workspaces -n kommander
+command: kubectl get workspaces -A 2>/dev/null || echo "Workspaces are managed via the Kommander API -- let's check what exists:"
 ```
-
-**Observe:** Each workspace has a name and an age. Production environments typically have
-workspaces per business unit (`infra`, `payments`, `data-platform`) or per environment
-(`prod`, `staging`, `dev`).
 
 ```terminal:execute
-command: kubectl describe workspace default -n kommander
+command: kubectl get namespaces | grep -E 'kommander|workspace'
 ```
 
-**Observe:**
-- `Clusters` — which clusters are members of this workspace
-- `Groups` — which identity groups have access
-- `Namespace` — the corresponding namespace on each member cluster
+**What happened?** Each workspace maps to a namespace in Kommander. The `kommander-default-workspace` is the built-in workspace where platform services run.
 
 ---
 
-## Exercise — Explore Groups
+## Exercise -- See Role Bindings
 
 ```terminal:execute
-command: kubectl get groups -n kommander
+command: kubectl get clusterrolebindings --no-headers | grep kommander | head -10
 ```
 
-**Observe:** Groups correspond to your identity provider groups. A group with no workspace
-binding has no permissions anywhere. Assign it to a workspace and all member clusters inherit
-the access.
+**What happened?** These are the RBAC bindings that Kommander created automatically. Each one maps a workspace role to a Kubernetes ClusterRoleBinding. When a new cluster joins the workspace, these bindings are replicated automatically.
 
 ---
 
-## The Key Insight
+## Why This Matters for Your Customers
 
-Kommander's federation controller watches `WorkspaceRoleBinding` objects on the management
-cluster. When you create or update a binding, the controller propagates the corresponding
-Kubernetes RBAC objects (`ClusterRoleBinding`, `RoleBinding`) to every cluster in the workspace.
+```mermaid
+graph LR
+    subgraph Before["Without Kommander"]
+        A1["New hire joins"] --> A2["Update cluster-1 RBAC"]
+        A2 --> A3["Update cluster-2 RBAC"]
+        A3 --> A4["Update cluster-N RBAC"]
+        A4 --> A5["Hope nothing was missed"]
+    end
+    subgraph After["With Kommander"]
+        B1["New hire joins"] --> B2["Add to IdP group"]
+        B2 --> B3["Done. All clusters updated."]
+    end
+    style Before fill:#1A1A1A,stroke:#E05252,color:#F0F0F0
+    style After fill:#1A1A1A,stroke:#3DD68C,color:#F0F0F0
+```
 
-**You configure access once, in one place. Every cluster stays in sync.**
-
-Adding a new cluster to a workspace does not require a separate access setup — it inherits
-the workspace's policies immediately.
-
----
-
-## What Just Happened
-
-You have seen the workspace and group model that underpins NKP's multi-tenancy. In the next
-section you will see how roles and policies are assigned and how they propagate to managed clusters.
+One source of truth. Zero per-cluster configuration. The platform scales with the fleet.

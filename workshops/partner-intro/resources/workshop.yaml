@@ -37,4 +37,4 @@ spec:
       subjects:
       - kind: ServiceAccount
         name: $(session_name)
-        namespace: $(session_namespace)
+        namespace: $(workshop_namespace)

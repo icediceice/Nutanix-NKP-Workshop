@@ -2,122 +2,71 @@
 title: "NKP Console Walkthrough"
 ---
 
-> **This section is facilitator-led.** Your facilitator will share their screen and navigate
-> the NKP console live. Follow along and note what is visible at each step.
+> **This section is facilitator-led.** Your facilitator will share their screen and navigate the NKP console live. Follow along in your terminal.
 
 ---
 
-## Opening the Console
+## What the Console Shows
 
-The NKP console URL is shown on the Demo Wall under **Platform Access → Kommander**.
-
-All navigation below is relative to that base URL.
-
----
-
-## Stop 1 — Multi-Cluster Fleet
-
-**Where**: `/dkp/kommander/dashboard` → **Clusters**
-
-**What you will see**:
-- Every cluster managed by this Kommander instance
-- Cluster version, health status, and node count
-- Live CPU and memory utilisation per cluster
-
-**The point**: One Kommander instance manages the entire fleet. Add a new cluster and it
-inherits the same policies, add-ons, and RBAC automatically — no per-cluster setup.
-
----
-
-## Stop 2 — Resource Quotas
-
-**Where**: **Clusters** → select workload cluster → **Namespaces** → `demo-app`
-
-**What you will see**:
-- Live quota usage: pods, CPU requests, memory requests against the hard limits
-- The `demo-ops` namespace has a tighter budget — separate teams, separate guardrails
-
-**The point**: Every team namespace has a hard quota enforced by the platform. A rogue
-deployment cannot starve the rest of the cluster. These quotas are defined in Git and
-deployed by GitOps — no one had to SSH into a node.
-
-**Verify in your terminal**:
-
-```terminal:execute
-command: kubectl describe resourcequota demo-app-quota -n demo-app
+```mermaid
+graph TB
+    subgraph Console["NKP Console"]
+        DASH["Dashboard<br/>Fleet overview"]
+        DASH --> CLUSTERS["Clusters<br/>Health, versions, nodes"]
+        DASH --> WORK["Workspaces<br/>RBAC + policies"]
+        DASH --> CATALOG["App Catalog<br/>One-click add-ons"]
+        CLUSTERS --> NS["Namespaces<br/>Quotas + resource usage"]
+    end
+    style Console fill:#1A1A1A,stroke:#7855FA,color:#F0F0F0
+    style DASH fill:#7855FA,color:#fff
 ```
 
 ---
 
-## Stop 3 — RBAC / Access Control
+## Stop 1 -- Cluster Fleet
 
-**Where**: `/dkp/kommander/dashboard` → **Access Control** → **Roles**
+**Facilitator shows**: Dashboard > Clusters
 
-**What you will see**:
-- `dev-role-demo-app` — read-only: list/get pods, deployments, services
-- `ops-role-demo-app` — read-write: full workload management
-- Bindings showing which groups hold which roles
-
-**The point**: Developers can observe their workloads but cannot change replicas or edit
-Deployments. Operators get full access. Nobody has cluster-admin by default.
-
----
-
-## Stop 4 — Application Catalog
-
-**Where**: `/dkp/kommander/dashboard` → **Applications** (workspace-scoped tab)
-
-**What you will see**:
-- Istio, Kiali, Jaeger, Grafana — all showing `Deployed` / healthy
-- Each was enabled by a single manifest committed to Git — no manual Helm installs
-
-**Verify in your terminal**:
+While your facilitator navigates, check what you can see from the terminal:
 
 ```terminal:execute
-command: kubectl get appdeployments -A 2>/dev/null || kubectl get helmreleases -n kommander-default-workspace -o wide
+command: kubectl get nodes -o custom-columns='NODE:.metadata.name,STATUS:.status.conditions[-1:].type,CPU:.status.capacity.cpu,MEMORY:.status.capacity.memory'
 ```
 
-**The point**: The entire observability stack was deployed from NKP's app catalog with one
-GitOps commit. Every new cluster onboarded to this workspace gets the same stack automatically.
+**What happened?** These are the same nodes visible in the console. The console adds real-time graphs, health indicators, and one-click management actions.
 
 ---
 
-## Stop 5 — Kubeconfig for Users
+## Stop 2 -- Resource Quotas
 
-**Where**: **Clusters** → select cluster → **Download Kubeconfig**
-
-**What you will see**:
-- An admin kubeconfig for the cluster (scoped to admin RBAC)
-- The portal also generates user-scoped kubeconfigs tied to SSO identity
-
-**Verify in your terminal**:
+**Facilitator shows**: Clusters > Namespaces
 
 ```terminal:execute
-command: kubectl get secrets -A | grep kubeconfig
+command: kubectl get resourcequotas -A --no-headers 2>/dev/null | head -5 || echo "No resource quotas configured on this cluster yet"
 ```
 
-**The point**: Admin kubeconfigs live in Secrets and are treated like root passwords. User
-kubeconfigs from the portal are scoped to the user's RBAC and expire automatically. This
-separation matters for security and audit compliance.
+**What happened?** In production, every team namespace has a hard quota. A rogue deployment cannot starve the rest of the cluster. These quotas are defined in Git and deployed by GitOps.
 
 ---
 
-## Summary — What the Console Showed
+## Stop 3 -- App Catalog
 
-| Capability | Surface |
-|-----------|---------|
-| Fleet overview (all clusters, health, versions) | Kommander → Clusters |
-| Live quota usage per namespace | Kommander → Namespaces |
-| RBAC roles and bindings | Kommander → Access Control |
-| Platform add-ons deployed via GitOps | Kommander → Applications |
-| Kubeconfig download (admin + user-scoped) | Kommander → Clusters → Download |
+**Facilitator shows**: App Catalog
 
-Everything in this console was provisioned from Git. The console is a read/write view of the
-same state that kubectl and GitOps manage. There is one source of truth.
+```terminal:execute
+command: kubectl get helmreleases -A --no-headers 2>/dev/null | head -10 || kubectl get helmcharts -A --no-headers 2>/dev/null | head -10 || echo "Helm releases managed via Kommander catalog"
+```
+
+**What happened?** The App Catalog is a curated set of platform add-ons: Istio, Grafana, Prometheus, Jaeger, Kiali, and more. One click to enable, one click to configure. No Helm chart hunting.
 
 ---
 
-## Next
+## Stop 4 -- Observability Stack
 
-Your facilitator will now show the ecommerce application running live on this cluster —
-with service mesh observability and a real incident scenario.
+```terminal:execute
+command: kubectl get pods -n kommander-default-workspace --no-headers | grep -E 'grafana|prometheus|traefik' | head -5
+```
+
+**What happened?** Grafana, Prometheus, and Traefik are running right now as part of the default NKP deployment. Your customers get a full observability stack from day one -- no manual installation.
+
+> **Key takeaway**: The console is the single pane of glass. But everything it shows is also accessible via `kubectl` and APIs. The console is a convenience layer, not a lock-in.

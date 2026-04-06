@@ -1,80 +1,93 @@
 ---
-title: "Containers — The Tiny VM"
+title: "Containers -- The Tiny VM"
 ---
 
-## The Idea You Already Know
+## See It First
 
-You have been running VMs for years. A VM gives you an isolated, portable environment:
-install your app, snapshot it, ship it to another host, run it. Containers do exactly the same
-thing — but instead of packaging a full operating system, they package only what the application
-needs.
+Let's start by running a container right now:
 
-Think of it this way:
+```terminal:execute
+command: kubectl run hello --image=busybox:glibc --restart=Never -- echo "Hello from a container!"
+```
 
-> **A VM is a house. A container is a shipping container.**
-> The house includes plumbing, wiring, and foundation — a full OS kernel.
-> The shipping container holds only the cargo — your app and its libraries.
-> You can stack hundreds of shipping containers on one ship.
+```terminal:execute
+command: kubectl logs hello
+```
+
+You just ran a process inside an isolated environment. No VM boot. No OS install. It took **under 2 seconds**.
+
+Clean up:
+
+```terminal:execute
+command: kubectl delete pod hello --wait=false
+```
 
 ---
 
-## Side by Side
+## Containers vs VMs
+
+```mermaid
+graph TB
+    subgraph VM["Virtual Machine"]
+        direction TB
+        A1[Guest OS Kernel] --> A2[Libraries]
+        A2 --> A3[Your App]
+        style A1 fill:#E05252,color:#fff
+    end
+    subgraph Container["Container"]
+        direction TB
+        B2[Libraries] --> B3[Your App]
+        style B2 fill:#3DD68C,color:#000
+    end
+    subgraph Host["Host (shared kernel)"]
+        direction TB
+        C1[Linux Kernel + containerd]
+    end
+    VM -.-> Host
+    Container -.-> Host
+    style VM fill:#1A1A1A,stroke:#E05252,color:#F0F0F0
+    style Container fill:#1A1A1A,stroke:#3DD68C,color:#F0F0F0
+    style Host fill:#111,stroke:#7855FA,color:#F0F0F0
+```
+
+> **A VM is a house** (full foundation, plumbing, wiring).
+> **A container is a shipping container** (just the cargo). Stack hundreds on one ship.
 
 | | Virtual Machine | Container |
 |-|----------------|-----------|
-| What it includes | Full guest OS kernel + your app | Your app + libraries only (shared host kernel) |
-| Startup time | 30–60 seconds | Under 1 second |
+| Includes | Full guest OS kernel + app | App + libraries only |
+| Startup | 30-60 seconds | Under 1 second |
 | Size | Gigabytes | Megabytes |
-| Density per host | ~10s | ~100s |
-| Isolation | Kernel-level (hypervisor) | Process-level (Linux namespaces) |
-| Portability | Image tied to hypervisor format | Runs anywhere with a container runtime |
+| Density | ~10 per host | ~100s per host |
+| Isolation | Hypervisor | Linux namespaces + cgroups |
 
-Containers are not replacing VMs. NKP itself runs on VMs (or bare metal). Containers run
-**inside** the operating system that the VM provides. The stack is:
+---
 
-```
-Physical / Cloud Hardware
-  └── Hypervisor (AHV / VMware / cloud)
-        └── VM (Linux OS)
-              └── Container runtime (containerd)
-                    └── Your containers
+## Prove It -- Check What is Running
+
+```terminal:execute
+command: kubectl get pods -n kube-system --no-headers | head -10
 ```
 
----
-
-## What Makes a Container Work
-
-Three Linux kernel features combine to create the isolated environment:
-
-- **Namespaces** — each container sees its own process list, network interfaces, and filesystem.
-  It cannot see or interfere with processes in other containers.
-- **cgroups** — the kernel enforces hard limits on how much CPU and memory a container can consume.
-  A runaway process cannot starve the host or its neighbours.
-- **Union filesystems** — the container image is a stack of read-only layers. At runtime, a thin
-  writable layer is added on top. Two containers sharing the same base image share those layers
-  on disk — no duplication.
+**What happened?** Every component of Kubernetes itself runs as a container. The control plane (API server, scheduler, controller-manager) and networking (Cilium) are all containers. Containers running containers.
 
 ---
 
-## Image vs Container
+## The Stack on Nutanix
 
-An **image** is a frozen, layered snapshot — like a VM template. A **container** is a running
-instance of that image — like a powered-on VM cloned from that template.
+```mermaid
+graph TB
+    HW["Nutanix Hardware (AHV)"] --> VM["Virtual Machine (Ubuntu)"]
+    VM --> CR["Container Runtime (containerd)"]
+    CR --> P1["Pod: your-app"]
+    CR --> P2["Pod: monitoring"]
+    CR --> P3["Pod: ingress"]
+    style HW fill:#4B00AA,color:#fff
+    style VM fill:#1A1A1A,stroke:#7855FA,color:#F0F0F0
+    style CR fill:#111,stroke:#1FDDE9,color:#F0F0F0
+    style P1 fill:#1A1A1A,stroke:#3DD68C,color:#F0F0F0
+    style P2 fill:#1A1A1A,stroke:#3DD68C,color:#F0F0F0
+    style P3 fill:#1A1A1A,stroke:#3DD68C,color:#F0F0F0
+```
 
-One image → many containers. Each container gets its own writable layer. Stop the container and
-the writable layer is discarded. The image is unchanged.
-
----
-
-## Why This Matters for Partners
-
-Your customers are already running hundreds of VMs. The shift to containers is not a replacement
-of that investment — it is an addition. The same Nutanix infrastructure that runs their VMs today
-runs NKP and their containers tomorrow.
-
-The payload shrinks from gigabytes to megabytes. Deployment time drops from minutes to seconds.
-And the platform — NKP — manages the scheduling, health, scaling, and networking of every
-container automatically.
-
-This is the direction the industry is moving. NKP is how partners bring their customers there
-on Nutanix infrastructure.
+NKP runs **on** your existing Nutanix infrastructure. VMs host the Kubernetes nodes, containers run inside. No rip and replace -- additive.

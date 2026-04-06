@@ -1,91 +1,80 @@
 ---
-title: "The Demo App — Rx Storefront"
+title: "The Demo App -- Ecommerce on NKP"
 ---
 
 ## What We Are Running
 
-The application running on this NKP cluster is **Rx Storefront** — a 4-service ecommerce
-application that exercises the platform's key capabilities: service mesh, observability,
-GitOps delivery, and resource governance.
+A real microservices ecommerce application is running on this cluster right now. This is the kind of workload your customers would run on NKP.
 
-This is the kind of application a partner's customer would run on NKP. Not a toy — a real
-microservices architecture with real traffic patterns.
+```mermaid
+graph LR
+    Browser["Browser"] --> FE["frontend<br/>Flask + nginx"]
+    FE --> CAT["catalog-api<br/>Product listings"]
+    FE --> CO["checkout-api<br/>Cart + orders"]
+    CO --> PAY["payment-mock<br/>Payment processor"]
+
+    subgraph mesh["Istio Service Mesh"]
+        FE
+        CAT
+        CO
+        PAY
+    end
+
+    style Browser fill:#4B00AA,color:#fff
+    style mesh fill:#1A1A1A,stroke:#1FDDE9,color:#F0F0F0
+    style FE fill:#111,stroke:#7855FA,color:#F0F0F0
+    style CAT fill:#111,stroke:#3DD68C,color:#F0F0F0
+    style CO fill:#111,stroke:#F5A623,color:#F0F0F0
+    style PAY fill:#111,stroke:#E05252,color:#F0F0F0
+```
+
+Every pod has an **Istio sidecar** -- a proxy that intercepts all traffic. Zero code changes required. The mesh provides mTLS encryption, traffic routing, and full observability automatically.
 
 ---
 
-## Service Architecture
+## Exercise -- See the Running Services
 
+```terminal:execute
+command: kubectl get pods -n demo-app 2>/dev/null || echo "Demo app namespace will be deployed by the facilitator"
 ```
-                    ┌─────────────────────────────────────┐
-                    │           demo-app namespace          │
-                    │                                       │
-Browser ──────────► │  frontend (Flask + nginx)             │
-                    │     │              │                  │
-                    │     ▼              ▼                  │
-                    │  catalog-api    checkout-api          │
-                    │  (Python/Flask) (Python/Flask)        │
-                    │                   │                   │
-                    │                   ▼                   │
-                    │            payment-mock               │
-                    │            (simulated payment)        │
-                    └─────────────────────────────────────┘
-                              ↕ Istio sidecar on every pod
+
+```terminal:execute
+command: kubectl get svc -n demo-app 2>/dev/null || echo "Services will appear when the demo app is deployed"
 ```
+
+**What happened?** Each service has its own deployment and service object. Kubernetes handles service discovery -- `frontend` finds `catalog-api` by DNS name, not by IP address.
 
 ---
 
 ## The Four Services
 
-| Service | Tech | Role |
-|---------|------|------|
-| **frontend** | Python Flask + nginx | Browser-facing UI. Calls catalog-api for product listings and checkout-api for cart operations. |
-| **catalog-api** | Python Flask | Returns product listings. Backed by in-memory data — no database dependency for this demo. |
-| **checkout-api** | Python Flask | Handles cart and order submission. Calls payment-mock to process payment. |
-| **payment-mock** | Python Flask | Simulates a payment processor. Has two versions (v1, v2) for the canary demo. |
+| Service | Role | Why It Matters |
+|---------|------|---------------|
+| **frontend** | Browser-facing UI | Calls other services -- shows service-to-service communication |
+| **catalog-api** | Product listings | Stateless microservice -- scales horizontally |
+| **checkout-api** | Cart and orders | Calls payment-mock -- creates a dependency chain |
+| **payment-mock** | Simulated payments | Has v1 and v2 -- used for canary deployment demo |
 
 ---
 
-## What Istio Adds
+## What Istio Adds (Zero Code Changes)
 
-Every pod in `demo-app` has an **Istio sidecar** — a proxy container running alongside the
-application container. The sidecar intercepts all inbound and outbound traffic without any
-changes to the application code.
-
-This gives us for free:
-- **mTLS** — all service-to-service communication is encrypted and authenticated
-- **Traffic metrics** — request rate, error rate, and latency for every call
-- **Distributed tracing** — every request gets a trace ID propagated through all services
-- **Traffic control** — split traffic between versions (canary), inject faults, mirror traffic
-
-The application code knows nothing about Istio. The platform provides observability automatically.
-
----
-
-## Exercise — See the Running Services
-
-```terminal:execute
-command: kubectl get pods -n demo-app -o wide
+```mermaid
+graph TB
+    subgraph Without["Without Service Mesh"]
+        A1["App A"] -->|"plain HTTP"| A2["App B"]
+        A3["No encryption"]
+        A4["No traffic metrics"]
+        A5["No routing control"]
+    end
+    subgraph With["With Istio on NKP"]
+        B1["App A"] -->|"mTLS encrypted"| B2["App B"]
+        B3["Automatic encryption"]
+        B4["Full traffic metrics"]
+        B5["Canary routing, retries, timeouts"]
+    end
+    style Without fill:#1A1A1A,stroke:#E05252,color:#F0F0F0
+    style With fill:#1A1A1A,stroke:#3DD68C,color:#F0F0F0
 ```
 
-**Observe:**
-- `READY` column shows `2/2` for each pod — that is the app container + the Istio sidecar
-- `NODE` column shows which VM each pod landed on — Kubernetes scheduled them automatically
-
-```terminal:execute
-command: kubectl get svc -n demo-app
-```
-
-**Observe:** Each service has a `ClusterIP` — a stable virtual IP that does not change even
-if pods restart. The `frontend` service has an external IP from MetalLB, which is how the
-browser reaches it.
-
----
-
-## The Current Scenario
-
-The application is running on the `scenario/baseline` branch — 100% of traffic going to
-payment-mock **v1**. The load generator is producing steady traffic so the observability
-tools have data to show.
-
-In the next section you will open the live application and then watch Kiali map every
-service call in real time.
+> **The pitch to customers**: "Your developers write the same code. The mesh adds encryption, observability, and traffic control as infrastructure -- not application changes."

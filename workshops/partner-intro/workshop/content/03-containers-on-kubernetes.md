@@ -1,95 +1,93 @@
 ---
-title: "Containers on Kubernetes — Why NKP"
+title: "Why Kubernetes -- Why NKP"
 ---
 
-## The Problem Containers Create
+## The Problem at Scale
 
-Containers are lightweight and portable. But when you run hundreds of them across dozens of
-hosts, new problems appear:
+You can run one container with `docker run`. But what happens with 200 containers across 20 hosts?
 
-- Which host has capacity for this container?
-- What happens when the host goes down?
-- How do containers find and talk to each other?
-- How do you roll out a new version without downtime?
-- Who is allowed to run what?
-
-None of these are answered by the container runtime itself. This is what **Kubernetes** solves.
+```mermaid
+graph LR
+    Q1["Which host has capacity?"] --> K["Kubernetes"]
+    Q2["Host dies -- now what?"] --> K
+    Q3["How do services find each other?"] --> K
+    Q4["Zero-downtime upgrades?"] --> K
+    Q5["Who can run what?"] --> K
+    K --> A["Automated, declarative, self-healing"]
+    style K fill:#7855FA,color:#fff
+    style A fill:#3DD68C,color:#000
+```
 
 ---
 
-## Kubernetes in One Paragraph
+## See Kubernetes in Action
 
-Kubernetes is an **orchestrator** — it takes a description of what you want running
-("3 replicas of the checkout service, always") and makes it true. If a host fails,
-Kubernetes reschedules the containers to another host. If a container crashes,
-Kubernetes restarts it. You declare the end state; Kubernetes enforces it continuously.
-
-The fundamental unit is a **Pod** — a wrapper around one or more containers that share a
-network namespace and can share storage volumes.
-
+```terminal:execute
+command: kubectl get nodes -o wide
 ```
-Node (VM)
-  └── Pod
-        ├── Container: checkout-api (port 8080)
-        └── Container: istio-proxy (sidecar, port 15001)
+
+**What happened?** These are the worker VMs in your cluster. Kubernetes is managing all of them as a single pool of compute.
+
+```terminal:execute
+command: kubectl get pods -A --no-headers | wc -l
 ```
+
+**What happened?** That is the total number of containers running across all nodes right now. Kubernetes is scheduling, monitoring, and restarting every one of them automatically.
+
+---
+
+## The Pod -- Kubernetes Building Block
+
+```mermaid
+graph TB
+    subgraph Node["Worker Node (VM)"]
+        subgraph Pod1["Pod: checkout"]
+            C1["checkout-api :8080"]
+            C2["istio-proxy :15001"]
+        end
+        subgraph Pod2["Pod: frontend"]
+            C3["frontend :3000"]
+            C4["istio-proxy :15001"]
+        end
+    end
+    style Node fill:#1A1A1A,stroke:#7855FA,color:#F0F0F0
+    style Pod1 fill:#111,stroke:#1FDDE9,color:#F0F0F0
+    style Pod2 fill:#111,stroke:#1FDDE9,color:#F0F0F0
+```
+
+A **Pod** wraps one or more containers that share networking. The app container and its sidecar (like Istio proxy) run together and communicate over `localhost`.
+
+---
+
+## Self-Healing -- Kill a Pod, Watch It Come Back
+
+```terminal:execute
+command: kubectl get pods -n kube-system -l k8s-app=kube-dns
+```
+
+Note the pod names. Now let's delete one:
+
+```terminal:execute
+command: kubectl delete pod -n kube-system -l k8s-app=kube-dns --wait=false | head -1
+```
+
+```terminal:execute
+command: sleep 3 && kubectl get pods -n kube-system -l k8s-app=kube-dns
+```
+
+**What happened?** Kubernetes immediately created a replacement. The desired state says "2 DNS pods must run." You deleted one, Kubernetes restored it. This is **declarative self-healing** -- you describe the end state, Kubernetes enforces it continuously.
 
 ---
 
 ## What Kubernetes Gives You
 
-| Capability | What it means |
+| Capability | What It Means |
 |-----------|---------------|
-| **Scheduling** | Finds the right node based on CPU/memory requests and affinity rules |
-| **Self-healing** | Restarts failed containers, replaces failed nodes |
-| **Service discovery** | Every service gets a DNS name; containers find each other automatically |
-| **Rolling updates** | Deploy a new version gradually; auto-rollback on health check failure |
-| **Storage** | Attach persistent volumes to pods; supports Nutanix storage classes |
-| **Secrets/Config** | Inject credentials and config without baking them into the image |
+| **Scheduling** | Finds the right node based on CPU/memory requests |
+| **Self-healing** | Restarts crashed containers, replaces failed nodes |
+| **Service discovery** | Every service gets a DNS name automatically |
+| **Rolling updates** | New versions deploy gradually with auto-rollback |
+| **Storage** | Persistent volumes via Nutanix CSI |
+| **Secrets** | Inject credentials without baking them into images |
 
----
-
-## What NKP Adds on Top
-
-Kubernetes answers the *single cluster* problem. NKP answers the *enterprise* problem:
-
-| Challenge | NKP Answer |
-|-----------|-----------|
-| Managing 10, 50, 100 clusters | **Kommander** — single pane, unified policies |
-| Who can access which cluster? | **Workspace RBAC** — policies propagate automatically |
-| Deploying the observability stack | **App Catalog** — Istio, Kiali, Jaeger, Grafana in one click |
-| Policy enforcement across all clusters | **OPA Gatekeeper** — federated, Git-backed constraints |
-| Persistent storage for stateful apps | **Nutanix CSI** — native integration with AHV storage |
-| Backup and disaster recovery | **Velero** — cross-cluster backup built in |
-
-NKP is Kubernetes with the enterprise layer already assembled and supported by Nutanix.
-
----
-
-## Exercise — See a Running Pod
-
-Your session has a terminal connected to an NKP cluster. Let's look at real pods:
-
-```terminal:execute
-command: kubectl get pods -n demo-app
-```
-
-**Observe:** Each row is a Pod. The `READY` column shows how many containers in the pod are
-running. The `STATUS` column shows the pod lifecycle phase.
-
-```terminal:execute
-command: kubectl describe pod -n demo-app -l app=frontend | head -40
-```
-
-**Observe:** `Node:` shows which VM the pod is running on. `Containers:` lists the containers
-inside the pod. `Events:` shows the scheduling and startup history.
-
----
-
-## What Just Happened
-
-Kubernetes scheduled the `frontend` pod onto a node, pulled the container image, injected the
-Istio sidecar, and started both containers. All of that happened automatically from a single
-manifest file committed to Git.
-
-In the next module, you will see how Kommander manages the cluster that just served those pods.
+> **But Kubernetes alone is not enough for enterprise.** That is where NKP comes in -- next page.

@@ -1,121 +1,83 @@
 ---
-title: "Incident — Find It in Seconds"
+title: "Incident -- Find It in Seconds"
 ---
 
 ## What Is About to Happen
 
-Your facilitator will switch the ArgoCD application to the `scenario/incident-latency` branch.
-This deploys a version of `payment-mock` that introduces a 500ms artificial delay on every
-payment call. No code was changed on the cluster directly — it is a Git branch switch, and
-ArgoCD syncs it automatically.
-
-Watch the Kiali graph as this happens.
+Your facilitator will trigger a latency incident on the `payment-mock` service. A slow version gets deployed via GitOps -- no manual changes on the cluster. Watch what happens.
 
 ---
 
-## Watching the Incident
+## Before the Incident
 
-On the Kiali graph, observe the `checkout-api → payment-mock` edge:
+```mermaid
+graph LR
+    FE["frontend"] --> CO["checkout-api"]
+    CO --> PAY["payment-mock v1<br/>~50ms response"]
+    linkStyle 0 stroke:#3DD68C
+    linkStyle 1 stroke:#3DD68C
+    style PAY fill:#111,stroke:#3DD68C,color:#F0F0F0
+```
 
-- The edge colour shifts from **green → yellow → red** as error rate and latency climb
-- The request rate stays the same — the load generator did not change
-- Only the `checkout-api → payment-mock` edge is affected — every other edge stays green
+Everything is green. Response times are fast. No alerts.
 
-This is how you distinguish a slow dependency from a failing service. The mesh tells you
-exactly where the problem is before anyone has opened a log file.
+## After the Incident
+
+```mermaid
+graph LR
+    FE["frontend"] --> CO["checkout-api"]
+    CO --> PAY["payment-mock v2<br/>~500ms response"]
+    linkStyle 0 stroke:#F5A623
+    linkStyle 1 stroke:#E05252
+    style PAY fill:#111,stroke:#E05252,color:#F0F0F0
+```
+
+**Only the `checkout-api -> payment-mock` edge turns red.** Every other edge stays green. The mesh tells you exactly where the problem is before anyone opens a log file.
 
 ---
 
-## Exercise — Confirm the Latency in Your Terminal
+## Exercise -- Check Running Pods
 
 ```terminal:execute
-command: kubectl get pods -n demo-app -l app=payment-mock
+command: kubectl get pods -n demo-app -l app=payment-mock 2>/dev/null || echo "Payment mock pods will be visible when demo app is deployed"
 ```
 
-**Observe:** Both `payment-mock-v1` and `payment-mock-v2` pods are running. The incident
-scenario routes traffic to v2, which has the latency injected.
+**What happened?** Both v1 and v2 of payment-mock may be running. The incident scenario routes traffic to v2 (the slow version) using Istio traffic routing -- no code changes, just a config update.
 
 ---
 
-## Find the Root Cause in Jaeger
+## Finding the Root Cause with Jaeger
 
-Open the distributed tracing UI:
+> **Facilitator shows**: Jaeger distributed tracing UI
 
-**Where**: `<NKP_BASE>/dkp/jaeger`
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Frontend
+    participant Checkout
+    participant Payment
 
-1. **Service**: select `frontend`
-2. **Operation**: leave as `All`
-3. Click **Find Traces**
-4. Select a recent trace — look for ones with high duration (over 500ms)
-
-**Expand the trace**:
-
+    Browser->>Frontend: GET /checkout
+    Frontend->>Checkout: POST /order
+    Checkout->>Payment: POST /pay
+    Note over Payment: 500ms delay here!
+    Payment-->>Checkout: 200 OK (slow)
+    Checkout-->>Frontend: 200 OK (slow)
+    Frontend-->>Browser: Page loads (slow)
 ```
-frontend          [   50ms   ]
-  └── catalog-api [ 10ms ]
-  └── checkout-api [  530ms   ←── slow ]
-        └── payment-mock-v2 [ 510ms ←── here ]
-```
 
-**Observe:** The trace shows exactly which span is slow — `payment-mock-v2`. The span is
-highlighted red or yellow if duration exceeds the expected baseline.
-
-Without distributed tracing, diagnosing this would require correlating logs across 4 services,
-checking timestamps, and reasoning about which service introduced the latency. With Jaeger,
-the answer is visible in the first trace you open.
+Jaeger shows the **exact span** where the latency lives. Click on a trace, expand the spans, and the 500ms delay on `payment-mock` is immediately visible.
 
 ---
 
-## Rollback — One Git Change
-
-Your facilitator will now switch ArgoCD back to `scenario/baseline`.
-
-```
-ArgoCD: targetRevision = scenario/baseline
-```
-
-Watch the Kiali graph recover:
-- `checkout-api → payment-mock` edge returns to **green** within 30 seconds
-- No kubectl apply was run. No pod was restarted manually. No config was edited directly.
-
-The recovery path is the same as the deployment path: **change Git, the platform does the rest.**
-
----
-
-## Exercise — Verify Recovery
+## Exercise -- Check Service Response Times
 
 ```terminal:execute
-command: kubectl get pods -n demo-app
+command: kubectl top pods -n demo-app 2>/dev/null || echo "Metrics server may not be available -- use Grafana dashboards for resource metrics"
 ```
 
-**Observe:** All pods are `Running` with `2/2` containers. The rollback redeployed the
-baseline version of payment-mock — a clean, healthy state.
-
 ---
 
-## What This Means for Partners
+## The Demo Takeaway
 
-A partner selling NKP can show customers:
-
-1. **Zero-instrumentation observability** — existing apps get service topology and tracing on day 1
-2. **Fast incident detection** — the mesh surfaces where the problem is, not just that there is a problem
-3. **Safe rollback** — GitOps means rollback is always one commit away, with no manual steps
-
-The combination of Istio + Kiali + Jaeger + ArgoCD, pre-assembled and supported by Nutanix,
-is the answer to "how do we get observability without a six-month instrumentation project?"
-
----
-
-## Session Complete
-
-Your facilitator will set the scenario to `scenario/load-off` to end the demo cleanly.
-
-What you have seen today:
-
-| Module | Key takeaway |
-|--------|-------------|
-| Container fundamentals | Containers are tiny VMs — same isolation concept, 100x lighter |
-| Kommander platform | Multi-cluster RBAC, policies, and add-ons managed from one place |
-| Ecommerce on NKP | GitOps delivery + zero-instrumentation observability + instant incident trace |
-
-**NKP is the platform that makes Kubernetes enterprise-ready on Nutanix infrastructure.**
+> **This is the story to tell customers**: "A developer pushed a bad version. The service mesh detected the latency in seconds. The on-call engineer saw the exact failing service in Kiali, traced it in Jaeger, and rolled back with a Git revert. Total time to resolution: minutes, not hours. No log parsing. No guessing."
