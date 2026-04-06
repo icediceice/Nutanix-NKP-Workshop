@@ -68,6 +68,7 @@ header, .header, [class*="Header"], [class*="header"] { background-color: #0D0D0
 [class*="Sidebar"], [class*="sidebar"], nav, aside { background-color: #0D0D0D !important; border-color: #2A2A2A !important; }
 a { color: #1FDDE9; } a:hover { color: #7855FA; }
 .terminal { background-color: #0D0D0D !important; }
+.xterm-viewport { background-color: #0D0D0D !important; }
 #startup-cover-panel { background: #0D0D0D !important; color: #F0F0F0 !important; }
 div#terminate-session-dialog, div#workshop-expired-dialog, div#workshop-failed-dialog, div#finished-workshop-dialog, div#started-workshop-dialog { background-color: #161616 !important; color: #F0F0F0 !important; border-color: #2A2A2A !important; }
 .modal-content { background-color: #161616 !important; border-color: #2A2A2A !important; color: #F0F0F0 !important; }
@@ -143,21 +144,30 @@ mermaid.initialize({ startOnLoad: false, theme: 'dark' });
 
 async function renderMermaid() {
   // Renderer (marked@4 + hljs) outputs: <pre><code class="hljs language-mermaid">
-  const blocks = document.querySelectorAll('pre:not([data-mmd]) code.language-mermaid');
+  // Selector: code[class*="mermaid"] catches any class variation (language-mermaid, hljs language-mermaid, etc.)
+  const blocks = document.querySelectorAll('pre:not([data-mmd]) code[class*="mermaid"]');
+  if (!blocks.length) return;
+
+  // Convert <pre><code class="language-mermaid"> → <div class="mermaid"> for mermaid.run()
+  // mermaid v10 API: mermaid.run({ nodes }) renders in-place on elements with class "mermaid"
+  const nodes = [];
   for (const code of blocks) {
     const pre = code.closest('pre');
     if (!pre) continue;
     pre.setAttribute('data-mmd', '1');
-    const src = code.textContent.trim();
+    const src = (code.textContent || '').trim();
     if (!src) continue;
+    const div = document.createElement('div');
+    div.className = 'mermaid mermaid-rendered';
+    div.textContent = src;
+    pre.replaceWith(div);
+    nodes.push(div);
+  }
+
+  if (nodes.length) {
     try {
-      const id = 'mmd' + Math.random().toString(36).slice(2, 9);
-      const { svg } = await mermaid.render(id, src);
-      const div = document.createElement('div');
-      div.className = 'mermaid-rendered';
-      div.innerHTML = svg;
-      pre.replaceWith(div);
-    } catch(e) { console.warn('Mermaid render failed:', e); }
+      await mermaid.run({ nodes, suppressErrors: true });
+    } catch(e) { console.warn('Mermaid run failed:', e); }
   }
 }
 
@@ -166,7 +176,7 @@ renderMermaid();
 
 // Also handle SPA-style content updates
 let t;
-new MutationObserver(() => { clearTimeout(t); t = setTimeout(renderMermaid, 200); })
+new MutationObserver(() => { clearTimeout(t); t = setTimeout(renderMermaid, 300); })
   .observe(document.documentElement, { childList: true, subtree: true });
 </script>
 CSSEOF
