@@ -8,6 +8,13 @@
 # Bundle → Workshop mapping: multiple bundles may resolve to the same Educates
 # workshop CRD (deduplication happens at provision time).
 
+partner-intro:
+  title: "Partner Introduction"
+  description: "90-minute guided intro to NKP for partners. Container fundamentals, Kommander platform tour, and a live ecommerce demo with service mesh observability and GitOps delivery."
+  duration_hours: 1.5
+  workshops:
+    - partner-intro
+
 foundation:
   title: "Foundation"
   description: "Core Kubernetes concepts included for all participants"

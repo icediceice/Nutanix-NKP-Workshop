@@ -1,0 +1,25 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: partner-intro
+spec:
+  title: "NKP Partner Introduction"
+  description: >
+    A guided introduction to NKP for partners. Covers container fundamentals, the Kommander
+    multi-cluster management platform, and a live ecommerce application running on NKP with
+    Istio service mesh, observability, and GitOps delivery. Approximately 90 minutes.
+  workshop:
+    files:
+      - image:
+          url: $(image_repository)/partner-intro-files:latest
+  session:
+    namespaces:
+      budget: medium
+    applications:
+      terminal:
+        enabled: true
+        layout: split
+      editor:
+        enabled: false
+      console:
+        enabled: true
