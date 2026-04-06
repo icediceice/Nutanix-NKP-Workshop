@@ -332,6 +332,11 @@ for attempt in $(seq 1 30); do
   [[ $attempt -eq 30 ]] && echo "  ⚠ TrainingPortal credentials not ready after 60s — provision will fail" || sleep 2
 done
 CLUSTER_CONTEXT=$(kubectl config current-context 2>/dev/null || echo "")
+# Derive registration app URL from the first worker node IP + NodePort
+FIRST_NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null || echo "")
+REGISTRATION_NODEPORT=$(cfg registration_app_nodeport 2>/dev/null || echo "30080")
+EDUCATES_INDEX_URL="http://${FIRST_NODE_IP}:${REGISTRATION_NODEPORT}"
+
 kubectl create secret generic nkp-lab-manager-secrets \
   --from-literal=ADMIN_PASSWORD="${ADMIN_PASSWORD}" \
   --from-literal=DRY_RUN=false \
@@ -342,6 +347,7 @@ kubectl create secret generic nkp-lab-manager-secrets \
   --from-literal=EDUCATES_ROBOT_CLIENT_SECRET="${EDUCATES_ROBOT_CLIENT_SECRET}" \
   --from-literal=EDUCATES_ROBOT_USERNAME="${EDUCATES_ROBOT_USERNAME}" \
   --from-literal=EDUCATES_ROBOT_PASSWORD="${EDUCATES_ROBOT_PASSWORD}" \
+  --from-literal=EDUCATES_INDEX_URL="${EDUCATES_INDEX_URL}" \
   --namespace=nkp-lab-manager \
   --dry-run=client -o yaml | kubectl apply -f -
 
