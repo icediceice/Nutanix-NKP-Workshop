@@ -177,6 +177,16 @@ if [[ "${APP_ONLY}" == "false" && "${WORKSHOPS_ONLY}" == "false" ]] || [[ "${EDU
   done
   echo "  ✓ Kyverno: 2 replicas, webhook timeout 25s"
 
+  # ── Publish workshop definitions before training portal so environments are created immediately ──
+  echo "  → Publishing workshop definitions..."
+  kubectl apply -f "${SCRIPT_DIR}/../k8s/cluster-reader-role.yaml" >/dev/null 2>&1 || true
+  WORKSHOPS_DIR="${SCRIPT_DIR}/../workshops"
+  for workshop_dir in "${WORKSHOPS_DIR}"/*/; do
+    workshop_yaml="${workshop_dir}resources/workshop.yaml"
+    [[ -f "${workshop_yaml}" ]] && kubectl apply -f "${workshop_yaml}" >/dev/null 2>&1
+  done
+  echo "  ✓ Workshop definitions published"
+
   echo "  → Deploying Training Portal..."
   kubectl apply -f "${SCRIPT_DIR}/educates/training-portal.yaml"
 

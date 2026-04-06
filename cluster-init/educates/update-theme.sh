@@ -254,7 +254,7 @@ kubectl patch secret default-website-theme -n "${PORTAL_NS}" --type=json -p "[
 # ── Restart only the training portal (sessions unaffected) ───────────────────
 echo "  Restarting training portal..."
 kubectl rollout restart deployment/training-portal -n "${PORTAL_NS}"
-kubectl rollout status deployment/training-portal -n "${PORTAL_NS}" --timeout=90s
+kubectl rollout status deployment/training-portal -n "${PORTAL_NS}" --timeout=180s
 
 echo "✓ Theme applied."
 echo "  Session pods pick up the new CSS via volume mount refresh (~60s)."

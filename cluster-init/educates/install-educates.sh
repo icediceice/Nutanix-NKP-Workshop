@@ -138,11 +138,25 @@ websiteStyling:
       </style>
 EOF
 
+# ── Deploy Educates platform (idempotent: skip if already running) ──
+# educates admin platform deploy creates the namespace itself (not idempotent).
+# The wildcard TLS cert is applied AFTER deploy to avoid namespace conflict.
+if kubectl get deployment session-manager -n educates >/dev/null 2>&1; then
+  echo "  ✓ Educates already deployed — skipping platform deploy"
+  rm -f "${RUNTIME_CONFIG}"
+else
+  echo "Deploying Educates platform (this may take 2–5 minutes)..."
+  educates admin platform deploy \
+    --config "${RUNTIME_CONFIG}" \
+    --version "${EDUCATES_VERSION}" \
+    --skip-image-resolution
+  rm -f "${RUNTIME_CONFIG}"
+fi
+
 # ── Create wildcard TLS cert for session ingresses (NKP/Traefik requires HTTPS) ──
 # Traefik has a global HTTP→HTTPS redirect. Without TLS on session ingresses,
 # the HTTPS request has no matching route and falls through to the portal.
 echo "  → Creating wildcard TLS cert for *.${INGRESS_DOMAIN}..."
-kubectl create namespace educates --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 kubectl apply -f - <<EOCERT
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -160,15 +174,6 @@ spec:
 EOCERT
 kubectl wait certificate educates-wildcard-tls -n educates --for=condition=Ready --timeout=60s
 echo "  ✓ Wildcard TLS cert ready"
-
-# ── Deploy Educates platform ──
-echo "Deploying Educates platform (this may take 2–5 minutes)..."
-educates admin platform deploy \
-  --config "${RUNTIME_CONFIG}" \
-  --version "${EDUCATES_VERSION}" \
-  --skip-image-resolution
-
-rm -f "${RUNTIME_CONFIG}"
 
 # ── Verify (v3.7+: secrets-manager + session-manager replace educates-operator) ──
 echo "Verifying Educates components..."
