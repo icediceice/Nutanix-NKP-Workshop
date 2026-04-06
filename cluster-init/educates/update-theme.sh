@@ -110,14 +110,23 @@ th { background-color: #1E1E1E !important; color: #F0F0F0 !important; border: 1p
 td { border: 1px solid #2A2A2A !important; padding: 8px 12px; }
 tr:nth-child(even) { background-color: #161616 !important; } tr:nth-child(odd) { background-color: #0D0D0D !important; }
 .mermaid { background: #161616 !important; border-radius: 8px; padding: 16px; }
+.bg-primary { background-color: #1E1E1E !important; }
+div.magic-code-block-title { background-color: #1E3A5F !important; color: #B0D4F0 !important; border-radius: 4px 4px 0 0; }
+div.magic-code-block-form, div.magic-code-block-upload { background-color: #161616 !important; color: #F0F0F0 !important; border-color: #2A2A2A !important; }
+[data-action-name][data-action-result='success'] { background-color: #0D1F0D !important; }
+[data-action-name][data-action-result='success'] div.magic-code-block-title { background-color: #1A4D2A !important; color: #3DD68C !important; }
+[data-action-name][data-action-result='pending'] { background-color: #1F1500 !important; }
+[data-action-name][data-action-result='pending'] div.magic-code-block-title { background-color: #4D3500 !important; color: #FBB040 !important; }
+[data-action-name][data-action-result='failure'] { background-color: #1F0D0D !important; }
+[data-action-name][data-action-result='failure'] div.magic-code-block-title { background-color: #4D1A1A !important; color: #E05252 !important; }
 ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #161616; }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; } ::-webkit-scrollbar-thumb:hover { background: #7855FA; }
 body::before { content: ''; display: block; height: 3px; background: linear-gradient(135deg, #4B00AA, #1FDDE9); position: fixed; top: 0; left: 0; right: 0; z-index: 9999; pointer-events: none; }
 CSSEOF
 
 # workshop-instructions.html — injected into <head> of the instructions iframe.
-# Adds mermaid.js support (renderer uses marked+hljs which outputs div.highlight-mermaid)
-# and repeats minimal dark overrides for versions that use .html instead of .css injection.
+# Renderer uses marked@4 + hljs: mermaid fences render as <pre><code class="hljs language-mermaid">.
+# Script finds those <pre> blocks and replaces them with mermaid.js SVG output.
 cat > "${TMP}/workshop-instructions.html" << 'CSSEOF'
 <style>
 html, body { background-color: #0D0D0D !important; color: #F0F0F0 !important; }
@@ -130,18 +139,21 @@ import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.mi
 mermaid.initialize({ startOnLoad: false, theme: 'dark' });
 
 async function renderMermaid() {
-  const blocks = document.querySelectorAll('div.highlight-mermaid:not([data-mmd])');
-  for (const block of blocks) {
-    block.setAttribute('data-mmd', '1');
-    const code = (block.querySelector('pre')?.textContent || block.querySelector('code')?.textContent || '').trim();
-    if (!code) continue;
+  // Renderer outputs: <pre><code class="hljs language-mermaid">...</code></pre>
+  const codeBlocks = document.querySelectorAll('pre:not([data-mmd]) code.language-mermaid');
+  for (const code of codeBlocks) {
+    const pre = code.closest('pre');
+    if (!pre) continue;
+    pre.setAttribute('data-mmd', '1');
+    const src = code.textContent.trim();
+    if (!src) continue;
     try {
       const id = 'mmd' + Math.random().toString(36).slice(2, 9);
-      const { svg } = await mermaid.render(id, code);
+      const { svg } = await mermaid.render(id, src);
       const div = document.createElement('div');
       div.className = 'mermaid-rendered';
       div.innerHTML = svg;
-      block.replaceWith(div);
+      pre.replaceWith(div);
     } catch(e) { console.warn('Mermaid render failed:', e); }
   }
 }
