@@ -1,10 +1,10 @@
 ---
-title: "The Demo App -- Ecommerce on NKP"
+title: "Deploy Your Own Microservices App"
 ---
 
-## What We Are Running
+## What You Are Deploying
 
-A real microservices ecommerce application is running on this cluster right now. This is the kind of workload your customers would run on NKP.
+A real microservices ecommerce application -- the same kind of workload your customers run on NKP.
 
 ```mermaid
 graph LR
@@ -28,21 +28,23 @@ graph LR
     style PAY fill:#111,stroke:#E05252,color:#F0F0F0
 ```
 
-Every pod has an **Istio sidecar** -- a proxy that intercepts all traffic. Zero code changes required. The mesh provides mTLS encryption, traffic routing, and full observability automatically.
+Every pod gets an **Istio sidecar** automatically -- a proxy that intercepts all traffic. Zero code changes. The mesh provides mTLS encryption, traffic routing, and full observability.
 
 ---
 
-## Exercise -- See the Running Services
+## Exercise -- Deploy the App
+
+Your namespace already has Istio sidecar injection enabled. Deploy the 4-service app:
 
 ```terminal:execute
-command: kubectl get pods -n demo-app 2>/dev/null || echo "Demo app namespace will be deployed by the facilitator"
+command: kubectl apply -f exercises/demo-app.yaml -n $(session_namespace)
 ```
 
 ```terminal:execute
-command: kubectl get svc -n demo-app 2>/dev/null || echo "Services will appear when the demo app is deployed"
+command: kubectl get pods -n $(session_namespace) -w
 ```
 
-**What happened?** Each service has its own deployment and service object. Kubernetes handles service discovery -- `frontend` finds `catalog-api` by DNS name, not by IP address.
+**What happened?** Each pod has **two containers** -- the app and `istio-proxy`. The proxy intercepts all inbound and outbound traffic. That is how the mesh gets its data without any application code changes. Press `Ctrl+C` when all pods show `2/2 Running`.
 
 ---
 
@@ -53,28 +55,32 @@ command: kubectl get svc -n demo-app 2>/dev/null || echo "Services will appear w
 | **frontend** | Browser-facing UI | Calls other services -- shows service-to-service communication |
 | **catalog-api** | Product listings | Stateless microservice -- scales horizontally |
 | **checkout-api** | Cart and orders | Calls payment-mock -- creates a dependency chain |
-| **payment-mock** | Simulated payments | Has v1 and v2 -- used for canary deployment demo |
+| **payment-mock** | Simulated payments | Will be the target of our incident scenario |
 
 ---
 
-## What Istio Adds (Zero Code Changes)
+## Exercise -- Check the Sidecars
 
-```mermaid
-graph TB
-    subgraph Without["Without Service Mesh"]
-        A1["App A"] -->|"plain HTTP"| A2["App B"]
-        A3["No encryption"]
-        A4["No traffic metrics"]
-        A5["No routing control"]
-    end
-    subgraph With["With Istio on NKP"]
-        B1["App A"] -->|"mTLS encrypted"| B2["App B"]
-        B3["Automatic encryption"]
-        B4["Full traffic metrics"]
-        B5["Canary routing, retries, timeouts"]
-    end
-    style Without fill:#1A1A1A,stroke:#E05252,color:#F0F0F0
-    style With fill:#1A1A1A,stroke:#3DD68C,color:#F0F0F0
+```terminal:execute
+command: kubectl get pods -n $(session_namespace) -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{range .spec.containers[*]}{.name}{" "}{end}{"\n"}{end}'
 ```
+
+**What happened?** Every pod has two containers: `app` and `istio-proxy`. The proxy was injected automatically because your namespace has the `istio-injection: enabled` label. No Dockerfile changes. No application changes.
+
+---
+
+## Start Traffic
+
+Deploy a traffic generator so the mesh has data to show:
+
+```terminal:execute
+command: kubectl apply -f exercises/traffic-generator.yaml -n $(session_namespace)
+```
+
+```terminal:execute
+command: sleep 5 && kubectl logs -n $(session_namespace) -l app=traffic-generator --tail=5
+```
+
+**What happened?** The traffic generator calls `frontend` and `checkout-api` every 2 seconds. This simulates real user traffic and feeds data to Kiali and Jaeger.
 
 > **The pitch to customers**: "Your developers write the same code. The mesh adds encryption, observability, and traffic control as infrastructure -- not application changes."

@@ -1,0 +1,18 @@
+# Injects 500ms latency into payment-mock to simulate a slow service
+# Usage: kubectl patch deploy payment-mock-v1 -n <ns> --patch-file exercises/fault-injection.yaml
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          env:
+            - name: SERVICE_NAME
+              value: payment-mock
+            - name: SERVICE_VERSION
+              value: v1
+            - name: FAIL_MODE
+              value: latency
+            - name: LATENCY_MS
+              value: "500"
+            - name: ERROR_RATE
+              value: "0"

@@ -67,9 +67,17 @@ Copy dependencies **before** code. When only code changes, the `pip install` lay
 ## See Image Layers Live
 
 ```terminal:execute
-command: kubectl get pod -n educates -l deployment=secrets-manager -o jsonpath='{.items[0].status.containerStatuses[0].imageID}' | cut -d@ -f1
+command: kubectl run layer-demo --image=nginx:alpine --restart=Never 2>/dev/null; sleep 2 && kubectl get pod layer-demo -o jsonpath='Image: {.status.containerStatuses[0].image}{"\n"}ImageID: {.status.containerStatuses[0].imageID}{"\n"}'
 ```
 
-**What happened?** Every running container has an `imageID` -- a content-addressable hash. Two pods from the same image share layers on disk. This is why you can run 100 containers of the same image with minimal extra storage.
+```terminal:execute
+command: kubectl run layer-demo2 --image=nginx:alpine --restart=Never 2>/dev/null; sleep 2 && kubectl get pods layer-demo layer-demo2 -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.containerStatuses[0].imageID}{"\n"}{end}'
+```
+
+**What happened?** Both pods use `nginx:alpine` and share the **exact same imageID** -- a content-addressable hash. The node pulled the image once; both containers reuse those layers on disk. Run 100 containers of the same image and you pay almost zero extra storage.
+
+```terminal:execute
+command: kubectl delete pod layer-demo layer-demo2 --wait=false 2>/dev/null
+```
 
 > **Key takeaway**: Images are immutable. Once built, they never change. You deploy new versions by building a new image, not by modifying a running container.

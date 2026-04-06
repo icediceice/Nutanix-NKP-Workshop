@@ -1,56 +1,59 @@
 ---
-title: "Live Traffic -- Kiali Service Graph"
+title: "See Your Traffic -- Kiali Service Graph"
 ---
 
-## See Traffic Flowing
+## Your Live Service Graph
 
-Kiali is the service mesh observability UI. It shows **live** service-to-service traffic as a graph.
-
-> **Facilitator will project Kiali.** Follow along in your terminal.
+Kiali is the service mesh observability UI. It shows **your** service-to-service traffic as a live graph -- no log parsing, no guessing.
 
 ---
 
-## Exercise -- Check Service Endpoints
+## Exercise -- Open Your Kiali Dashboard
+
+Click below to open Kiali filtered to your namespace:
 
 ```terminal:execute
-command: kubectl get endpoints -n demo-app 2>/dev/null | head -10 || echo "Demo app endpoints will appear when deployed"
+command: echo "Open this URL in a new browser tab:" && echo "https://kiali.10.38.217.22.nip.io/kiali/?namespaces=$(session_namespace)"
 ```
 
-**What happened?** Each service has endpoints -- the actual pod IPs that receive traffic. Kubernetes and Istio route requests to these endpoints automatically.
+> **Note**: If your browser shows a certificate warning, click **Advanced** → **Proceed**. This is the same self-signed certificate used for the workshop.
 
 ---
 
-## What Kiali Shows
+## What You Should See
 
 ```mermaid
 graph LR
-    TR["Traffic Generator"] --> FE["frontend<br/>200 OK"]
+    TG["traffic-generator"] --> FE["frontend<br/>200 OK"]
     FE --> CAT["catalog-api<br/>200 OK"]
     FE --> CO["checkout-api<br/>200 OK"]
-    CO --> PAY["payment-mock v1<br/>200 OK"]
+    CO --> PAY["payment-mock<br/>200 OK"]
 
     linkStyle 0 stroke:#3DD68C
     linkStyle 1 stroke:#3DD68C
     linkStyle 2 stroke:#3DD68C
     linkStyle 3 stroke:#3DD68C
 
+    style TG fill:#111,stroke:#888,color:#F0F0F0
     style FE fill:#111,stroke:#3DD68C,color:#F0F0F0
     style CAT fill:#111,stroke:#3DD68C,color:#F0F0F0
     style CO fill:#111,stroke:#3DD68C,color:#F0F0F0
     style PAY fill:#111,stroke:#3DD68C,color:#F0F0F0
 ```
 
-**Green edges** = healthy traffic. Every arrow shows request rate, success rate, and latency. You see the entire application topology at a glance -- no log parsing required.
+**Green edges** = healthy traffic. Every arrow shows request rate, success rate, and latency. You see the entire application topology at a glance.
 
 ---
 
-## Exercise -- Inspect Istio Sidecars
+## Exercise -- Verify Traffic Flow
+
+Back in your terminal, confirm the services are communicating:
 
 ```terminal:execute
-command: kubectl get pods -n demo-app -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{range .spec.containers[*]}{.name}{" "}{end}{"\n"}{end}' 2>/dev/null || echo "Demo pods will show sidecar containers when deployed"
+command: kubectl exec -n $(session_namespace) deploy/frontend-v1 -c app -- wget -q -O- http://catalog-api/api/products 2>/dev/null | head -c 200
 ```
 
-**What happened?** Each pod has TWO containers: the application and `istio-proxy`. The proxy intercepts all inbound and outbound traffic -- that is how Kiali gets its data without any application instrumentation.
+**What happened?** The frontend pod called the catalog-api service by DNS name. Kubernetes service discovery handled the routing. The Istio proxy intercepted the call, added mTLS encryption, and recorded metrics -- all invisible to the application.
 
 ---
 
@@ -58,7 +61,7 @@ command: kubectl get pods -n demo-app -o jsonpath='{range .items[*]}{.metadata.n
 
 ```mermaid
 graph TB
-    APP["Application Pods"] -->|metrics| PROM["Prometheus<br/>Time-series metrics"]
+    APP["Your Pods"] -->|metrics| PROM["Prometheus<br/>Time-series metrics"]
     APP -->|traces| JAEGER["Jaeger<br/>Distributed tracing"]
     APP -->|topology| KIALI["Kiali<br/>Service graph"]
     PROM --> GRAFANA["Grafana<br/>Dashboards"]
@@ -70,6 +73,6 @@ graph TB
     style GRAFANA fill:#111,stroke:#E05252,color:#F0F0F0
 ```
 
-All of this is included in NKP via the App Catalog. No manual installation. No configuration. Deploy, enable, done.
+All of this is available on NKP. Deploy, enable, done.
 
 > **For customers**: "When something breaks at 2 AM, your on-call engineer opens Kiali, sees the red edge, clicks it, and knows which service is failing -- in seconds, not hours."
