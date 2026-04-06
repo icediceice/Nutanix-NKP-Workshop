@@ -187,6 +187,25 @@ if [[ "${APP_ONLY}" == "false" && "${WORKSHOPS_ONLY}" == "false" ]] || [[ "${EDU
   done
   echo "  ✓ Workshop definitions published"
 
+  # ── Wait for external DNS resolution before creating session pods ──
+  # Reserved session pods run vendir at startup to pull workshop content from ghcr.io.
+  # If DNS isn't ready, vendir fails → download-workshop.failed → "Workshop Failed" error.
+  # Test from the session-manager pod (already running) before creating the portal.
+  echo "  → Waiting for external DNS resolution (ghcr.io)..."
+  SESSION_MGR_POD=$(kubectl get pods -n educates -l app=session-manager --no-headers 2>/dev/null | grep Running | awk '{print $1}' | head -1)
+  DNS_READY=false
+  for attempt in $(seq 1 18); do
+    if [[ -n "${SESSION_MGR_POD}" ]] && \
+       kubectl exec -n educates "${SESSION_MGR_POD}" -- python3 -c \
+         "import socket; socket.setdefaulttimeout(5); socket.getaddrinfo('ghcr.io',443)" \
+         >/dev/null 2>&1; then
+      DNS_READY=true
+      echo "  ✓ External DNS ready (ghcr.io resolves)"
+      break
+    fi
+    [[ $attempt -eq 18 ]] && echo "  ⚠ External DNS not confirmed after 3m — proceeding anyway" || sleep 10
+  done
+
   echo "  → Deploying Training Portal..."
   kubectl apply -f "${SCRIPT_DIR}/educates/training-portal.yaml"
 
@@ -206,8 +225,10 @@ spec:
   egress:
   - toEntities:
     - kube-apiserver
+    - cluster
+    - world
 EOF
-        echo "  ✓ kube-apiserver egress allowed: ${ns}"
+        echo "  ✓ egress policy applied: ${ns}"
         break
       fi
       [[ $attempt -eq 30 ]] && echo "  ⚠ Namespace ${ns} not ready after 60s — skipping" || sleep 2
@@ -395,6 +416,28 @@ echo "  ✓ Theme applied"
 # Step 6: Verify and print access info
 # ──────────────────────────────────────────────
 echo "[6/6] Verification..."
+
+# ── Repair any session pods that failed to download workshop content ──
+# Vendir may fail on first start if DNS wasn't ready. Scan all reserved session pods
+# and run update-workshop (re-sync vendir + rebuild Hugo) on any that have the failed flag.
+echo "  → Scanning session pods for content download failures..."
+REPAIR_COUNT=0
+for ns in $(kubectl get ns --no-headers 2>/dev/null | awk '{print $1}' | grep "nkp-workshop-portal-w[0-9]*$"); do
+  for pod in $(kubectl get pods -n "${ns}" --no-headers 2>/dev/null | grep -v registry | grep Running | awk '{print $1}'); do
+    failed=$(kubectl exec -n "${ns}" "${pod}" -c workshop -- \
+      bash -c "test -f /home/eduk8s/.local/share/workshop/download-workshop.failed && echo Y || echo N" \
+      2>/dev/null || echo "N")
+    if [[ "${failed}" == "Y" ]]; then
+      echo "  ⚠ Repairing ${ns}/${pod}..."
+      kubectl exec -n "${ns}" "${pod}" -c workshop -- bash -c "
+        rm -f /home/eduk8s/.local/share/workshop/download-workshop.failed
+        update-workshop >/tmp/update-workshop.log 2>&1
+      " 2>/dev/null &
+      REPAIR_COUNT=$((REPAIR_COUNT + 1))
+    fi
+  done
+done
+[[ $REPAIR_COUNT -gt 0 ]] && wait && echo "  ✓ Repaired ${REPAIR_COUNT} session(s)" || echo "  ✓ All sessions healthy"
 
 NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' 2>/dev/null || \
           kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
