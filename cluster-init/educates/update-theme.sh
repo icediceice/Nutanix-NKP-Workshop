@@ -135,13 +135,16 @@ html, body { background-color: #0D0D0D !important; color: #F0F0F0 !important; }
 .mermaid-rendered svg { max-width: 100%; height: auto; }
 </style>
 <script type="module">
+// NOTE: type="module" scripts are deferred — they execute AFTER DOMContentLoaded.
+// Do NOT use addEventListener('DOMContentLoaded', ...) inside a module script;
+// that event has already fired by the time this runs.
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
 mermaid.initialize({ startOnLoad: false, theme: 'dark' });
 
 async function renderMermaid() {
-  // Renderer outputs: <pre><code class="hljs language-mermaid">...</code></pre>
-  const codeBlocks = document.querySelectorAll('pre:not([data-mmd]) code.language-mermaid');
-  for (const code of codeBlocks) {
+  // Renderer (marked@4 + hljs) outputs: <pre><code class="hljs language-mermaid">
+  const blocks = document.querySelectorAll('pre:not([data-mmd]) code.language-mermaid');
+  for (const code of blocks) {
     const pre = code.closest('pre');
     if (!pre) continue;
     pre.setAttribute('data-mmd', '1');
@@ -158,8 +161,13 @@ async function renderMermaid() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', renderMermaid);
-new MutationObserver(renderMermaid).observe(document.documentElement, { childList: true, subtree: true });
+// DOM is ready (module scripts are deferred) — render immediately
+renderMermaid();
+
+// Also handle SPA-style content updates
+let t;
+new MutationObserver(() => { clearTimeout(t); t = setTimeout(renderMermaid, 200); })
+  .observe(document.documentElement, { childList: true, subtree: true });
 </script>
 CSSEOF
 
