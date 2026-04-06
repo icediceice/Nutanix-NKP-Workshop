@@ -214,6 +214,60 @@ EOF
     done
   done
 
+  # ── Reconcile missing WorkshopEnvironments ──
+  # The TrainingPortal creates WorkshopEnvironments automatically, but if a workshop
+  # definition was unavailable when the portal first reconciled (e.g. image not yet
+  # pushed), the environment is never retried. Create any missing ones manually.
+  PORTAL_NAME="nkp-workshop-portal"
+  PORTAL_UID=$(kubectl get trainingportal "${PORTAL_NAME}" -o jsonpath='{.metadata.uid}' 2>/dev/null || echo "")
+  INGRESS_DOMAIN_CFG=$(cfg educates_ingress_domain)
+  INGRESS_CLASS_CFG=$(cfg educates_ingress_class 2>/dev/null || echo "kommander-traefik")
+  [[ "${INGRESS_CLASS_CFG}" == "null" || -z "${INGRESS_CLASS_CFG}" ]] && INGRESS_CLASS_CFG="kommander-traefik"
+
+  if [[ -n "${PORTAL_UID}" ]]; then
+    echo "  → Reconciling WorkshopEnvironments..."
+    idx=1
+    for workshop_dir in "${WORKSHOPS_DIR}"/*/; do
+      workshop_id=$(basename "${workshop_dir}")
+      env_name=$(printf "${PORTAL_NAME}-w%02d" "${idx}")
+      if ! kubectl get workshopenvironment "${env_name}" >/dev/null 2>&1; then
+        echo "  ⚠ WorkshopEnvironment ${env_name} (${workshop_id}) missing — creating..."
+        kubectl apply -f - <<EOF
+apiVersion: training.educates.dev/v1beta1
+kind: WorkshopEnvironment
+metadata:
+  name: ${env_name}
+  labels:
+    training.educates.dev/portal.name: ${PORTAL_NAME}
+    training.educates.dev/portal.uid: ${PORTAL_UID}
+    training.educates.dev/portal.workshop: ${workshop_id}
+spec:
+  analytics:
+    amplitude:
+      trackingId: ""
+  cookies: {}
+  environment:
+    objects: []
+    secrets: []
+  request:
+    enabled: false
+  session:
+    ingress:
+      class: ${INGRESS_CLASS_CFG}
+      domain: ${INGRESS_DOMAIN_CFG}
+      secret: educates-wildcard-tls
+  theme:
+    name: default-website-theme
+  workshop:
+    name: ${workshop_id}
+EOF
+        echo "  ✓ Created WorkshopEnvironment ${env_name} (${workshop_id})"
+      fi
+      idx=$((idx + 1))
+    done
+    echo "  ✓ WorkshopEnvironment reconciliation complete"
+  fi
+
   echo "  ✓ Educates ready"
   [[ "${EDUCATES_ONLY}" == "true" ]] && { echo "Done (educates-only)."; exit 0; }
 fi
