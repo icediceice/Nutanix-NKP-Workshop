@@ -37,7 +37,7 @@ Every pod gets an **Istio sidecar** automatically -- a proxy that intercepts all
 Your namespace already has Istio sidecar injection enabled. Deploy the 4-service app:
 
 ```terminal:execute
-command: kubectl apply -f exercises/demo-app.yaml -n $SESSION_NAMESPACE
+command: kubectl apply -f ~/exercises/demo-app.yaml -n $SESSION_NAMESPACE
 ```
 
 ```terminal:execute
@@ -74,7 +74,7 @@ command: kubectl get pods -n $SESSION_NAMESPACE -o jsonpath='{range .items[*]}{.
 Deploy a traffic generator so the mesh has data to show:
 
 ```terminal:execute
-command: kubectl apply -f exercises/traffic-generator.yaml -n $SESSION_NAMESPACE
+command: kubectl apply -f ~/exercises/traffic-generator.yaml -n $SESSION_NAMESPACE
 ```
 
 ```terminal:execute

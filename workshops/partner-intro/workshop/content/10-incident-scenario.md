@@ -28,7 +28,7 @@ graph LR
 This command patches the payment-mock deployment to add 500ms of artificial latency. It simulates a bad deploy -- a developer pushed a slow version.
 
 ```terminal:execute
-command: kubectl patch deploy payment-mock-v1 -n $SESSION_NAMESPACE --patch-file exercises/fault-injection.yaml
+command: kubectl patch deploy payment-mock-v1 -n $SESSION_NAMESPACE --patch-file ~/exercises/fault-injection.yaml
 ```
 
 ```terminal:execute
@@ -96,7 +96,7 @@ Click on a trace and expand the spans. The 500ms delay on `payment-mock` is imme
 Remove the latency by patching the deployment back to normal:
 
 ```terminal:execute
-command: kubectl patch deploy payment-mock-v1 -n $SESSION_NAMESPACE --patch-file exercises/fault-fix.yaml
+command: kubectl patch deploy payment-mock-v1 -n $SESSION_NAMESPACE --patch-file ~/exercises/fault-fix.yaml
 ```
 
 ```terminal:execute
