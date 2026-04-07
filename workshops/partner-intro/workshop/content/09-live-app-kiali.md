@@ -13,7 +13,7 @@ Kiali is the service mesh observability UI. It shows **your** service-to-service
 Click below to open Kiali filtered to your namespace:
 
 ```terminal:execute
-command: echo "Open this URL in a new browser tab:" && echo "https://kiali.10.38.217.22.nip.io/kiali/?namespaces=$(session_namespace)"
+command: echo "Open this URL in a new browser tab:" && echo "https://kiali.10.38.217.22.nip.io/kiali/?namespaces=$SESSION_NAMESPACE"
 ```
 
 > **Note**: If your browser shows a certificate warning, click **Advanced** → **Proceed**. This is the same self-signed certificate used for the workshop.
@@ -50,7 +50,7 @@ graph LR
 Back in your terminal, confirm the services are communicating:
 
 ```terminal:execute
-command: kubectl exec -n $(session_namespace) deploy/frontend-v1 -c app -- wget -q -O- http://catalog-api/api/products 2>/dev/null | head -c 200
+command: kubectl exec -n $SESSION_NAMESPACE deploy/frontend-v1 -c app -- wget -q -O- http://catalog-api/api/products 2>/dev/null | head -c 200
 ```
 
 **What happened?** The frontend pod called the catalog-api service by DNS name. Kubernetes service discovery handled the routing. The Istio proxy intercepted the call, added mTLS encryption, and recorded metrics -- all invisible to the application.

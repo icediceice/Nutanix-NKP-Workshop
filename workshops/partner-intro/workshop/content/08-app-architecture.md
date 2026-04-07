@@ -37,11 +37,11 @@ Every pod gets an **Istio sidecar** automatically -- a proxy that intercepts all
 Your namespace already has Istio sidecar injection enabled. Deploy the 4-service app:
 
 ```terminal:execute
-command: kubectl apply -f exercises/demo-app.yaml -n $(session_namespace)
+command: kubectl apply -f exercises/demo-app.yaml -n $SESSION_NAMESPACE
 ```
 
 ```terminal:execute
-command: kubectl get pods -n $(session_namespace) -w
+command: kubectl get pods -n $SESSION_NAMESPACE -w
 ```
 
 **What happened?** Each pod has **two containers** -- the app and `istio-proxy`. The proxy intercepts all inbound and outbound traffic. That is how the mesh gets its data without any application code changes. Press `Ctrl+C` when all pods show `2/2 Running`.
@@ -62,7 +62,7 @@ command: kubectl get pods -n $(session_namespace) -w
 ## Exercise -- Check the Sidecars
 
 ```terminal:execute
-command: kubectl get pods -n $(session_namespace) -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{range .spec.containers[*]}{.name}{" "}{end}{"\n"}{end}'
+command: kubectl get pods -n $SESSION_NAMESPACE -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{range .spec.containers[*]}{.name}{" "}{end}{"\n"}{end}'
 ```
 
 **What happened?** Every pod has two containers: `app` and `istio-proxy`. The proxy was injected automatically because your namespace has the `istio-injection: enabled` label. No Dockerfile changes. No application changes.
@@ -74,11 +74,11 @@ command: kubectl get pods -n $(session_namespace) -o jsonpath='{range .items[*]}
 Deploy a traffic generator so the mesh has data to show:
 
 ```terminal:execute
-command: kubectl apply -f exercises/traffic-generator.yaml -n $(session_namespace)
+command: kubectl apply -f exercises/traffic-generator.yaml -n $SESSION_NAMESPACE
 ```
 
 ```terminal:execute
-command: sleep 5 && kubectl logs -n $(session_namespace) -l app=traffic-generator --tail=5
+command: sleep 5 && kubectl logs -n $SESSION_NAMESPACE -l app=traffic-generator --tail=5
 ```
 
 **What happened?** The traffic generator calls `frontend` and `checkout-api` every 2 seconds. This simulates real user traffic and feeds data to Kiali and Jaeger.
