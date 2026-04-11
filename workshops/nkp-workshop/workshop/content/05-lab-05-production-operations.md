@@ -38,38 +38,36 @@ graph TB
 
 Start from Lab 5 baseline:
 
-```terminal:execute
-command: switch-lab lab-05-start
-session: 1
+```bash
+switch-lab lab-05-start
 ```
 
 Inject latency into v2:
 
-```terminal:execute
-command: switch-lab lab-05-incident-latency
-session: 1
+```bash
+switch-lab lab-05-incident-latency
 ```
 
 Open the Storefront and click **Checkout** 3 times. Feel the slowness.
 
-```dashboard:open-url
-url: https://frontend-%session_name%.%ingress_domain%/
-name: Storefront
+Open **Storefront** — run in terminal to get the URL:
+
+```bash
+echo "https://frontend-$SESSION_NAME.$INGRESS_DOMAIN/"
 ```
 
 Get your login credentials, then open Jaeger to find the slow trace:
 
-```terminal:execute
-command: |
-  _NS=${SESSION_NS%-s*}
-  echo "Username: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.username}' | base64 -d)"
-  echo "Password: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.password}' | base64 -d)"
-session: 1
+```bash
+_NS=${SESSION_NS%-s*}
+echo "Username: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.username}' | base64 -d)"
+echo "Password: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.password}' | base64 -d)"
 ```
 
-```dashboard:open-url
-url: https://%ingress_domain%/dkp/jaeger/search?service=frontend&namespace=%session_namespace%
-name: Jaeger
+Open **Jaeger** — run in terminal to get the URL:
+
+```bash
+echo "https://$INGRESS_DOMAIN/dkp/jaeger/search?service=frontend&namespace=$SESSION_NS"
 ```
 
 **👁 Diagnosis method:** In Jaeger, sort traces by **Duration (longest first)**. Click the slowest
@@ -78,31 +76,21 @@ slow service (`payment-mock-v2`). Root cause found in under 60 seconds.
 
 ### Checkpoint ✅
 
-```examiner:execute-test
-name: lab-05-latency-injected
-title: "v2 latency injection is active"
-autostart: true
-timeout: 30
-command: |
-  LATENCY=$(kubectl -n $SESSION_NS get deploy payment-mock-v2 \
-    -o jsonpath='{.spec.template.spec.containers[0].env[1].value}' 2>/dev/null)
-  [ "$LATENCY" = "1000" ] && exit 0 || exit 1
-```
 
 ---
 
 ## Exercise 5.2 — Incident: Error Injection
 
-```terminal:execute
-command: switch-lab lab-05-incident-error
-session: 1
+```bash
+switch-lab lab-05-incident-error
 ```
 
 **In Kiali**, watch for **red edges** on the payment-mock-v2 path:
 
-```dashboard:open-url
-url: https://%ingress_domain%/dkp/kiali/console/graph/namespaces/?namespaces=%session_namespace%
-name: Kiali
+Open **Kiali** — run in terminal to get the URL:
+
+```bash
+echo "https://$INGRESS_DOMAIN/dkp/kiali/console/graph/namespaces/?namespaces=$SESSION_NS"
 ```
 
 **In Jaeger**, filter by tag `error=true` to see failed spans.
@@ -153,73 +141,54 @@ graph TB
     style N3B fill:#10b981,color:#fff
 ```
 
-```terminal:execute
-command: switch-lab lab-05-node-resilience
-session: 1
+```bash
+switch-lab lab-05-node-resilience
 ```
 
 Verify pods are spread across nodes:
 
-```terminal:execute
-command: kubectl -n $SESSION_NS get pods -o wide
-session: 1
+```bash
+kubectl -n $SESSION_NS get pods -o wide
 ```
 
 Select a worker node and cordon it (prevent new scheduling):
 
-```terminal:execute
-command: |
-  NODE=$(kubectl get nodes -l node-role.kubernetes.io/control-plane!= \
-    -o jsonpath='{.items[0].metadata.name}')
-  echo "Will drain: $NODE"
-session: 1
+```bash
+NODE=$(kubectl get nodes -l node-role.kubernetes.io/control-plane!= \
+  -o jsonpath='{.items[0].metadata.name}')
+echo "Will drain: $NODE"
 ```
 
-```terminal:execute
-command: kubectl cordon "$NODE"
-session: 1
+```bash
+kubectl cordon "$NODE"
 ```
 
-```terminal:execute
-command: kubectl drain "$NODE" --ignore-daemonsets --delete-emptydir-data
-session: 1
+```bash
+kubectl drain "$NODE" --ignore-daemonsets --delete-emptydir-data
 ```
 
 Watch pods reschedule in terminal 2:
 
-```terminal:execute
-command: kubectl -n $SESSION_NS get pods -o wide -w
-session: 2
+```bash
+kubectl -n $SESSION_NS get pods -o wide -w
 ```
 
 Verify the Storefront is still up:
 
-```terminal:execute
-command: |
-  STOREFRONT=$(kubectl -n $SESSION_NS get svc frontend \
-    -o jsonpath='{.spec.clusterIP}')
-  curl -sf "http://${STOREFRONT}/" -o /dev/null && echo "Storefront: UP" || echo "Storefront: DOWN"
-session: 1
+```bash
+STOREFRONT=$(kubectl -n $SESSION_NS get svc frontend \
+  -o jsonpath='{.spec.clusterIP}')
+curl -sf "http://${STOREFRONT}/" -o /dev/null && echo "Storefront: UP" || echo "Storefront: DOWN"
 ```
 
 Restore the node:
 
-```terminal:execute
-command: kubectl uncordon "$NODE"
-session: 1
+```bash
+kubectl uncordon "$NODE"
 ```
 
 ### Checkpoint ✅
 
-```examiner:execute-test
-name: lab-05-all-nodes-ready
-title: "All nodes are Ready (after uncordon)"
-autostart: false
-timeout: 60
-command: |
-  NOT_READY=$(kubectl get nodes --no-headers | grep -v " Ready" | wc -l)
-  [ "$NOT_READY" -eq 0 ] && exit 0 || exit 1
-```
 
 ---
 
@@ -244,23 +213,20 @@ graph LR
     style DEPLOY fill:#10b981,color:#fff
 ```
 
-```terminal:execute
-command: switch-lab lab-05-keda
-session: 1
+```bash
+switch-lab lab-05-keda
 ```
 
 Watch checkout-api scale from 0:
 
-```terminal:execute
-command: kubectl -n $SESSION_NS get deploy checkout-api -w
-session: 2
+```bash
+kubectl -n $SESSION_NS get deploy checkout-api -w
 ```
 
 The baseline load generator triggers KEDA. Within ~30 seconds, replicas go from 0 to 1+.
 
-```terminal:execute
-command: kubectl -n $SESSION_NS describe scaledobject checkout-api-v1-keda
-session: 1
+```bash
+kubectl -n $SESSION_NS describe scaledobject checkout-api-v1-keda
 ```
 
 **👁 Observe:** KEDA reads Prometheus metrics (from Istio) as the scale signal. Zero idle cost
@@ -272,9 +238,8 @@ session: 1
 
 Reset all incidents:
 
-```terminal:execute
-command: switch-lab lab-05-start
-session: 1
+```bash
+switch-lab lab-05-start
 ```
 
 All fault injection cleared. 90/10 canary restored. Healthy baseline.

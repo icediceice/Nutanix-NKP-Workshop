@@ -1,0 +1,126 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #1e293b;
+  background: #f8fafc;
+  margin: 0;
+}
+
+.ws-header {
+  background: #1e293b;
+  padding: 0.75rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.ws-home {
+  color: #e2e8f0;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.ws-main {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+h1 { font-size: 1.75rem; color: #0f172a; margin-bottom: 0.5rem; }
+h2 { font-size: 1.25rem; color: #1e293b; margin-top: 2rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.4rem; }
+h3 { font-size: 1.05rem; color: #334155; margin-top: 1.5rem; }
+
+a { color: #2563eb; }
+
+pre {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: 6px;
+  padding: 1rem;
+  overflow-x: auto;
+  position: relative;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 1rem 0;
+}
+
+code {
+  font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  font-size: 0.875em;
+}
+
+p code, li code {
+  background: #e2e8f0;
+  color: #0f172a;
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+
+pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: #334155;
+  color: #cbd5e1;
+  border: none;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.copy-btn:hover { background: #475569; }
+.copy-btn.copied { background: #166534; color: #bbf7d0; }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+th { background: #1e293b; color: #e2e8f0; padding: 0.5rem 0.75rem; text-align: left; }
+td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #e2e8f0; }
+tr:nth-child(even) td { background: #f1f5f9; }
+
+blockquote {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #3b82f6;
+  background: #eff6ff;
+  color: #1e40af;
+  border-radius: 0 4px 4px 0;
+}
+
+hr { border: none; border-top: 1px solid #e2e8f0; margin: 2rem 0; }
+
+.mermaid { margin: 1.5rem 0; text-align: center; }
+.mermaid svg { max-width: 100%; height: auto; }
+
+.ws-index { list-style: none; padding: 0; margin: 1.5rem 0; }
+.ws-index li {
+  margin: 0.5rem 0;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+.ws-index li a {
+  font-weight: 500;
+  text-decoration: none;
+  color: #2563eb;
+}
+.ws-index li a:hover { text-decoration: underline; }
+
+.lab-title { color: #0f172a; }

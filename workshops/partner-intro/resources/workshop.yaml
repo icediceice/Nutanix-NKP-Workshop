@@ -21,7 +21,7 @@ spec:
       terminal:
         enabled: true
       console:
-        enabled: true
+        enabled: false
       editor:
         enabled: false
 

@@ -60,24 +60,22 @@ The `trace_id` is injected into the HTTP headers by the Istio sidecar — no cod
 
 Start from the Lab 2 baseline:
 
-```terminal:execute
-command: switch-lab lab-02-start
-session: 1
+```bash
+switch-lab lab-02-start
 ```
 
 Get your login credentials, then open Kiali → Graph:
 
-```terminal:execute
-command: |
-  _NS=${SESSION_NS%-s*}
-  echo "Username: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.username}' | base64 -d)"
-  echo "Password: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.password}' | base64 -d)"
-session: 1
+```bash
+_NS=${SESSION_NS%-s*}
+echo "Username: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.username}' | base64 -d)"
+echo "Password: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.password}' | base64 -d)"
 ```
 
-```dashboard:open-url
-url: https://%ingress_domain%/dkp/kiali/console/graph/namespaces/?namespaces=%session_namespace%
-name: Kiali
+Open **Kiali** — run in terminal to get the URL:
+
+```bash
+echo "https://$INGRESS_DOMAIN/dkp/kiali/console/graph/namespaces/?namespaces=$SESSION_NS"
 ```
 
 Work through the Kiali graph:
@@ -91,16 +89,6 @@ This is generated from Prometheus metrics Envoy emits — no instrumentation in 
 
 ### Checkpoint ✅
 
-```examiner:execute-test
-name: lab-02-traffic-flowing
-title: "Baseline traffic is flowing (load generator running)"
-autostart: true
-timeout: 30
-command: |
-  PODS=$(kubectl -n $SESSION_NS get pods -l app=demo-loadgen \
-    --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
-  [ "$PODS" -ge 1 ] && exit 0 || exit 1
-```
 
 ---
 
@@ -108,21 +96,20 @@ command: |
 
 Generate a checkout to produce a trace:
 
-```terminal:execute
-command: |
-  STOREFRONT=$(kubectl -n $SESSION_NS get svc frontend \
-    -o jsonpath='{.spec.clusterIP}')
-  curl -s -X POST "http://${STOREFRONT}/api/checkout" \
-    -H "Content-Type: application/json" \
-    -d '{"items":[{"id":"1","qty":1}]}' | python3 -m json.tool 2>/dev/null || echo "OK"
-session: 1
+```bash
+STOREFRONT=$(kubectl -n $SESSION_NS get svc frontend \
+  -o jsonpath='{.spec.clusterIP}')
+curl -s -X POST "http://${STOREFRONT}/api/checkout" \
+  -H "Content-Type: application/json" \
+  -d '{"items":[{"id":"1","qty":1}]}' | python3 -m json.tool 2>/dev/null || echo "OK"
 ```
 
 Open Jaeger and search by Service: `frontend`:
 
-```dashboard:open-url
-url: https://%ingress_domain%/dkp/jaeger/search?service=frontend&namespace=%session_namespace%
-name: Jaeger
+Open **Jaeger** — run in terminal to get the URL:
+
+```bash
+echo "https://$INGRESS_DOMAIN/dkp/jaeger/search?service=frontend&namespace=$SESSION_NS"
 ```
 
 **Navigate the waterfall:**
@@ -133,26 +120,14 @@ name: Jaeger
 
 Find recent trace IDs via the terminal:
 
-```terminal:execute
-command: |
-  JAEGER_URL="https://$(echo $INGRESS_DOMAIN)/dkp/jaeger"
-  curl -sk "${JAEGER_URL}/api/traces?service=frontend&limit=3" | \
-    python3 -c "import sys,json; [print(t['traceID']) for t in json.load(sys.stdin)['data']]" 2>/dev/null || echo "Open Jaeger UI above to see traces"
-session: 1
+```bash
+JAEGER_URL="https://$(echo $INGRESS_DOMAIN)/dkp/jaeger"
+curl -sk "${JAEGER_URL}/api/traces?service=frontend&limit=3" | \
+  python3 -c "import sys,json; [print(t['traceID']) for t in json.load(sys.stdin)['data']]" 2>/dev/null || echo "Open Jaeger UI above to see traces"
 ```
 
 ### Checkpoint ✅
 
-```examiner:execute-test
-name: lab-02-checkout-works
-title: "Checkout API is reachable"
-autostart: false
-timeout: 10
-command: |
-  STOREFRONT=$(kubectl -n $SESSION_NS get svc frontend \
-    -o jsonpath='{.spec.clusterIP}' 2>/dev/null)
-  curl -sf "http://${STOREFRONT}/" -o /dev/null && exit 0 || exit 1
-```
 
 ---
 
@@ -174,19 +149,16 @@ graph LR
 
 Copy a trace ID from Jaeger and search for it in the logs:
 
-```terminal:execute
-command: TRACE_ID="<paste-trace-id-here>"
-session: 1
+```bash
+TRACE_ID="<paste-trace-id-here>"
 ```
 
-```terminal:execute
-command: kubectl -n $SESSION_NS logs -l app=checkout-api --tail=100 | grep "$TRACE_ID"
-session: 1
+```bash
+kubectl -n $SESSION_NS logs -l app=checkout-api --tail=100 | grep "$TRACE_ID"
 ```
 
-```terminal:execute
-command: kubectl -n $SESSION_NS logs -l app=payment-mock --tail=100 | grep "$TRACE_ID"
-session: 1
+```bash
+kubectl -n $SESSION_NS logs -l app=payment-mock --tail=100 | grep "$TRACE_ID"
 ```
 
 **👁 Observe:** Both services log the same `trace_id` — proving the trace spans are linked across
@@ -198,19 +170,19 @@ service boundaries. This is how on-call engineers isolate root cause without rea
 
 Switch to peak load and watch the Grafana dashboards update:
 
-```terminal:execute
-command: switch-lab lab-02-high-load
-session: 1
+```bash
+switch-lab lab-02-high-load
 ```
 
 Open Grafana → Istio Mesh Dashboard:
 
-```dashboard:open-url
-url: https://%ingress_domain%/dkp/logging/grafana
-name: Grafana
+Open **Grafana** — run in terminal to get the URL:
+
+```bash
+echo "https://$INGRESS_DOMAIN/dkp/logging/grafana"
 ```
 
-Filter by namespace: `%session_namespace%`. Watch request rate spike to ~20 RPS.
+Filter by namespace: `$SESSION_NS`. Watch request rate spike to ~20 RPS.
 
 **👁 Observe in Grafana:** P99 latency, error rate, and throughput update in real-time from
 Prometheus. These same metrics trigger KEDA autoscaling in Lab 5.

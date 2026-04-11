@@ -68,43 +68,32 @@ pod creation time.
 
 Verify your cluster access and check that the app namespace is empty:
 
-```terminal:execute
-command: kubectl get nodes
-session: 1
+```bash
+kubectl get nodes
 ```
 
-```terminal:execute
-command: kubectl get all -n $SESSION_NS
-session: 1
+```bash
+kubectl get all -n $SESSION_NS
 ```
 
 **👁 Observe:** No resources found — the namespace is empty and waiting for your first deployment.
 
 Check the namespace quota:
 
-```terminal:execute
-command: kubectl describe resourcequota demo-app-quota -n $SESSION_NS
-session: 1
+```bash
+kubectl describe resourcequota demo-app-quota -n $SESSION_NS
 ```
 
 Open the Demo Wall to see the platform state:
 
-```dashboard:open-url
-url: https://demo-wall-%session_name%.%ingress_domain%/
-name: Demo Wall
+Open **Demo Wall** — run in terminal to get the URL:
+
+```bash
+echo "https://demo-wall-$SESSION_NAME.$INGRESS_DOMAIN/"
 ```
 
 ### Checkpoint ✅
 
-```examiner:execute-test
-name: lab-01-nodes-ready
-title: "3+ nodes in Ready state"
-autostart: true
-timeout: 30
-command: |
-  READY=$(kubectl get nodes --no-headers | grep -c " Ready")
-  [ "$READY" -ge 3 ] && exit 0 || exit 1
-```
 
 ---
 
@@ -112,38 +101,36 @@ command: |
 
 Switch to the deploy overlay. ArgoCD will sync the storefront to your namespace:
 
-```terminal:execute
-command: switch-lab lab-01-deploy
-session: 1
+```bash
+switch-lab lab-01-deploy
 ```
 
 Watch the pods come up in terminal 2:
 
-```terminal:execute
-command: kubectl -n $SESSION_NS get pods -w
-session: 2
+```bash
+kubectl -n $SESSION_NS get pods -w
 ```
 
 Once all pods are Running, get your login credentials then open the dashboards:
 
-```terminal:execute
-command: |
-  _NS=${SESSION_NS%-s*}
-  echo "Username: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.username}' | base64 -d)"
-  echo "Password: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.password}' | base64 -d)"
-session: 1
+```bash
+_NS=${SESSION_NS%-s*}
+echo "Username: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.username}' | base64 -d)"
+echo "Password: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.password}' | base64 -d)"
 ```
 
-```dashboard:open-url
-url: https://%ingress_domain%/dkp/argocd/applications/argocd/rx-demo-%session_name%
-name: ArgoCD
+Open **ArgoCD** — run in terminal to get the URL:
+
+```bash
+echo "https://$INGRESS_DOMAIN/dkp/argocd/applications/argocd/rx-demo-$SESSION_NAME"
 ```
 
 Then open the storefront:
 
-```dashboard:open-url
-url: https://frontend-%session_name%.%ingress_domain%/
-name: Storefront
+Open **Storefront** — run in terminal to get the URL:
+
+```bash
+echo "https://frontend-$SESSION_NAME.$INGRESS_DOMAIN/"
 ```
 
 **👁 In ArgoCD observe:** Each tile = a Kubernetes resource. Green = Healthy + Synced. The
@@ -151,18 +138,6 @@ dependency tree shows Deployment → ReplicaSet → Pods exactly as Git declared
 
 ### Checkpoint ✅
 
-```examiner:execute-test
-name: lab-01-pods-running
-title: "4 services running in your namespace"
-autostart: true
-timeout: 120
-retries: 24
-delay: 5
-command: |
-  RUNNING=$(kubectl -n $SESSION_NS get pods \
-    --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
-  [ "$RUNNING" -ge 4 ] && exit 0 || exit 1
-```
 
 ---
 
@@ -170,16 +145,16 @@ command: |
 
 Start the load generator (baseline: 2 RPS):
 
-```terminal:execute
-command: switch-lab lab-01-verify
-session: 1
+```bash
+switch-lab lab-01-verify
 ```
 
 Open Kiali and navigate to **Graph → Namespace: your-namespace**:
 
-```dashboard:open-url
-url: https://%ingress_domain%/dkp/kiali/console/graph/namespaces/?namespaces=%session_namespace%
-name: Kiali
+Open **Kiali** — run in terminal to get the URL:
+
+```bash
+echo "https://$INGRESS_DOMAIN/dkp/kiali/console/graph/namespaces/?namespaces=$SESSION_NS"
 ```
 
 **👁 You should see:** `frontend` → `checkout-api` → `payment-mock-v1`, and `frontend` → `catalog`.
@@ -201,16 +176,6 @@ graph LR
 
 ### Checkpoint ✅
 
-```examiner:execute-test
-name: lab-01-loadgen-running
-title: "Load generator is running"
-autostart: true
-timeout: 60
-command: |
-  PODS=$(kubectl -n $SESSION_NS get pods -l app=demo-loadgen \
-    --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
-  [ "$PODS" -ge 1 ] && exit 0 || exit 1
-```
 
 ---
 

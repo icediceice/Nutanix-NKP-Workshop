@@ -1,0 +1,12 @@
+baseURL = "https://light.factor-io.com/workshop/WORKSHOP_NAME/"
+title = "Workshop Title"
+contentDir = "../workshop/content"
+enableGitInfo = false
+disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT"]
+
+[markup.goldmark.renderer]
+  unsafe = true
+
+[markup.highlight]
+  style = "dracula"
+  noClasses = false

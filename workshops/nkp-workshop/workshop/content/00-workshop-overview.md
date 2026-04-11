@@ -128,12 +128,10 @@ All platform dashboards share **one login**. Log in once — your browser sessio
 
 ## Platform Credentials
 
-```terminal:execute
-command: |
-  _NS=${SESSION_NS%-s*}
-  echo "Username: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.username}' | base64 -d)"
-  echo "Password: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.password}' | base64 -d)"
-session: 1
+```bash
+_NS=${SESSION_NS%-s*}
+echo "Username: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.username}' | base64 -d)"
+echo "Password: $(kubectl get secret dkp-workshop-credentials -n $_NS -o jsonpath='{.data.password}' | base64 -d)"
 ```
 
 ---
@@ -142,14 +140,12 @@ session: 1
 
 Verify your cluster access:
 
-```terminal:execute
-command: kubectl get nodes
-session: 1
+```bash
+kubectl get nodes
 ```
 
-```terminal:execute
-command: echo "Your namespace: $SESSION_NS"
-session: 1
+```bash
+echo "Your namespace: $SESSION_NS"
 ```
 
 **👁 Observe:** 3+ Ready nodes = you're good to go. Each node is an AHV VM managed by Nutanix.

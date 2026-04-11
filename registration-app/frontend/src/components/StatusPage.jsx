@@ -132,6 +132,7 @@ function WorkshopUrlCard({ name, url }) {
     .replace(/\b\w/g, (c) => c.toUpperCase())
 
   const sessionUrls = extractSessionUrls(url)
+  const contentUrl = `https://light.factor-io.com/workshop/${name}/`
 
   return (
     <div style={{
@@ -151,29 +152,20 @@ function WorkshopUrlCard({ name, url }) {
 
       {sessionUrls && (
         <div style={{ background: colors.warningBg, border: `1px solid ${colors.warning}33`, borderRadius: radius.sm, padding: '10px 12px', fontSize: '13px' }}>
-          <div style={{ fontWeight: 700, color: colors.warning, marginBottom: '6px' }}>Before opening:</div>
-          <div style={{ color: colors.textSecondary, marginBottom: '8px', lineHeight: 1.8 }}>
-            1. Click <strong style={{ color: colors.textPrimary }}>Session</strong> below &rarr; accept cert warning if shown &rarr; close that tab<br />
-            2. Click <strong style={{ color: colors.textPrimary }}>Console</strong> below &rarr; wait for it to load &rarr; close that tab<br />
-            3. Then click <strong style={{ color: colors.textPrimary }}>Open Workshop</strong><br />
-            <span style={{ fontSize: '12px', color: colors.textSecondary }}>If asked to log in, your trainer will provide the portal password.</span>
+          <div style={{ fontWeight: 700, color: colors.warning, marginBottom: '6px' }}>Terminal setup (one time):</div>
+          <div style={{ color: colors.textSecondary, marginBottom: '8px', lineHeight: 1.5 }}>
+            Click <strong style={{ color: colors.textPrimary }}>Terminal</strong> below &rarr; accept the cert warning once &rarr; keep that tab open.
           </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <a href={sessionUrls.session} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-block', background: colors.warning, color: '#000', padding: '6px 12px', borderRadius: radius.sm, fontWeight: 600, fontSize: '12px', textDecoration: 'none' }}>
-              &#128274; Session
-            </a>
-            <a href={sessionUrls.console} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-block', background: colors.elevated, color: colors.textSecondary, border: `1px solid ${colors.border}`, padding: '6px 12px', borderRadius: radius.sm, fontWeight: 600, fontSize: '12px', textDecoration: 'none' }}>
-              &#128196; Console
-            </a>
-          </div>
+          <a href={sessionUrls.session} target="_blank" rel="noopener noreferrer"
+            style={{ display: 'inline-block', background: colors.warning, color: '#000', padding: '6px 12px', borderRadius: radius.sm, fontWeight: 600, fontSize: '12px', textDecoration: 'none' }}>
+            &#9654; Terminal
+          </a>
         </div>
       )}
 
-      <a href={url} target="_blank" rel="noopener noreferrer"
+      <a href={contentUrl} target="_blank" rel="noopener noreferrer"
         style={{ ...styles.btn.primary, background: colors.accent, display: 'inline-block', textAlign: 'center', textDecoration: 'none', marginTop: 'auto', padding: '11px 20px', fontSize: '14px' }}>
-        Open Workshop &rarr;
+        Workshop Content &rarr;
       </a>
     </div>
   )

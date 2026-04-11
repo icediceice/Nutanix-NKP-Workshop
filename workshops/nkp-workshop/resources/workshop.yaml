@@ -38,36 +38,20 @@ spec:
 
     applications:
       workshop:
-        enabled: true
+        enabled: false
       terminal:
         enabled: true
         layout: split
       editor:
-        enabled: true
+        enabled: false
       examiner:
-        enabled: true
+        enabled: false
       console:
         enabled: false
       docker:
         enabled: false
       vcluster:
         enabled: false
-
-    dashboards:
-      - name: Storefront
-        url: https://frontend-$(session_name).$(ingress_domain)/
-      - name: ArgoCD
-        url: https://$(ingress_domain)/dkp/argocd/applications/argocd/rx-demo-$(session_name)
-      - name: Kiali
-        url: https://$(ingress_domain)/dkp/kiali/console/graph/namespaces/?namespaces=$(session_namespace)
-      - name: Jaeger
-        url: https://$(ingress_domain)/dkp/jaeger/search?service=frontend&namespace=$(session_namespace)
-      - name: Grafana
-        url: https://$(ingress_domain)/dkp/logging/grafana
-      - name: Demo Wall
-        url: https://demo-wall-$(session_name).$(ingress_domain)/
-      - name: NKP Console
-        url: https://10.8.16.16/dkp/kommander/dashboard
 
     env:
       - name: WORKSHOP_NAMESPACE

@@ -54,16 +54,14 @@ Each `switch-lab` command applies a different Git overlay that ArgoCD syncs imme
 
 Start from Lab 3 baseline (v2 pods running, 0% traffic):
 
-```terminal:execute
-command: switch-lab lab-03-start
-session: 1
+```bash
+switch-lab lab-03-start
 ```
 
 Enable traffic mirroring:
 
-```terminal:execute
-command: switch-lab lab-03-mirror
-session: 1
+```bash
+switch-lab lab-03-mirror
 ```
 
 **What mirroring does:** v1 still handles 100% of real traffic. v2 receives a shadow copy of every
@@ -81,44 +79,33 @@ graph LR
 In **Kiali**, look for a **dashed line** between `checkout-api` and `payment-mock-v2` — that's
 the mirror edge.
 
-```dashboard:open-url
-url: https://frontend-%session_name%.%ingress_domain%/
-name: Storefront
+Open **Storefront** — run in terminal to get the URL:
+
+```bash
+echo "https://frontend-$SESSION_NAME.$INGRESS_DOMAIN/"
 ```
 
 The storefront always shows the **blue** (v1) theme — users see no change.
 
-```terminal:execute
-command: kubectl -n $SESSION_NS get virtualservice payment-mock-vs -o yaml | grep -A8 mirror
-session: 1
+```bash
+kubectl -n $SESSION_NS get virtualservice payment-mock-vs -o yaml | grep -A8 mirror
 ```
 
 ### Checkpoint ✅
 
-```examiner:execute-test
-name: lab-03-mirror-active
-title: "VirtualService has mirror stanza"
-autostart: true
-timeout: 30
-command: |
-  kubectl -n $SESSION_NS get virtualservice payment-mock-vs -o yaml 2>/dev/null | \
-    grep -q "mirror:" && exit 0 || exit 1
-```
 
 ---
 
 ## Exercise 3.2 — Canary 10%: Start the Rollout
 
-```terminal:execute
-command: switch-lab lab-03-canary-10
-session: 1
+```bash
+switch-lab lab-03-canary-10
 ```
 
 Verify the weights:
 
-```terminal:execute
-command: kubectl -n $SESSION_NS get virtualservice payment-mock-vs -o yaml | grep -A5 weight
-session: 1
+```bash
+kubectl -n $SESSION_NS get virtualservice payment-mock-vs -o yaml | grep -A5 weight
 ```
 
 Refresh the Storefront 10–20 times. About 1 in 10 loads shows the **green** (v2) theme.
@@ -130,15 +117,6 @@ to v2 (10%). The sidecar enforces this split at the proxy layer, not in your cod
 
 ### Checkpoint ✅
 
-```examiner:execute-test
-name: lab-03-canary-10-active
-title: "VirtualService shows 90/10 split"
-autostart: true
-timeout: 30
-command: |
-  V1=$(kubectl -n $SESSION_NS get virtualservice payment-mock-vs -o jsonpath='{.spec.http[0].route[0].weight}' 2>/dev/null)
-  [ "$V1" = "90" ] && exit 0 || exit 1
-```
 
 ---
 
@@ -146,38 +124,26 @@ command: |
 
 Ramp to 50%:
 
-```terminal:execute
-command: switch-lab lab-03-canary-50
-session: 1
+```bash
+switch-lab lab-03-canary-50
 ```
 
 Now about half the Storefront loads show green. Wait 30s and check Kiali.
 
 Complete cutover to v2:
 
-```terminal:execute
-command: switch-lab lab-03-canary-100
-session: 1
+```bash
+switch-lab lab-03-canary-100
 ```
 
 Every Storefront load now shows **green** (v2). All traffic is on v2.
 
-```terminal:execute
-command: kubectl -n $SESSION_NS get virtualservice payment-mock-vs -o yaml | grep -A5 weight
-session: 1
+```bash
+kubectl -n $SESSION_NS get virtualservice payment-mock-vs -o yaml | grep -A5 weight
 ```
 
 ### Checkpoint ✅
 
-```examiner:execute-test
-name: lab-03-canary-100-active
-title: "VirtualService shows 0/100 (v2 full cutover)"
-autostart: true
-timeout: 30
-command: |
-  V2=$(kubectl -n $SESSION_NS get virtualservice payment-mock-vs -o jsonpath='{.spec.http[0].route[1].weight}' 2>/dev/null)
-  [ "$V2" = "100" ] && exit 0 || exit 1
-```
 
 ---
 
@@ -185,9 +151,8 @@ command: |
 
 Imagine v2 has a bug. GitOps rollback is a single operation:
 
-```terminal:execute
-command: switch-lab lab-03-start
-session: 1
+```bash
+switch-lab lab-03-start
 ```
 
 The Storefront immediately returns to **blue** (v1). Rollback complete — under 60 seconds.

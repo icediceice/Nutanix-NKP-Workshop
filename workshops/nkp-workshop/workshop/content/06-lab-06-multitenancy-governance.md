@@ -42,37 +42,32 @@ These layers are cumulative — a request must pass all three.
 
 Start Lab 6 baseline:
 
-```terminal:execute
-command: switch-lab lab-06-start
-session: 1
+```bash
+switch-lab lab-06-start
 ```
 
 Apply quota pressure (20 stress pods):
 
-```terminal:execute
-command: switch-lab lab-06-quota-pressure
-session: 1
+```bash
+switch-lab lab-06-quota-pressure
 ```
 
 Check current quota usage:
 
-```terminal:execute
-command: kubectl describe resourcequota demo-app-quota -n $SESSION_NS
-session: 1
+```bash
+kubectl describe resourcequota demo-app-quota -n $SESSION_NS
 ```
 
 Try to scale beyond the quota:
 
-```terminal:execute
-command: kubectl -n $SESSION_NS scale deploy quota-stress --replicas=30
-session: 1
+```bash
+kubectl -n $SESSION_NS scale deploy quota-stress --replicas=30
 ```
 
 Check events for quota rejection:
 
-```terminal:execute
-command: kubectl -n $SESSION_NS get events --sort-by=.lastTimestamp | tail -5
-session: 1
+```bash
+kubectl -n $SESSION_NS get events --sort-by=.lastTimestamp | tail -5
 ```
 
 **👁 Observe:** The scale command succeeds (Deployment updated) but the pods fail to be created.
@@ -81,14 +76,6 @@ the Deployment records the desired state, but the API server refuses to schedule
 
 ### Checkpoint ✅
 
-```examiner:execute-test
-name: lab-06-quota-stress-running
-title: "Quota stress deployment is active"
-autostart: true
-timeout: 60
-command: |
-  kubectl -n $SESSION_NS get deploy quota-stress &>/dev/null && exit 0 || exit 1
-```
 
 ---
 
@@ -113,38 +100,32 @@ graph LR
 
 Check current enforcement mode (should be dryrun):
 
-```terminal:execute
-command: |
-  kubectl get k8sdemorequiredlabels demo-required-labels \
-    -o jsonpath='{.spec.enforcementAction}'
-  echo ""
-session: 1
+```bash
+kubectl get k8sdemorequiredlabels demo-required-labels \
+  -o jsonpath='{.spec.enforcementAction}'
+echo ""
 ```
 
 Apply the policy-violating pod (missing `version` label):
 
-```terminal:execute
-command: kubectl apply -f ~/exercises/policy-violation-example.yaml
-session: 1
+```bash
+kubectl apply -f ~/exercises/policy-violation-example.yaml
 ```
 
 **Expected: Pod created** — dryrun mode allows it but records a violation.
 
 Check violation count:
 
-```terminal:execute
-command: |
-  kubectl get k8sdemorequiredlabels demo-required-labels \
-    -o jsonpath='{.status.totalViolations}'
-  echo " violation(s)"
-session: 1
+```bash
+kubectl get k8sdemorequiredlabels demo-required-labels \
+  -o jsonpath='{.status.totalViolations}'
+echo " violation(s)"
 ```
 
 Clean up:
 
-```terminal:execute
-command: kubectl -n $SESSION_NS delete pod policy-violation-example --ignore-not-found
-session: 1
+```bash
+kubectl -n $SESSION_NS delete pod policy-violation-example --ignore-not-found
 ```
 
 ---
@@ -154,51 +135,36 @@ session: 1
 Once you've audited violations and know what's non-compliant, switch to `deny` to block bad
 workloads at the door:
 
-```terminal:execute
-command: switch-lab lab-06-policy-enforce
-session: 1
+```bash
+switch-lab lab-06-policy-enforce
 ```
 
 Verify mode has switched to deny:
 
-```terminal:execute
-command: |
-  kubectl get k8sdemorequiredlabels demo-required-labels \
-    -o jsonpath='{.spec.enforcementAction}'
-  echo ""
-session: 1
+```bash
+kubectl get k8sdemorequiredlabels demo-required-labels \
+  -o jsonpath='{.spec.enforcementAction}'
+echo ""
 ```
 
 Try the same violation pod — it will now be **rejected at admission**:
 
-```terminal:execute
-command: kubectl apply -f ~/exercises/policy-violation-example.yaml
-session: 1
+```bash
+kubectl apply -f ~/exercises/policy-violation-example.yaml
 ```
 
 **Expected:** `Error from server — [demo-required-labels] label 'version' is required`.
 
 Confirm the pod was not created:
 
-```terminal:execute
-command: kubectl -n $SESSION_NS get pod policy-violation-example
-session: 1
+```bash
+kubectl -n $SESSION_NS get pod policy-violation-example
 ```
 
 **Expected:** `Error from server (NotFound)`.
 
 ### Checkpoint ✅
 
-```examiner:execute-test
-name: lab-06-enforce-active
-title: "Gatekeeper constraint is in deny mode"
-autostart: true
-timeout: 30
-command: |
-  MODE=$(kubectl get k8sdemorequiredlabels demo-required-labels \
-    -o jsonpath='{.spec.enforcementAction}' 2>/dev/null)
-  [ "$MODE" = "deny" ] && exit 0 || exit 1
-```
 
 ---
 
@@ -235,28 +201,24 @@ graph TB
 
 Check what the dev-user can and cannot do:
 
-```terminal:execute
-command: |
-  echo "=== Dev User Permissions ==="
-  echo -n "get pods: "
-  kubectl auth can-i get pods -n $SESSION_NS \
-    --as=system:serviceaccount:$SESSION_NS:dev-user
-  echo -n "delete pods: "
-  kubectl auth can-i delete pods -n $SESSION_NS \
-    --as=system:serviceaccount:$SESSION_NS:dev-user
-session: 1
+```bash
+echo "=== Dev User Permissions ==="
+echo -n "get pods: "
+kubectl auth can-i get pods -n $SESSION_NS \
+  --as=system:serviceaccount:$SESSION_NS:dev-user
+echo -n "delete pods: "
+kubectl auth can-i delete pods -n $SESSION_NS \
+  --as=system:serviceaccount:$SESSION_NS:dev-user
 ```
 
-```terminal:execute
-command: |
-  echo "=== Ops User Permissions ==="
-  echo -n "delete pods: "
-  kubectl auth can-i delete pods -n $SESSION_NS \
-    --as=system:serviceaccount:$SESSION_NS:ops-user
-  echo -n "exec into pods: "
-  kubectl auth can-i create pods/exec -n $SESSION_NS \
-    --as=system:serviceaccount:$SESSION_NS:ops-user
-session: 1
+```bash
+echo "=== Ops User Permissions ==="
+echo -n "delete pods: "
+kubectl auth can-i delete pods -n $SESSION_NS \
+  --as=system:serviceaccount:$SESSION_NS:ops-user
+echo -n "exec into pods: "
+kubectl auth can-i create pods/exec -n $SESSION_NS \
+  --as=system:serviceaccount:$SESSION_NS:ops-user
 ```
 
 **👁 Observe:** `yes`/`no` is enforced by the API server, not by trust. A dev-user token physically
