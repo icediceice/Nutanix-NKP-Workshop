@@ -1,7 +1,7 @@
 # Project: Nutanix-NKP-Workshop
 
 > Initialized: 2026-03-07 22:21
-> Last updated: 2026-03-08 00:00
+> Last updated: 2026-04-11
 
 ## NotebookLM
 
@@ -34,6 +34,15 @@ Upcoming work in priority order:
 *(Populated by escalation events. Survives compaction — do not remove.)*
 
 ## Work Log
+
+### 2026-04-11
+
+#### session — Workshop Architecture Overhaul (Hugo+VPS) — complete
+- **What:** Migrated NKP workshop content delivery from Educates renderer to Hugo static site on VPS. Educates now provides terminal+editor only (no proxy tabs). Content at https://light.factor-io.com/workshop/nkp-workshop/. Added Hugo scaffold, migration scripts (terminal:execute→bash, dashboard→URL), Makefile deploy pipeline, stripped workshop.yaml proxy tabs, updated StatusPage to single Terminal cert-bypass + VPS content link.
+- **Files:** `workshops/nkp-workshop/hugo/`, `workshops/template/`, `workshops/migrate-*.py`, `Makefile`, `workshops/nkp-workshop/resources/workshop.yaml`, `workshops/nkp-workshop/workshop/content/*.md`, `registration-app/frontend/src/components/StatusPage.jsx`, `workshops/partner-intro/resources/workshop.yaml`
+- **Commit:** `615eacc`
+- **Next:** Step 9 — smoke-test on live cluster (content cert-free, terminal 1 bypass, LB URLs reachable)
+- **Known issues:** Step 9 requires live cluster — manual verification pending
 
 ### 2026-03-09 (continued)
 
