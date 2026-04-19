@@ -17,3 +17,6 @@ deploy-workshop: build-workshop
 
 deploy-bls-workshop:
 	$(MAKE) deploy-workshop WORKSHOP=bls-workshop
+
+provision-bls-workshop:
+	bash workshops/bls-workshop/scripts/provision.sh

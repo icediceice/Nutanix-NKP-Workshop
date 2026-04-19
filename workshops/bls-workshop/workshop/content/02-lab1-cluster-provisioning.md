@@ -31,7 +31,7 @@ In this lab you will use the **Register** path to attach `workload01`.
 
 ## Step 1 — Log In to Kommander
 
-1. Open `https://10.38.49.15` in your browser.
+1. Open `http://10.38.49.15` in your browser.
 2. Log in with the credentials your facilitator provided.
 3. You should land on the **Kommander Dashboard** — the global overview page.
 

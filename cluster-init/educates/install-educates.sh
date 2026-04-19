@@ -42,10 +42,8 @@ clusterInfrastructure:
 
 clusterIngress:
   domain: ${INGRESS_DOMAIN}
+  protocol: http
 $(if [[ -n "${INGRESS_CLASS}" ]]; then echo "  class: ${INGRESS_CLASS}"; fi)
-  tlsCertificateRef:
-    namespace: educates
-    name: educates-wildcard-tls
 clusterStorage:
   class: ${STORAGE_CLASS}
 
@@ -153,27 +151,10 @@ else
   rm -f "${RUNTIME_CONFIG}"
 fi
 
-# ── Create wildcard TLS cert for session ingresses (NKP/Traefik requires HTTPS) ──
-# Traefik has a global HTTP→HTTPS redirect. Without TLS on session ingresses,
-# the HTTPS request has no matching route and falls through to the portal.
-echo "  → Creating wildcard TLS cert for *.${INGRESS_DOMAIN}..."
-kubectl apply -f - <<EOCERT
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: educates-wildcard-tls
-  namespace: educates
-spec:
-  secretName: educates-wildcard-tls
-  dnsNames:
-    - "*.${INGRESS_DOMAIN}"
-    - "${INGRESS_DOMAIN}"
-  issuerRef:
-    name: kommander-ca
-    kind: ClusterIssuer
-EOCERT
-kubectl wait certificate educates-wildcard-tls -n educates --for=condition=Ready --timeout=60s
-echo "  ✓ Wildcard TLS cert ready"
+# HTTP mode — no TLS cert needed.
+# Traefik HTTP→HTTPS redirect is disabled by disable-https-redirect.sh (Step 2).
+# Educates runs on plain HTTP: zero cert installs, works on any internal network.
+echo "  ✓ HTTP mode — skipping TLS cert creation"
 
 # ── Verify (v3.7+: secrets-manager + session-manager replace educates-operator) ──
 echo "Verifying Educates components..."

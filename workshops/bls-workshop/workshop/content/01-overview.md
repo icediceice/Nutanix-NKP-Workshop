@@ -53,7 +53,7 @@ journey
 
 All labs run against a shared NKP environment:
 
-- **Management cluster (Kommander):** `https://10.38.49.15`
+- **Management cluster (Kommander):** `http://10.38.49.15`
 - **Workload cluster:** `workload01` at `10.38.49.18`
 - **kubeconfig:** `auth/workload01.conf` (pre-loaded in your session)
 

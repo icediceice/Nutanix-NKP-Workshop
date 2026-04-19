@@ -153,6 +153,10 @@ EOADV
     echo "  ✓ IngressClass applied"
   fi
 
+  # ── Disable Traefik HTTP→HTTPS redirect (required for Educates HTTP mode) ──
+  echo "  → Disabling Traefik HTTP→HTTPS redirect..."
+  "${SCRIPT_DIR}/platform/disable-https-redirect.sh"
+
   echo "  ✓ Platform setup complete"
   [[ "${PLATFORM_ONLY}" == "true" ]] && { echo "Done (platform-only)."; exit 0; }
 fi
