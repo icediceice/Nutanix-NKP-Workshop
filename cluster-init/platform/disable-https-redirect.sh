@@ -15,21 +15,26 @@ GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 ok()   { echo -e "${GREEN}  ✓${NC} $*"; }
 warn() { echo -e "${YELLOW}  ⚠${NC} $*"; }
 
-# Traefik HelmRelease location on NKP
-TRAEFIK_NS="kommander-default-workspace"
+# Traefik HelmRelease — NKP places it in 'kommander' namespace
 TRAEFIK_HR="traefik"
+TRAEFIK_NS=""
 
-echo "  → Checking Traefik HelmRelease..."
+echo "  → Locating Traefik HelmRelease..."
 
-if ! kubectl get helmrelease "${TRAEFIK_HR}" -n "${TRAEFIK_NS}" >/dev/null 2>&1; then
-  warn "HelmRelease ${TRAEFIK_HR} not found in ${TRAEFIK_NS} — trying kube-system"
-  TRAEFIK_NS="kube-system"
-  if ! kubectl get helmrelease "${TRAEFIK_HR}" -n "${TRAEFIK_NS}" >/dev/null 2>&1; then
-    warn "Traefik HelmRelease not found — skipping HTTP redirect patch"
-    warn "If Traefik is managed differently, manually remove ports.web.redirectTo from its config."
-    exit 0
+for ns in kommander kommander-default-workspace kube-system; do
+  if kubectl get helmrelease "${TRAEFIK_HR}" -n "${ns}" >/dev/null 2>&1; then
+    TRAEFIK_NS="${ns}"
+    break
   fi
+done
+
+if [[ -z "${TRAEFIK_NS}" ]]; then
+  warn "Traefik HelmRelease not found in any known namespace — skipping HTTP redirect patch"
+  warn "Manually remove ports.web.redirectTo from the Traefik HelmRelease to enable HTTP mode."
+  exit 0
 fi
+
+ok "Found traefik HelmRelease in namespace: ${TRAEFIK_NS}"
 
 # Check if redirect is already gone
 REDIRECT=$(kubectl get helmrelease "${TRAEFIK_HR}" -n "${TRAEFIK_NS}" \

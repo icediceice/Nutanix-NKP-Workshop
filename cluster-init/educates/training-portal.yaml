@@ -67,3 +67,9 @@ spec:
       capacity: 20
       initial: 15
       reserved: 0
+
+    # ── BLS Workshop ──
+    - name: bls-workshop
+      capacity: 30
+      initial: 1
+      reserved: 2

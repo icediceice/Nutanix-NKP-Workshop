@@ -1,0 +1,44 @@
+apiVersion: training.educates.dev/v1beta1
+kind: Workshop
+metadata:
+  name: bls-workshop
+spec:
+  title: "BLS NKP Hands-On Workshop"
+  description: "5 hands-on labs: workload cluster provisioning, GitLab+Flux app deployment, platform catalog, observability, and Day-2 ops. Terminal pre-wired to workload01."
+  url: "https://github.com/icediceice/Nutanix-NKP-Workshop"
+  workshop:
+    files:
+      - image:
+          url: "ghcr.io/icediceice/bls-workshop-files:latest"
+        includePaths:
+          - /workshop/**
+  session:
+    namespaces:
+      budget: custom
+      security:
+        policy: privileged
+    applications:
+      terminal:
+        enabled: true
+      console:
+        enabled: false
+      editor:
+        enabled: false
+    env:
+    - name: KUBECONFIG
+      value: /home/eduk8s/.kube/workload01.conf
+    - name: WORKSHOP_CONTENT_URL
+      value: "http://light.factor-io.com/workshop/bls-workshop/"
+    objects:
+    - apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: $(session_name)-cluster-admin
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: cluster-admin
+      subjects:
+      - kind: ServiceAccount
+        name: $(session_name)
+        namespace: $(workshop_namespace)
