@@ -1,0 +1,11 @@
+{{ define "main" }}
+<article>
+  <h1>{{ .Site.Title }}</h1>
+  {{ .Content }}
+  <ul class="ws-index">
+    {{ range (sort .Pages "File.Path" "asc") }}
+    <li><a href="{{ .RelPermalink }}">{{ .Title }}</a></li>
+    {{ end }}
+  </ul>
+</article>
+{{ end }}

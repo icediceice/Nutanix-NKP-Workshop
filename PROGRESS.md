@@ -35,6 +35,13 @@ Upcoming work in priority order:
 
 ## Work Log
 
+### 2026-04-19
+
+#### session — BLS Workshop creation — complete
+- **What:** Created new `workshops/bls-workshop/` — 5 hands-on labs (~4.5 hr) targeting NKP Kommander + workload01 (10.38.49.18). All labs on workload01. Hugo-served content (no Educates terminals). Labs: (1) Cluster provisioning/registration via UI 45min, (2) App deployment GitLab+FluxCD 45min, (3) Platform catalog enable/manage 1hr, (4) Observability (Prometheus/Grafana/Alertmanager) 1hr, (5) Day-2 Ops (scale/upgrade/backup/troubleshoot) 1hr.
+- **Files:** `workshops/bls-workshop/hugo/`, `workshops/bls-workshop/workshop/content/` (9 pages), `workshops/bls-workshop/Dockerfile.files`
+- **Known issues:** No known issues — GitLab repo URL placeholder in Lab 2 needs real URL before delivery
+
 ### 2026-04-11
 
 #### session — Workshop Architecture Overhaul (Hugo+VPS) — complete

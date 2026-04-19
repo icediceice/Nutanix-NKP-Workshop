@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }} · {{ .Site.Title }}{{ end }}</title>
+  <link rel="stylesheet" href="{{ "css/workshop.css" | relURL }}">
+</head>
+<body>
+  <header class="ws-header">
+    <a class="ws-home" href="{{ .Site.BaseURL }}">{{ .Site.Title }}</a>
+  </header>
+  <main class="ws-main">
+    {{ block "main" . }}{{ end }}
+  </main>
+  <script type="module" src="{{ "js/workshop.js" | relURL }}"></script>
+</body>
+</html>
