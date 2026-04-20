@@ -13,6 +13,14 @@ set -euo pipefail
 
 export PATH="${HOME}/.local/bin:${PATH}"
 
+# Accept --kubeconfig flag or KUBECONFIG env var
+for arg in "$@"; do
+  case "$arg" in
+    --kubeconfig=*) export KUBECONFIG="${arg#--kubeconfig=}" ;;
+    --kubeconfig)   shift; export KUBECONFIG="$1" ;;
+  esac
+done
+
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 ok()   { echo -e "${GREEN}  ✓${NC} $*"; }
 warn() { echo -e "${YELLOW}  ⚠${NC} $*"; }
