@@ -36,44 +36,54 @@ fi
 
 ok "Found traefik HelmRelease in namespace: ${TRAEFIK_NS}"
 
+# NKP stores Traefik config in a ConfigMap referenced by valuesFrom, NOT in
+# spec.values. Patching spec.values has no effect — must patch the ConfigMap.
+CONFIG_CM="traefik-37.1.2-config-defaults"
+
 # Check if redirect is already gone
 REDIRECT=$(kubectl get helmrelease "${TRAEFIK_HR}" -n "${TRAEFIK_NS}" \
   -o jsonpath='{.spec.values.ports.web.redirectTo}' 2>/dev/null || echo "")
 
-if [[ -z "${REDIRECT}" || "${REDIRECT}" == "null" ]]; then
+# Check ConfigMap for redirect args (real config location on NKP)
+CM_HAS_REDIRECT=$(kubectl get cm "${CONFIG_CM}" -n "${TRAEFIK_NS}" \
+  -o jsonpath='{.data.values\.yaml}' 2>/dev/null | \
+  python3 -c "import sys; d=sys.stdin.read(); print('yes' if 'redirections' in d else 'no')" 2>/dev/null || echo "no")
+
+if [[ "${CM_HAS_REDIRECT}" != "yes" && (-z "${REDIRECT}" || "${REDIRECT}" == "null") ]]; then
   ok "HTTP→HTTPS redirect already disabled — skipping"
   exit 0
 fi
 
-ok "Found redirect config: ${REDIRECT}"
-echo "  → Patching Traefik HelmRelease to remove HTTP→HTTPS redirect..."
+ok "Found redirect config — patching ConfigMap ${CONFIG_CM}..."
 
-# Patch: set redirectTo to null (merge patch, idempotent)
-kubectl patch helmrelease "${TRAEFIK_HR}" -n "${TRAEFIK_NS}" \
-  --type=merge \
-  -p '{
-    "spec": {
-      "values": {
-        "ports": {
-          "web": {
-            "redirectTo": null
-          }
-        }
-      }
-    }
-  }'
+# Remove redirect lines from ConfigMap values.yaml
+kubectl get cm "${CONFIG_CM}" -n "${TRAEFIK_NS}" \
+  -o jsonpath='{.data.values\.yaml}' > /tmp/traefik-values.yaml
 
-ok "HelmRelease patched — waiting for Traefik rollout..."
+python3 -c "
+with open('/tmp/traefik-values.yaml') as f:
+    lines = f.readlines()
+filtered = [l for l in lines if 'redirections' not in l and 'entryPoint.to=:443' not in l and 'entryPoint.scheme=https' not in l]
+with open('/tmp/traefik-values-patched.yaml', 'w') as f:
+    f.writelines(filtered)
+print(f'Removed {len(lines)-len(filtered)} redirect lines')
+"
 
-# Wait for Flux to reconcile the HelmRelease
-sleep 5
-kubectl wait helmrelease "${TRAEFIK_HR}" -n "${TRAEFIK_NS}" \
-  --for=condition=Ready --timeout=120s 2>/dev/null || \
-  warn "HelmRelease not Ready within 120s — Traefik may still be rolling out. Continue."
+kubectl create cm "${CONFIG_CM}" -n "${TRAEFIK_NS}" \
+  --from-file=values.yaml=/tmp/traefik-values-patched.yaml \
+  --dry-run=client -o yaml | kubectl apply --validate=false -f -
+rm -f /tmp/traefik-values.yaml /tmp/traefik-values-patched.yaml
 
-# Wait for Traefik pods to restart
-kubectl rollout status deployment/traefik -n "${TRAEFIK_NS}" --timeout=120s 2>/dev/null || \
-  kubectl rollout status daemonset/traefik -n "${TRAEFIK_NS}" --timeout=120s 2>/dev/null || \
-  warn "Could not confirm Traefik rollout — verify manually."
+# Trigger Flux reconciliation to pick up ConfigMap changes
+kubectl annotate helmrelease "${TRAEFIK_HR}" -n "${TRAEFIK_NS}" \
+  reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" --overwrite 2>/dev/null || true
+
+ok "Waiting for Traefik rollout..."
+sleep 10
+
+# Wait for Traefik pods to restart (NKP names it kommander-traefik)
+kubectl rollout status deployment/kommander-traefik -n "${TRAEFIK_NS}" --timeout=120s 2>/dev/null || \
+  kubectl rollout status deployment/traefik -n "${TRAEFIK_NS}" --timeout=120s 2>/dev/null || \
+  warn "Could not confirm Traefik rollout — verify manually with: kubectl get pods -n ${TRAEFIK_NS}"
 
 ok "Traefik HTTP→HTTPS redirect disabled. All ingresses now serve HTTP."
