@@ -6,7 +6,7 @@ clusterIngress:
   domain: educates.nkp-lab.local     # ← set from config.yaml: educates_ingress_domain
 
 clusterStorage:
-  class: nutanix-volumes              # ← set from config.yaml: storage_class
+  class: nutanix-volume               # ← set from config.yaml: storage_class
 
 clusterSecurityPolicy:
   engine: kyverno                     # kyverno | pod-security

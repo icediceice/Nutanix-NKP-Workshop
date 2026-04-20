@@ -7,13 +7,13 @@ kubeconfig_path: ~/.kube/config        # Path to kubeconfig file
 cluster_context: nkp-workshop          # kubectl context name
 
 # --- Platform Config ---
-storage_class: nutanix-volumes         # Nutanix CSI storage class
+storage_class: nutanix-volume          # Nutanix CSI storage class
 metallb_ip_range: "10.168.100.20-10.168.100.30"
 ingress_domain: workshop.nkp-lab.local # Base domain for ingress rules
 
 # --- Educates Config ---
 educates_version: "3.7.0"             # Pin to a stable version (tag format: no v-prefix)
-educates_ingress_domain: educates.nkp-lab.local
+educates_ingress_domain: 10.38.49.19.nip.io
 educates_ingress_class: ""            # IngressClass name — leave empty for cluster default, e.g. kommander-traefik
 educates_infra_provider: generic      # eks | gke | kind | custom | vcluster | generic | minikube | openshift
 educates_policy_engine: kyverno       # kyverno | none

@@ -1,0 +1,16 @@
+bundles:
+  nkp-fundamentals:
+    name: NKP Fundamentals
+    description: Introduction to Nutanix Kubernetes Platform — cluster management, workloads, and observability.
+    modules:
+      - cluster-overview
+      - workload-deployment
+      - monitoring-basics
+
+  nkp-advanced:
+    name: NKP Advanced Operations
+    description: Day-2 operations, multi-cluster management, and platform services.
+    modules:
+      - multi-cluster
+      - platform-services
+      - disaster-recovery
