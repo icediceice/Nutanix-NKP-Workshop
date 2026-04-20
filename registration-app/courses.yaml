@@ -1,16 +1,33 @@
-bundles:
-  nkp-fundamentals:
-    name: NKP Fundamentals
-    description: Introduction to Nutanix Kubernetes Platform — cluster management, workloads, and observability.
-    modules:
-      - cluster-overview
-      - workload-deployment
-      - monitoring-basics
+foundation:
+  workshops:
+    - k8s-intro
+    - containers-docker
 
-  nkp-advanced:
-    name: NKP Advanced Operations
-    description: Day-2 operations, multi-cluster management, and platform services.
-    modules:
-      - multi-cluster
-      - platform-services
-      - disaster-recovery
+bundles:
+  developer:
+    name: Developer Track
+    description: Application development, GitOps, CI/CD, and NKP developer platform services.
+    workshops:
+      - twelve-factor
+      - dev-app-development
+      - dev-nkp-platform
+
+  infrastructure:
+    name: Infrastructure Track
+    description: NKP cluster provisioning, platform operations, RBAC, storage, and Day-2 ops.
+    workshops:
+      - k8s-architecture
+      - infra-introduction
+      - infra-nkp-platform
+
+  partner-intro:
+    name: Partner Introduction
+    description: 90-minute guided intro — container fundamentals, Kommander tour, and live demo.
+    workshops:
+      - partner-intro
+
+  bls:
+    name: BLS NKP Workshop
+    description: 5 hands-on labs covering workload clusters, GitLab, Flux, observability, and Day-2 ops.
+    workshops:
+      - bls-workshop
