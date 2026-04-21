@@ -376,15 +376,8 @@ class EducatesProvisioner:
 
     def _request_sessions(self, username: str, email: str, workshops: List[str]) -> Dict[str, str]:
         """
-        Pre-allocate an Educates workshop session for each workshop via the robot API.
-        Returns {workshop_id: activation_url}.
-
-        The stored activation URL embeds the session name so the frontend can derive
-        the session and console subdomain URLs for TLS cert pre-acceptance.
-
-        The frontend wraps the activation URL with /accounts/create/?next= so
-        participants auto-create an anonymous portal account on first click without
-        seeing a manual login prompt.
+        Returns {workshop_id: create_url} — /create/ URLs auto-allocate an anonymous
+        session on first click with no login wall (Educates anonymous portal mode).
         """
         token = self._get_token()
         headers = {"Authorization": f"Bearer {token}"}
@@ -392,48 +385,17 @@ class EducatesProvisioner:
         urls: Dict[str, str] = {}
         for workshop_name in workshops:
             env_name = self._get_env_name(workshop_name, headers)
-
-            with self._client(30.0) as client:
-                resp = client.post(
-                    f"{self.portal_url}/workshops/environment/{env_name}/request/",
-                    headers=headers,
-                    params={
-                        "user": username,
-                        "email": email,
-                        "index_url": self.index_url,
-                        "timeout": 86400,
-                    },
-                )
-
-            if resp.status_code == 503:
-                raise RuntimeError(
-                    f"No capacity for workshop '{workshop_name}' "
-                    f"(environment '{env_name}'). "
-                    "Increase TrainingPortal capacity or reduce registered participants."
-                )
-            if resp.status_code not in (200, 201):
-                raise RuntimeError(
-                    f"Educates session request failed for '{workshop_name}': "
-                    f"{resp.status_code} {resp.text}"
-                )
-
-            session_data = resp.json()
-            relative_url = session_data.get("url", "")
-            activation_url = f"{self.portal_url}{relative_url}" if relative_url else self.portal_url
-            urls[workshop_name] = activation_url
-
-            logger.debug(
-                "Session %s pre-allocated for %s → %s",
-                session_data.get("name"),
-                username,
-                workshop_name,
+            urls[workshop_name] = (
+                f"{self.portal_url}/workshops/environment/{env_name}/create/"
+                f"?index_url={self.index_url}"
             )
+            logger.debug("Create URL built for %s → %s", workshop_name, env_name)
 
         return urls
 
     def _dry_run_urls(self, username: str, workshops: List[str]) -> Dict[str, str]:
-        """Generate placeholder activation URLs for dry-run testing."""
+        """Generate placeholder create URLs for dry-run testing."""
         return {
-            w: f"https://dry-run.local/workshops/session/{w}-w01-s001/activate/?token=dryrun&user={username}"
+            w: f"https://dry-run.local/workshops/environment/{w}-env/create/?index_url=https://dry-run.local/&user={username}"
             for w in workshops
         }
