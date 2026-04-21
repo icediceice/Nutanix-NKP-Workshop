@@ -38,6 +38,8 @@ jobs:
             image: ghcr.io/icediceice/nkp-workshop-files
           - workshop: twelve-factor
             image: ghcr.io/icediceice/twelve-factor-files
+          - workshop: bls-workshop
+            image: ghcr.io/icediceice/bls-workshop-files
           - workshop: partner-intro
             image: ghcr.io/icediceice/partner-intro-files
 
