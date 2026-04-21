@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nkp-nuth-lab-wildcard
+  namespace: educates
+spec:
+  secretName: nkp-nuth-lab-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: "*.nkp.nuth-lab.xyz"
+  dnsNames:
+    - "*.nkp.nuth-lab.xyz"
+    - "nkp.nuth-lab.xyz"
