@@ -11,20 +11,6 @@ the full lifecycle of a Kubernetes platform — from provisioning to production 
 
 ## What You Accomplished
 
-```mermaid
-graph LR
-    L1["Lab 1<br/>Cluster Provisioning"] --> L2["Lab 2<br/>App Deployment + GitLab"]
-    L2 --> L3["Lab 3<br/>Platform Catalog"]
-    L3 --> L4["Lab 4<br/>Observability"]
-    L4 --> L5["Lab 5<br/>Day-2 Ops"]
-
-    style L1 fill:#6366f1,color:#fff
-    style L2 fill:#0ea5e9,color:#fff
-    style L3 fill:#10b981,color:#fff
-    style L4 fill:#f59e0b,color:#fff
-    style L5 fill:#ef4444,color:#fff
-```
-
 | Lab | What you did |
 |-----|-------------|
 | **Lab 1** | Explored Kommander cluster management, registered `workload01` as a managed cluster |
@@ -54,6 +40,34 @@ converges to them safely using CAPI's rolling replacement model.
 
 ---
 
+## Quick Reference — Commands Used in This Workshop
+
+Check cluster nodes:
+
+```execute
+kubectl get nodes
+```
+
+Check all running workloads:
+
+```execute
+kubectl get pods -A | grep -v Running | grep -v Completed
+```
+
+Check cluster events:
+
+```execute
+kubectl get events -A --sort-by='.lastTimestamp' | tail -20
+```
+
+Check resource usage:
+
+```execute
+kubectl top nodes
+```
+
+---
+
 ## Next Steps
 
 | Topic | Where to go |
@@ -66,8 +80,5 @@ converges to them safely using CAPI's rolling replacement model.
 
 ---
 
-## Feedback
-
-Please share your experience with your facilitator. Your feedback directly shapes future sessions.
-
 Thank you for participating in the BLS NKP Hands-On Workshop.
+Please share your feedback with your facilitator.

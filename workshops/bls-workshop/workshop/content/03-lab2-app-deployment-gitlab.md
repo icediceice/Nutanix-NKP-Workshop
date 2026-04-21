@@ -15,79 +15,48 @@ the cluster state.
 NKP ships **Flux CD** as its native GitOps engine. Flux watches a Git repository and
 continuously reconciles the cluster to match what is declared in that repo.
 
-```mermaid
-graph LR
-    DEV["Developer<br/>pushes manifest"] --> GL["GitLab<br/>repository"]
-    GL -->|"Flux polls every 60s"| FLUX["Flux CD<br/>(in workload01)"]
-    FLUX -->|"kubectl apply"| K8S["workload01<br/>Kubernetes API"]
-    K8S --> APP["Running<br/>Application"]
-
-    style DEV fill:#6366f1,color:#fff
-    style GL fill:#fc6d26,color:#fff
-    style FLUX fill:#0ea5e9,color:#fff
-    style K8S fill:#10b981,color:#fff
-```
-
 Two Flux resources drive this:
 
 | Resource | Purpose |
-|----------|---------|
+|----------|---------| 
 | `GitRepository` | Points Flux at a Git repo (URL + credentials) |
 | `Kustomization` | Tells Flux which path in that repo to apply, and to which cluster |
 
 ---
 
-## Step 1 — Prepare a GitLab Repository
+## Step 1 — Prepare
 
-Your facilitator has a sample GitLab repository with a simple NGINX deployment manifest.
-Get the repository URL and a **read-only personal access token** from your facilitator.
+Get the GitLab repository URL and a **read-only personal access token** from your facilitator.
 
-Example repository structure:
-```
-apps/
-  nginx/
-    namespace.yaml
-    deployment.yaml
-    service.yaml
+Create the application namespace:
+
+```execute
+kubectl create namespace bls-app
 ```
 
 ---
 
-## Step 2 — Create a Namespace on workload01
+## Step 2 — Create a GitLab Credentials Secret
 
-Open a terminal:
+Flux needs credentials to pull from a private GitLab repo. Replace `<token>` with the value
+from your facilitator, then run:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl create namespace bls-app
-```
-
----
-
-## Step 3 — Create a GitLab Credentials Secret
-
-Flux needs credentials to pull from a private GitLab repo. Create a secret in the
-`flux-system` namespace on `workload01`:
-
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl create secret generic gitlab-credentials \
+```execute
+kubectl create secret generic gitlab-credentials \
   --namespace flux-system \
   --from-literal=username=workshop-user \
-  --from-literal=password=<your-personal-access-token>
+  --from-literal=password=<token>
 ```
-
-> Replace `<your-personal-access-token>` with the token from your facilitator.
 
 ---
 
-## Step 4 — Create a GitRepository Source
+## Step 3 — Create a GitRepository Source
 
-Create a `GitRepository` object that points Flux at the GitLab repo.
+Create a `GitRepository` object pointing Flux at the GitLab repo.
+Replace `<gitlab-url>` with the URL your facilitator provided:
 
-Save the following as `gitrepo.yaml`, then apply it:
-
-```yaml
+```execute
+cat > ~/gitrepo.yaml << 'EOF'
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
 metadata:
@@ -95,34 +64,34 @@ metadata:
   namespace: flux-system
 spec:
   interval: 1m0s
-  url: https://gitlab.example.com/workshop/sample-app.git
+  url: https://<gitlab-url>/workshop/sample-app.git
   secretRef:
     name: gitlab-credentials
   ref:
     branch: main
+EOF
 ```
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl apply -f gitrepo.yaml
+```execute
+kubectl apply -f ~/gitrepo.yaml
 ```
 
 Verify Flux can reach the repo:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get gitrepository -n flux-system bls-app-source
+```execute
+kubectl get gitrepository -n flux-system bls-app-source
 ```
 
 Expected: `READY=True`, `STATUS=stored artifact for revision 'main/...'`
 
 ---
 
-## Step 5 — Create a Kustomization
+## Step 4 — Create a Kustomization
 
-Tell Flux which path to apply and to which namespace:
+Tell Flux which path to apply to which namespace:
 
-```yaml
+```execute
+cat > ~/kustomization.yaml << 'EOF'
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -136,59 +105,58 @@ spec:
     kind: GitRepository
     name: bls-app-source
   targetNamespace: bls-app
+EOF
 ```
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl apply -f kustomization.yaml
+```execute
+kubectl apply -f ~/kustomization.yaml
 ```
 
 ---
 
-## Step 6 — Verify the Deployment
+## Step 5 — Verify the Deployment
 
-Within 1–2 minutes, Flux will reconcile the repository and deploy NGINX:
+Check Flux reconciliation status:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get kustomization -n flux-system bls-app
+```execute
+kubectl get kustomization -n flux-system bls-app
 ```
 
 Expected: `READY=True`, `APPLIED REVISION=main/...`
 
 Check the running pods:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get pods -n bls-app
+```execute
+kubectl get pods -n bls-app
 ```
 
 Expected: `nginx-...` pod in `Running` state.
 
+> **Checkpoint ✅** — NGINX pod is Running in `bls-app` namespace.
+
 ---
 
-## Step 7 — View in Kommander UI
+## Step 6 — View in Kommander UI
 
-1. Open Kommander → **Clusters** → `workload01`.
-2. Click **Workloads** (or **Applications**) in the sidebar.
+1. Open the **Kommander** tab on the right.
+2. Navigate to **Clusters** → `workload01` → **Workloads**.
 3. Filter by namespace `bls-app` — you will see the NGINX deployment listed.
 4. Click the deployment name to see replica status, pod health, and resource usage.
 
-> **Checkpoint ✅** — NGINX pod is Running in `bls-app` namespace, visible in both CLI and Kommander UI.
-
 ---
 
-## Step 8 — Trigger a GitOps Update
+## Step 7 — Trigger a GitOps Update
 
-1. Edit a file in the GitLab repo (e.g., change the `replicas` count from `1` to `2`).
+1. Edit a file in the GitLab repo — for example, change `replicas` from `1` to `2`.
 2. Commit and push to `main`.
 3. Within 60 seconds, Flux detects the change and reconciles.
 4. Watch the pods update:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get pods -n bls-app -w
+```execute
+kubectl get pods -n bls-app -w
 ```
+
+Press `Ctrl+C` to stop watching.
 
 > **Observe:** A second NGINX pod starts automatically — no manual `kubectl apply` needed.
 
@@ -197,5 +165,4 @@ KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
 ## Summary
 
 You connected NKP's built-in Flux CD to a GitLab repository and deployed an application
-to `workload01` entirely via GitOps. Any change pushed to GitLab is automatically
-reconciled to the cluster — this is the foundation of reliable, auditable deployments.
+to `workload01` entirely via GitOps. Any change pushed to GitLab is automatically applied to the cluster.

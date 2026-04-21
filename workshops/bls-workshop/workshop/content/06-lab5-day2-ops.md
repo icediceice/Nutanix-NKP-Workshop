@@ -5,24 +5,19 @@ title: "Lab 5: Production Operations — Day-2 Ops (1 hr)"
 ## Goal
 
 Experience the full Day-2 operations lifecycle on `workload01`: scale a node pool, perform a
-Kubernetes version upgrade, explore backup and restore concepts, and practice common
-troubleshooting techniques — all driven from the NKP Kommander UI.
+Kubernetes version upgrade, explore backup and restore, and practise common
+troubleshooting techniques — all driven from the NKP Kommander UI and CLI.
 
 ---
 
 ## Background
 
-"Day-2" refers to everything that happens after a cluster is running: keeping it healthy,
-scaling it to meet demand, upgrading it safely, and recovering it when things go wrong.
-NKP centralises all of this into Kommander so you don't need direct access to each cluster's
-control plane.
-
 | Operation | NKP Mechanism |
 |-----------|--------------|
 | Scale nodes | Modify `MachineDeployment` replica count via UI or CLI |
 | Upgrade Kubernetes | NKP upgrade wizard (CAPI rolling replacement) |
-| Backup / Restore | Velero integration or snapshot-based backup |
-| Troubleshoot | Kommander UI events, kubectl, NKP AI Navigator |
+| Backup / Restore | Velero integration |
+| Troubleshoot | Kommander UI events, kubectl, log inspection |
 
 ---
 
@@ -30,53 +25,46 @@ control plane.
 
 ### Step A1 — View Current Node Pools
 
-1. Kommander → **Clusters** → `workload01` → **Nodes** tab.
-2. Identify the worker node pool (e.g., `worker-pool-0`).
-3. Note the current node count (typically 3 workers).
-
-From the CLI:
-
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get machinedeployment -A
+```execute
+kubectl get machinedeployment -A
 ```
 
-### Step A2 — Scale Out (Add a Node)
+Check current node count:
 
-**Via Kommander UI:**
-
-1. Click the worker node pool name.
-2. Click **Edit** (pencil icon).
-3. Change **Replicas** from `3` to `4`.
-4. Click **Save**.
-
-Kommander instructs CAPI to provision a new VM and join it to the cluster. Monitor the new node:
-
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get nodes -w
+```execute
+kubectl get nodes
 ```
 
-Watch for a new node reaching `Ready` status. This typically takes 3–5 minutes on AHV.
+### Step A2 — Scale Out via Kommander UI
+
+1. Click the **Kommander** tab on the right.
+2. Navigate to **Clusters** → `workload01` → **Nodes** tab.
+3. Click the worker node pool name → **Edit**.
+4. Change **Replicas** from `3` to `4` → **Save**.
+
+Monitor the new node joining:
+
+```execute
+kubectl get nodes -w
+```
+
+Press `Ctrl+C` once the new node shows `Ready`. This typically takes 3–5 minutes on AHV.
 
 > **Checkpoint ✅** — `kubectl get nodes` shows 4 worker nodes in `Ready` state.
 
-### Step A3 — Scale In (Remove a Node)
+### Step A3 — Scale In
 
-1. In the Kommander UI, reduce the worker pool back to `3` replicas.
-2. NKP gracefully drains the node before terminating it:
-   - Existing pods are evicted to other nodes
-   - PodDisruptionBudgets are respected
-   - The VM is deleted after drain completes
+In Kommander, reduce the worker pool back to `3` replicas.
+
+NKP gracefully drains the node before terminating it (respects PodDisruptionBudgets).
 
 Watch the drain:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get nodes -w
+```execute
+kubectl get nodes -w
 ```
 
-> **Observe:** The node transitions through `Ready` → `SchedulingDisabled` → removed from the list.
+Press `Ctrl+C` once the node count returns to 3.
 
 ---
 
@@ -84,103 +72,119 @@ KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
 
 ### Step B1 — Check Current Version
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl version --short
+```execute
+kubectl version --short
 ```
 
-In Kommander, the cluster version is also shown on the cluster overview card.
+### Step B2 — Initiate an Upgrade via Kommander UI
 
-### Step B2 — Initiate an Upgrade
-
-> **Note:** If no newer Kubernetes version is available in this environment, your facilitator
-> will demonstrate this step. Follow along to understand the process.
-
-**Via Kommander UI:**
+> **Note:** If no newer Kubernetes version is available in this environment, your facilitator will demonstrate this step.
 
 1. Kommander → **Clusters** → `workload01` → **Overview**.
 2. If an upgrade is available, an **Upgrade Available** banner appears.
 3. Click **Upgrade** → select the target Kubernetes version.
-4. NKP shows the upgrade plan:
-   - Control plane nodes upgraded first (rolling, one at a time)
-   - Worker node pools upgraded after control plane is healthy
-
+4. NKP shows the upgrade plan (control plane first, then workers).
 5. Click **Start Upgrade**.
 
-**What NKP does under the hood:**
-1. Provisions a new control plane node at the new K8s version
-2. Drains and deletes the old control plane node
-3. Repeats for remaining control plane nodes
-4. Rolls out worker pool replacements
+Monitor upgrade progress:
 
-Monitor via CLI:
-
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get machines -A -w
+```execute
+kubectl get machines -A -w
 ```
+
+Press `Ctrl+C` to stop watching.
 
 > **Checkpoint ✅** — `kubectl version` shows the upgraded Kubernetes version.
 
 ---
 
-## Part C — Backup and Restore Concepts (10 min)
+## Part C — Backup and Restore (10 min)
 
-NKP integrates with **Velero** for persistent volume snapshots and Kubernetes object backup.
+NKP integrates with **Velero** for Kubernetes object backup.
 
 ### Step C1 — Check Velero Status
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get pods -n velero
+```execute
+kubectl get pods -n velero
 ```
 
 ### Step C2 — View Existing Backups
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get backup -n velero
+```execute
+kubectl get backup -n velero
 ```
 
 ### Step C3 — Create a Namespace Backup
 
-Back up the `bls-app` namespace (deployed in Lab 2):
+Back up the `bls-app` namespace deployed in Lab 2:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  velero backup create bls-app-backup \
-  --include-namespaces bls-app \
-  --wait
+```execute
+cat > ~/bls-backup.yaml << 'EOF'
+apiVersion: velero.io/v1
+kind: Backup
+metadata:
+  name: bls-app-backup
+  namespace: velero
+spec:
+  includedNamespaces:
+  - bls-app
+EOF
 ```
 
-Check backup status:
-
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  velero backup describe bls-app-backup
+```execute
+kubectl apply -f ~/bls-backup.yaml
 ```
+
+Watch until the backup completes:
+
+```execute
+kubectl get backup bls-app-backup -n velero -w
+```
+
+Press `Ctrl+C` once status shows `Completed`.
 
 ### Step C4 — Simulate Recovery
 
-Delete the namespace (simulate data loss):
+Delete the namespace to simulate data loss:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl delete namespace bls-app
+```execute
+kubectl delete namespace bls-app
+```
+
+Confirm it is gone:
+
+```execute
+kubectl get ns bls-app
 ```
 
 Restore from backup:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  velero restore create --from-backup bls-app-backup --wait
+```execute
+cat > ~/bls-restore.yaml << 'EOF'
+apiVersion: velero.io/v1
+kind: Restore
+metadata:
+  name: bls-app-restore
+  namespace: velero
+spec:
+  backupName: bls-app-backup
+EOF
 ```
 
-Verify restoration:
+```execute
+kubectl apply -f ~/bls-restore.yaml
+```
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get pods -n bls-app
+Watch the restore:
+
+```execute
+kubectl get restore bls-app-restore -n velero -w
+```
+
+Press `Ctrl+C` once `Completed`, then verify:
+
+```execute
+kubectl get pods -n bls-app
 ```
 
 > **Checkpoint ✅** — `bls-app` namespace and NGINX pods restored.
@@ -189,64 +193,52 @@ KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
 
 ## Part D — Troubleshooting (10 min)
 
-### Common Techniques
+### Technique 1 — Cluster-wide events (always check first)
 
-**1 — Check cluster-wide events (the first tool to reach for):**
-
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get events -A --sort-by='.lastTimestamp' | tail -30
+```execute
+kubectl get events -A --sort-by='.lastTimestamp' | tail -30
 ```
 
-**2 — Describe a problematic pod:**
+### Technique 2 — Describe a failing pod
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl describe pod <pod-name> -n <namespace>
+```execute
+kubectl get pods -A | grep -v Running | grep -v Completed
 ```
 
-Look for: `OOMKilled`, `CrashLoopBackOff`, `ImagePullBackOff`, `Insufficient cpu`.
+If any pod is not Running, describe it (replace `<pod>` and `<namespace>`):
 
-**3 — Check node conditions:**
-
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl describe nodes | grep -A5 "Conditions:"
+```execute
+kubectl describe pod <pod> -n <namespace>
 ```
 
-**4 — Check platform application health via Kommander:**
+### Technique 3 — Pod logs
 
-1. Kommander → **Clusters** → `workload01` → **Applications**.
-2. Any application showing a red/warning status has a degraded HelmRelease.
-3. Click the application → **View Details** to see the Helm error message.
-
-**5 — Force Flux reconciliation (if a catalog app is stuck):**
-
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  flux reconcile helmrelease grafana -n monitoring
+```execute
+kubectl logs <pod> -n <namespace> --tail=50
 ```
 
-**6 — NKP AI Navigator:**
+### Technique 4 — Node health
 
-In the Kommander UI, look for the **AI Navigator** or **Insights** panel. It surfaces anomalies
-detected by NKP's built-in intelligence — failed controllers, resource pressure, certificate
-expiry warnings — before they become incidents.
+```execute
+kubectl describe nodes | grep -A5 "Conditions:"
+```
+
+### Technique 5 — Resource pressure
+
+```execute
+kubectl top nodes
+```
+
+```execute
+kubectl top pods -A --sort-by=memory | head -20
+```
+
+> **Checkpoint ✅** — You have the five essential troubleshooting tools for any NKP cluster.
 
 ---
 
 ## Summary
 
-You performed the full Day-2 operations lifecycle on `workload01`:
-
-| Operation | Result |
-|-----------|--------|
-| Scale out | Added a worker node (4 total) |
-| Scale in | Gracefully removed a node (back to 3) |
-| Upgrade | Rolled through a Kubernetes version upgrade |
-| Backup | Snapshotted `bls-app` namespace with Velero |
-| Restore | Recovered deleted namespace from backup |
-| Troubleshoot | Applied event inspection and Flux reconciliation |
-
-NKP handles the complexity of each operation. Your job as an operator is to declare the
-desired state — NKP ensures the cluster converges to it safely.
+Day-2 operations in NKP are declarative. Scaling and upgrades are state changes you declare;
+NKP converges to them safely using CAPI's rolling replacement model. Velero provides point-in-time
+recovery for any namespace. The CLI commands on this page are your toolkit for any production issue.

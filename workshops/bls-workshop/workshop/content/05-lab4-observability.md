@@ -20,61 +20,38 @@ NKP ships a pre-integrated observability stack:
 | **Grafana** | Visualizes metrics in pre-built and custom dashboards |
 | **Alertmanager** | Routes and manages alerts from Prometheus rules |
 | **Fluent Bit** | Collects container logs and forwards to OpenSearch |
-| **OpenSearch** | Indexes and makes logs searchable |
-
-```mermaid
-graph LR
-    NODES["Nodes + Pods"] -->|"metrics"| PROM["Prometheus"]
-    NODES -->|"logs"| FB["Fluent Bit"]
-    FB --> OS["OpenSearch"]
-    PROM --> GRAF["Grafana"]
-    PROM --> AM["Alertmanager"]
-    AM -->|"notify"| OPS["On-call"]
-
-    style PROM fill:#e6522c,color:#fff
-    style GRAF fill:#f46800,color:#fff
-    style AM fill:#e6522c,color:#fff
-    style FB fill:#0ea5e9,color:#fff
-```
 
 ---
 
 ## Step 1 — Confirm Monitoring Stack is Running
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get pods -n monitoring
+```execute
+kubectl get pods -n monitoring
 ```
 
-You should see pods for:
-- `prometheus-...`
-- `grafana-...`
-- `alertmanager-...`
-- `kube-state-metrics-...`
-- `node-exporter-...` (one per node)
+You should see pods for `prometheus-*`, `grafana-*`, `alertmanager-*`, `kube-state-metrics-*`, and `node-exporter-*` (one per node).
 
 Check resource usage at a glance:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl top nodes
+```execute
+kubectl top nodes
 ```
 
 ---
 
 ## Step 2 — Open Grafana
 
-Get the Grafana URL:
+Get the Grafana ingress URL:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get ingress -n monitoring
+```execute
+kubectl get ingress -n monitoring
 ```
 
-Or access it via the Kommander UI:
+Or open it directly from Kommander:
 
-1. Kommander → **Clusters** → `workload01` → **Applications**
-2. Click the **Grafana** tile → **Open** (or the external link icon).
+1. Click the **Kommander** tab on the right.
+2. Navigate to **Clusters** → `workload01` → **Applications**.
+3. Click the **Grafana** tile → **Open**.
 
 Log in with the admin credentials your facilitator provided.
 
@@ -83,7 +60,7 @@ Log in with the admin credentials your facilitator provided.
 ## Step 3 — Explore Pre-Built Dashboards
 
 1. In Grafana, click **Dashboards** in the left sidebar.
-2. Open the **Kubernetes / Compute Resources / Cluster** dashboard.
+2. Open **Kubernetes / Compute Resources / Cluster**.
 
 **What to look for:**
 
@@ -95,10 +72,7 @@ Log in with the admin credentials your facilitator provided.
 | Pod Restart Count | Pods that may be crashing or OOM-killing |
 
 3. Open **Kubernetes / Compute Resources / Node (Pods)** — select a node from the dropdown.
-4. Open **Kubernetes / USE Method / Cluster** — Utilization, Saturation, Errors for each resource.
-
-> **Observe:** These dashboards are powered entirely by Prometheus scraping standard Kubernetes
-> metrics — no custom instrumentation needed.
+4. Open **Kubernetes / USE Method / Cluster** — Utilization, Saturation, Errors per resource.
 
 ---
 
@@ -106,25 +80,29 @@ Log in with the admin credentials your facilitator provided.
 
 1. In Grafana, go to **Explore** (compass icon in the left sidebar).
 2. Ensure the data source is set to **Prometheus**.
-3. Run a few queries to understand the cluster:
+3. Run these queries one at a time — click the copy button then paste into Grafana:
 
-**Node CPU usage (percentage):**
-```promql
+**Node CPU usage (%):**
+
+```copy
 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
 ```
 
 **Memory available per node (GB):**
-```promql
+
+```copy
 node_memory_MemAvailable_bytes / 1024 / 1024 / 1024
 ```
 
-**Number of running pods per node:**
-```promql
+**Running pods per node:**
+
+```copy
 count by (node) (kube_pod_info{node!=""})
 ```
 
 **Pods not in Running state:**
-```promql
+
+```copy
 kube_pod_status_phase{phase!="Running",phase!="Succeeded"} == 1
 ```
 
@@ -134,50 +112,40 @@ kube_pod_status_phase{phase!="Running",phase!="Succeeded"} == 1
 
 ## Step 5 — Explore Alertmanager
 
-1. Get the Alertmanager URL:
+Get the Alertmanager URL:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get ingress -n monitoring | grep alertmanager
+```execute
+kubectl get ingress -n monitoring
 ```
 
-2. Open the URL. You will see any currently firing alerts.
-3. Click **Alerts** in the navigation — browse the active alert rules.
-4. Click any alert to see its **Labels**, **Annotations**, and **Source** (the PromQL expression that triggers it).
-
----
-
-## Step 6 — Inspect Alert Rules
+Open the Alertmanager URL in your browser. You will see any currently firing alerts.
 
 View the Prometheus alert rules loaded into the cluster:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get prometheusrule -A
+```execute
+kubectl get prometheusrule -A
 ```
 
 Inspect a specific rule:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get prometheusrule -n monitoring kube-prometheus-stack-kubernetes-system \
+```execute
+kubectl get prometheusrule -n monitoring kube-prometheus-stack-kubernetes-system \
   -o jsonpath='{.spec.groups[0].rules[0]}' | python3 -m json.tool
 ```
 
-> **Observe:** Alert rules are Kubernetes resources — they can be versioned in Git and deployed
-> via the same GitOps workflow used for applications.
+> **Observe:** Alert rules are Kubernetes resources — they can be versioned in Git and deployed via the same GitOps workflow used for applications.
 
 ---
 
-## Step 7 — Create a Custom Dashboard Panel
+## Step 6 — Create a Custom Dashboard Panel
 
 In Grafana, add a panel to track your application namespace:
 
 1. Click **Dashboards** → **New** → **New Dashboard** → **Add visualization**.
 2. Select **Prometheus** as the data source.
-3. Enter this query to track pod restarts in the `bls-app` namespace (from Lab 2):
+3. Copy and paste this query to track pod restarts in `bls-app` (from Lab 2):
 
-```promql
+```copy
 sum(increase(kube_pod_container_status_restarts_total{namespace="bls-app"}[1h]))
 ```
 
@@ -186,30 +154,36 @@ sum(increase(kube_pod_container_status_restarts_total{namespace="bls-app"}[1h]))
 
 ---
 
-## Step 8 — Review Node Exporter Metrics
+## Step 7 — Review Node Exporter Metrics
 
-Each cluster node runs a `node-exporter` daemonset that exposes host-level metrics.
-View the node exporter pods:
+View the node exporter daemonset pods:
 
-```bash
-KUBECONFIG=/Git/Nutanix-NKP-Workshop/auth/workload01.conf \
-  kubectl get pods -n monitoring -l app.kubernetes.io/name=node-exporter
+```execute
+kubectl get pods -n monitoring -l app.kubernetes.io/name=node-exporter
 ```
 
-In Grafana, open **Node Exporter Full** dashboard and select any node from the dropdown.
-Key metrics to review:
-- Disk I/O read/write throughput
-- Network interface errors
-- System load (1m/5m/15m)
-- Filesystem usage per mount point
+In Grafana, open **Node Exporter Full** and select any node from the dropdown. Key metrics to review:
+- **CPU** — system vs user vs iowait
+- **Memory** — used/available/cached
+- **Disk I/O** — read/write throughput
+- **Network** — interface traffic
 
-> **Checkpoint ✅** — You have a custom dashboard saved in Grafana showing `bls-app` health,
-> and have reviewed node-level metrics.
+---
+
+## Step 8 — Check Cluster Events
+
+Events are the first tool to reach for when something looks off:
+
+```execute
+kubectl get events -A --sort-by='.lastTimestamp' | tail -20
+```
+
+> **Checkpoint ✅** — You explored Grafana, queried Prometheus, and reviewed alert rules. The observability stack requires zero configuration — it's part of every NKP cluster.
 
 ---
 
 ## Summary
 
-NKP's observability stack provides full-stack visibility — from node hardware metrics through
-application pods — out of the box. Prometheus, Grafana, and Alertmanager work together to give
-operations teams real-time insight and proactive alerting without additional setup.
+NKP's built-in observability stack gives platform teams immediate visibility into every cluster
+without manual installation. Prometheus, Grafana, and Alertmanager are pre-configured and
+pre-wired to all workloads from day one.
