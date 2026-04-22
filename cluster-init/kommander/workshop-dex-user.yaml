@@ -1,0 +1,26 @@
+apiVersion: dex.coreos.com/v1
+kind: Password
+metadata:
+  name: workshop-nuth-lab-xyz
+  namespace: kommander
+# email: workshop@nuth-lab.xyz
+# password: NKP-Workshop-2026
+# Regenerate hash: kubectl run bcrypt-gen -n kommander --image=python:3.11-slim --restart=Never --rm -i -- \
+#   sh -c "pip install bcrypt -q && python3 -c \"import bcrypt; print(bcrypt.hashpw(b'NKP-Workshop-2026', bcrypt.gensalt(rounds=10)).decode())\""
+hash: "$2b$10$6UeFHJDa3gZBPOBfu1H0XOwTLxy3pPc3eL/RcjomjDQt6cr6iRWJ."
+username: workshop
+userId: workshop@nuth-lab.xyz
+email: workshop@nuth-lab.xyz
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kommander-workshop-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: User
+  name: workshop@nuth-lab.xyz
+  apiGroup: rbac.authorization.k8s.io

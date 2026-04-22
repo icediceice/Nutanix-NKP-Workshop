@@ -29,6 +29,7 @@ services, observe infrastructure health, and run Day-2 operations — all throug
 | Component | Details |
 |-----------|---------|
 | **Kommander (Management)** | Click the **Kommander** tab on the right → |
+| **Kommander login** | `workshop@nuth-lab.xyz` / `NKP-Workshop-2026` |
 | **Workload cluster** | `workload01` — your terminal is pre-wired to it |
 | **kubectl** | Ready to use — try it now: |
 

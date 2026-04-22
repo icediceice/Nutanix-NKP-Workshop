@@ -62,6 +62,15 @@ else
 fi
 echo "  ✓ Kommander domain redirect applied"
 
+# ──────────────────────────────────────────────
+# Step 2: Shared workshop Dex user
+# ──────────────────────────────────────────────
+echo "[2] Shared workshop Dex user (workshop@nuth-lab.xyz)..."
+kubectl apply -f "${SCRIPT_DIR}/kommander/workshop-dex-user.yaml"
+echo "  ✓ Dex user + ClusterRoleBinding applied"
+echo "  ℹ  Login: workshop@nuth-lab.xyz / NKP-Workshop-2026"
+echo "  ℹ  To change password: regenerate bcrypt hash and update workshop-dex-user.yaml"
+
 echo ""
 echo "╔══════════════════════════════════════════════════════╗"
 echo "║   Management Cluster Init Complete!                  ║"
