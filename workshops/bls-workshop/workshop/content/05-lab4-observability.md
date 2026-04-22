@@ -13,34 +13,49 @@ infrastructure metrics.
 
 ---
 
-## Step 1 — Generate Traffic
+## Step 1 — Inject Istio Sidecars
 
-The otel-shop services only produce traces when they receive requests. Run a quick traffic
-burst from within the cluster:
+Your otel-shop pods were created before Istio was installed — they don't have Envoy sidecars yet.
+Restart the deployments so Istio injects them:
 
 ```execute
-kubectl run traffic-gen-$SESSION_NAME \
-  --image=curlimages/curl \
-  --restart=Never \
-  -n bls-app-$SESSION_NAME \
-  -- sh -c 'for i in $(seq 1 30); do curl -s http://frontend/ > /dev/null; curl -s http://frontend/products > /dev/null; done; echo done'
+kubectl rollout restart deployment -n bls-app-$SESSION_NAME
 ```
 
-Wait for it to complete:
+Wait for all pods to be ready (they will now show `2/2` — app + sidecar):
 
 ```execute
-kubectl logs -n bls-app-$SESSION_NAME traffic-gen-$SESSION_NAME --follow
+kubectl get pods -n bls-app-$SESSION_NAME -w
 ```
 
-Clean up when done:
+Press `Ctrl+C` when all pods show `2/2 Running`.
+
+---
+
+## Step 2 — Generate Traffic
+
+The otel-shop services only produce traces when they receive requests. Port-forward the
+frontend to your terminal and send a burst of requests:
 
 ```execute
-kubectl delete pod traffic-gen-$SESSION_NAME -n bls-app-$SESSION_NAME
+kubectl port-forward -n bls-app-$SESSION_NAME svc/frontend 8080:80 &
+```
+
+Wait 3 seconds for the tunnel to open, then fire requests:
+
+```execute
+for i in $(seq 1 30); do curl -s http://localhost:8080/ > /dev/null; curl -s http://localhost:8080/products > /dev/null; done; echo "Traffic done"
+```
+
+Stop the port-forward when finished:
+
+```execute
+pkill -f "port-forward.*8080"
 ```
 
 ---
 
-## Step 2 — Kiali: Service Mesh Topology
+## Step 3 — Kiali: Service Mesh Topology
 
 Kiali shows how your services talk to each other in real time.
 
@@ -70,7 +85,7 @@ In Kiali:
 
 ---
 
-## Step 3 — Jaeger: Distributed Traces
+## Step 4 — Jaeger: Distributed Traces
 
 Jaeger captures the full request path across all services — every hop, every latency.
 
@@ -96,7 +111,7 @@ In Jaeger:
 
 ---
 
-## Step 4 — Grafana: Infrastructure Metrics
+## Step 5 — Grafana: Infrastructure Metrics
 
 Grafana shows cluster-level and namespace-level resource metrics.
 
@@ -128,7 +143,7 @@ count(kube_pod_info{namespace="bls-app-$(session_name)"})
 
 ---
 
-## Step 5 — Connect the Dots
+## Step 6 — Connect the Dots
 
 You have now used three tools that complement each other:
 
