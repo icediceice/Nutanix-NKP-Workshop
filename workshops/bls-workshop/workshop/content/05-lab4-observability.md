@@ -32,26 +32,25 @@ Press `Ctrl+C` when all pods show `2/2 Running`.
 
 ---
 
-## Step 2 — Generate Traffic
+## Step 2 — Verify Traffic Generator is Running
 
-The otel-shop services only produce traces when they receive requests. Port-forward the
-frontend to your terminal and send a burst of requests:
+The otel-shop deployment includes a `traffic-gen` pod that continuously calls `catalog-api`,
+`checkout-api`, and `frontend` every 3 seconds from inside the mesh — no manual curl needed.
 
-```execute
-pkill -f "port-forward.*8080" 2>/dev/null; sleep 1; kubectl port-forward -n bls-app-$SESSION_NAME svc/frontend 8080:80 > /dev/null 2>&1 &
-```
-
-Wait 3 seconds for the tunnel to open, then fire requests:
+Check it's running:
 
 ```execute
-sleep 3 && for i in $(seq 1 30); do curl -s http://localhost:8080/ > /dev/null; curl -s http://localhost:8080/products > /dev/null; done; echo "Traffic done"
+kubectl get pods -n bls-app-$SESSION_NAME -l app=traffic-gen
 ```
 
-Stop the port-forward when finished:
+Check its logs to confirm it's generating traffic:
 
 ```execute
-pkill -f "port-forward.*8080" 2>/dev/null; echo "Stopped"
+kubectl logs -n bls-app-$SESSION_NAME deploy/traffic-gen --tail=10
 ```
+
+You should see repeating output like `Traffic generator started — hitting catalog-api...`.
+Wait ~30 seconds for enough traffic to appear in Kiali and Jaeger.
 
 ---
 
