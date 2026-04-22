@@ -205,16 +205,16 @@ kubectl get events -A --sort-by='.lastTimestamp' | tail -30
 kubectl get pods -A | grep -v Running | grep -v Completed
 ```
 
-If any pod is not Running, describe it (replace `<pod>` and `<namespace>`):
+If any pod is not Running, describe it (copy and replace `POD` and `NS` with values from above):
 
-```execute
-kubectl describe pod <pod> -n <namespace>
+```copy
+kubectl describe pod POD -n NS
 ```
 
 ### Technique 3 — Pod logs
 
-```execute
-kubectl logs <pod> -n <namespace> --tail=50
+```copy
+kubectl logs POD -n NS --tail=50
 ```
 
 ### Technique 4 — Node health

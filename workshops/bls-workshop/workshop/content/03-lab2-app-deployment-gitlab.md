@@ -57,11 +57,16 @@ kubectl create secret generic gitlab-credentials \
 
 ## Step 3 — Create a GitRepository Source
 
-Create a `GitRepository` object pointing Flux at the GitLab repo.
-Replace `<gitlab-url>` with the URL your facilitator provided:
+Set your GitLab URL (replace `YOUR_GITLAB_URL` with the value from your facilitator):
 
 ```execute
-cat > ~/gitrepo.yaml << 'EOF'
+export GITLAB_URL=YOUR_GITLAB_URL
+```
+
+Create a `GitRepository` object pointing Flux at the repo:
+
+```execute
+cat > ~/gitrepo.yaml << EOF
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
 metadata:
@@ -69,7 +74,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 1m0s
-  url: https://YOUR_GITLAB_URL/workshop/sample-app.git
+  url: https://\${GITLAB_URL}/workshop/sample-app.git
   secretRef:
     name: gitlab-credentials
   ref:

@@ -70,7 +70,13 @@ Press `Ctrl+C` once all Grafana pods reach `Running`.
 
 ## Step 4 — Inspect the HelmRelease
 
-See how Kommander expressed the installation as a Flux resource:
+Find the Grafana HelmRelease (note the namespace shown):
+
+```execute
+kubectl get helmrelease -A | grep -i grafana
+```
+
+Inspect it (replace `NAMESPACE` with the namespace from above if not `monitoring`):
 
 ```execute
 kubectl get helmrelease grafana -n monitoring -o yaml

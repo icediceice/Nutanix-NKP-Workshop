@@ -126,11 +126,16 @@ View the Prometheus alert rules loaded into the cluster:
 kubectl get prometheusrule -A
 ```
 
-Inspect a specific rule:
+List all rules, then inspect the first one:
 
 ```execute
-kubectl get prometheusrule -n monitoring kube-prometheus-stack-kubernetes-system \
-  -o jsonpath='{.spec.groups[0].rules[0]}' | python3 -m json.tool
+kubectl get prometheusrule -n monitoring
+```
+
+```execute
+kubectl get prometheusrule -n monitoring \
+  $(kubectl get prometheusrule -n monitoring --no-headers -o custom-columns=NAME:.metadata.name | head -1) \
+  -o jsonpath='{.spec.groups[0].rules[0]}'
 ```
 
 > **Observe:** Alert rules are Kubernetes resources — they can be versioned in Git and deployed via the same GitOps workflow used for applications.
