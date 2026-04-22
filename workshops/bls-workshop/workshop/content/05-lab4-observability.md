@@ -34,23 +34,32 @@ Press `Ctrl+C` when all pods show `2/2 Running`.
 
 ## Step 2 — Verify Traffic Generator is Running
 
-The otel-shop deployment includes a `traffic-gen` pod that continuously calls `catalog-api`,
-`checkout-api`, and `frontend` every 3 seconds from inside the mesh — no manual curl needed.
+The otel-shop deployment includes a `traffic-gen` pod that continuously calls `catalog-api/items`,
+`checkout-api/checkout`, and `frontend` every 3 seconds from inside the mesh.
 
-Check it's running:
+First — get your exact namespace name (you'll need this in Kiali):
+
+```execute
+echo "Your namespace: bls-app-$SESSION_NAME"
+```
+
+Check the traffic-gen is running:
 
 ```execute
 kubectl get pods -n bls-app-$SESSION_NAME -l app=traffic-gen
 ```
 
-Check its logs to confirm it's generating traffic:
+Check its logs:
 
 ```execute
-kubectl logs -n bls-app-$SESSION_NAME deploy/traffic-gen --tail=10
+kubectl logs -n bls-app-$SESSION_NAME deploy/traffic-gen --tail=5
 ```
 
-You should see repeating output like `Traffic generator started — hitting catalog-api...`.
-Wait ~30 seconds for enough traffic to appear in Kiali and Jaeger.
+Wait ~30 seconds for traffic to appear in Kiali. When done with the lab, scale it down:
+
+```execute
+kubectl scale deployment traffic-gen -n bls-app-$SESSION_NAME --replicas=0
+```
 
 ---
 
@@ -65,7 +74,7 @@ Kiali shows how your services talk to each other in real time — powered by the
 In Kiali:
 
 1. Click **Graph** in the left sidebar.
-2. In the **Namespace** dropdown, select `bls-app-$(session_name)`.
+2. In the **Namespace** dropdown, select your namespace (from Step 2 above — the full `bls-app-...` name).
 3. Set the time range to **Last 5m** and enable **Traffic Animation**.
 
 **What to look for:**
