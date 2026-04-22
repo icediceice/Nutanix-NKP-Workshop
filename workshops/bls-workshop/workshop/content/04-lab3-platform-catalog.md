@@ -20,7 +20,7 @@ Helm chart from the curated repository.
 
 ## Step 1 — Open the Catalog in Kommander
 
-1. Click the **Kommander** tab on the right.
+1. Click **<a href="https://10.38.60.15/dkp/kommander/dashboard/" target="_blank">Open Kommander ↗</a>**.
 2. Navigate to **Clusters** → click `workload01`.
 3. In the cluster sidebar, click **Applications** (or **Add-ons / Catalog**).
 4. You will see the catalog grid — all available platform applications.

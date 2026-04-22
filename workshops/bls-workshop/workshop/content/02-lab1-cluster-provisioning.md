@@ -31,7 +31,7 @@ In this lab you will use the **Register** path to attach `workload01`.
 
 ## Step 1 — Open Kommander
 
-Click the **Kommander** tab on the right side of this screen.
+Click **<a href="https://10.38.60.15/dkp/kommander/dashboard/" target="_blank">Open Kommander ↗</a>** to open the dashboard in a new browser tab.
 
 Log in with the credentials your facilitator provided. You should land on the **Kommander Dashboard** — the global overview page.
 

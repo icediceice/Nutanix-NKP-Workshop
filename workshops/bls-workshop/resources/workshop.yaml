@@ -22,9 +22,6 @@ spec:
       budget: custom
       security:
         policy: privileged
-    dashboards:
-      - name: Commander
-        url: "https://10.38.60.15/dkp/kommander/dashboard"
     applications:
       terminal:
         enabled: true
