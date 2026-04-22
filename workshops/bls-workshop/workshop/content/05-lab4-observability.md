@@ -38,7 +38,7 @@ The otel-shop services only produce traces when they receive requests. Port-forw
 frontend to your terminal and send a burst of requests:
 
 ```execute
-pkill -f "port-forward.*8080" 2>/dev/null; sleep 1; kubectl port-forward -n bls-app-$SESSION_NAME svc/frontend 8080:80 &
+pkill -f "port-forward.*8080" 2>/dev/null; sleep 1; kubectl port-forward -n bls-app-$SESSION_NAME svc/frontend 8080:80 > /dev/null 2>&1 &
 ```
 
 Wait 3 seconds for the tunnel to open, then fire requests:
