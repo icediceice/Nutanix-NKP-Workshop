@@ -73,7 +73,7 @@ Press `Ctrl+C` once the node count returns to 3.
 ### Step B1 — Check Current Version
 
 ```execute
-kubectl version --short
+kubectl version --client
 ```
 
 ### Step B2 — Initiate an Upgrade via Kommander UI

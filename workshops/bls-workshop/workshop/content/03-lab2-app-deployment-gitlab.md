@@ -38,14 +38,19 @@ kubectl create namespace bls-app
 
 ## Step 2 — Create a GitLab Credentials Secret
 
-Flux needs credentials to pull from a private GitLab repo. Replace `<token>` with the value
-from your facilitator, then run:
+Flux needs credentials to pull from a private GitLab repo. Set your token first (replace `YOUR_TOKEN` with the value from your facilitator):
+
+```execute
+export GITLAB_TOKEN=YOUR_TOKEN
+```
+
+Then create the secret:
 
 ```execute
 kubectl create secret generic gitlab-credentials \
   --namespace flux-system \
   --from-literal=username=workshop-user \
-  --from-literal=password=<token>
+  --from-literal=password=${GITLAB_TOKEN}
 ```
 
 ---
@@ -64,7 +69,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 1m0s
-  url: https://<gitlab-url>/workshop/sample-app.git
+  url: https://YOUR_GITLAB_URL/workshop/sample-app.git
   secretRef:
     name: gitlab-credentials
   ref:
