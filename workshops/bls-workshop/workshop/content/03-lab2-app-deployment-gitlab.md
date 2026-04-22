@@ -4,26 +4,31 @@ title: "Lab 2: GitOps App Deployment with Flux (20 min)"
 
 ## Goal
 
-Deploy a real application to `workload01` using **Flux CD** — NKP's built-in GitOps engine —
-pointed at a public GitHub repository. No credentials, no pipelines, no manual apply.
-Three commands and your app is running.
+Deploy a real multi-service ecommerce application to `workload01` using **Flux CD** — NKP's
+built-in GitOps engine. No pipelines, no manual apply. Three commands and your app is running.
 
 ---
 
-## Background
+## The App — otel-shop
 
-NKP ships **Flux CD** as its native GitOps engine. Flux watches a Git repository and
-continuously reconciles the cluster to match what is declared there — automatically.
+The app you're deploying is a microservices ecommerce store with four services:
 
-Two Flux resources drive every deployment:
+```
+Browser → frontend → catalog-api    (product listings)
+                   → checkout-api → payment-mock  (order + payment)
+```
 
-| Resource | Purpose |
-|----------|---------|
-| `GitRepository` | Points Flux at a Git repo (URL + branch) |
-| `Kustomization` | Tells Flux which path in that repo to apply and to which namespace |
+| Service | Role |
+|---------|------|
+| `frontend` | Web UI — product catalog and checkout flow |
+| `catalog-api` | Returns product listings |
+| `checkout-api` | Handles orders, calls payment-mock |
+| `payment-mock` | Simulates payment processing |
 
-> **Your session namespace:** `bls-app-$(session_name)` — every attendee gets an isolated
-> namespace on the shared cluster so your resources never conflict with others.
+All four are deployed together from a single Git commit — no manual steps per service.
+
+> **Your session namespace:** `bls-app-$(session_name)` — every attendee gets isolated
+> resources on the shared cluster.
 
 ---
 
@@ -37,8 +42,7 @@ kubectl create namespace bls-app-$(session_name)
 
 ## Step 2 — Create a GitRepository Source
 
-Point Flux at the public **podinfo** GitHub repo — a lightweight Go web app built for
-exactly this kind of demo:
+Point Flux at the public workshop GitHub repo (the app manifests live inside it):
 
 ```execute
 cat > ~/gitrepo.yaml << EOF
@@ -49,9 +53,9 @@ metadata:
   namespace: flux-system
 spec:
   interval: 1m0s
-  url: https://github.com/stefanprodan/podinfo
+  url: https://github.com/icediceice/Nutanix-NKP-Workshop
   ref:
-    branch: master
+    branch: main
 EOF
 kubectl apply -f ~/gitrepo.yaml
 ```
@@ -62,13 +66,13 @@ Check Flux can reach the repo (~15 seconds):
 kubectl get gitrepository -n flux-system bls-app-source-$(session_name)
 ```
 
-Expected: `READY=True`, `STATUS=stored artifact for revision 'master/...'`
+Expected: `READY=True`
 
 ---
 
 ## Step 3 — Deploy with a Kustomization
 
-Tell Flux to apply the `./kustomize` path from that repo into your namespace:
+Tell Flux to apply the otel-shop manifests into your namespace:
 
 ```execute
 cat > ~/kustomization.yaml << EOF
@@ -79,7 +83,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 5m0s
-  path: ./kustomize
+  path: ./workshops/bls-workshop/apps/otel-shop
   prune: true
   sourceRef:
     kind: GitRepository
@@ -89,34 +93,37 @@ EOF
 kubectl apply -f ~/kustomization.yaml
 ```
 
-Watch the pods come up (~30 seconds):
+Watch all four services come up (~60 seconds):
 
 ```execute
 kubectl get pods -n bls-app-$(session_name) -w
 ```
 
-Press `Ctrl+C` when you see the pod in `Running` state.
+Press `Ctrl+C` when all pods show `Running`.
 
-> **Checkpoint ✅** — podinfo pod is Running in `bls-app-$(session_name)`.
+> **Checkpoint ✅** — 4 pods Running: `frontend`, `catalog-api`, `checkout-api`, `payment-mock`.
 
 ---
 
 ## Step 4 — Explore the Deployment
 
-Check what Flux deployed into your namespace:
+See everything Flux deployed in a single command:
 
 ```execute
 kubectl get all -n bls-app-$(session_name)
 ```
 
-You'll see a Deployment, ReplicaSet, Pod, Service, and HorizontalPodAutoscaler — all
-created from a single `Kustomization` object pointing at a GitHub repo.
+You'll see 4 Deployments, 4 Services — all created from one `Kustomization` pointing at a
+path in a GitHub repo. No `kubectl apply` was run for any individual resource.
 
-Describe the podinfo service to see its configuration:
+Check the inter-service wiring:
 
 ```execute
-kubectl describe svc podinfo -n bls-app-$(session_name)
+kubectl describe deployment frontend -n bls-app-$(session_name)
 ```
+
+Note the `CATALOG_URL` and `CHECKOUT_URL` env vars — the frontend knows where to find the
+other services in the same namespace.
 
 ---
 
@@ -125,20 +132,19 @@ kubectl describe svc podinfo -n bls-app-$(session_name)
 1. Click **<a href="https://kommander.nkp.nuth-lab.xyz" target="_blank">Open Kommander ↗</a>**.
 2. In the left navigation go to **Continuous Delivery**.
 3. Select **GitRepositories** — find `bls-app-source-$(session_name)` with `READY=True`.
-4. Select **Kustomizations** — find `bls-app-$(session_name)` showing the applied revision and last reconcile time.
+4. Select **Kustomizations** — find `bls-app-$(session_name)` showing the applied revision,
+   last reconcile time, and the 8 resources it manages.
 
-This is the GitOps view — every application on this cluster is managed from Git, not from someone's terminal.
+Every service on this cluster is sourced from Git. No snowflake deployments.
 
 ---
 
 ## Step 6 — Self-Healing Demo
 
-This is the key Flux behaviour: the cluster always converges back to what Git declares.
-
-Delete the deployment manually:
+Delete the entire frontend — Flux will restore it automatically:
 
 ```execute
-kubectl delete deployment -n bls-app-$(session_name) podinfo
+kubectl delete deployment frontend -n bls-app-$(session_name)
 ```
 
 Confirm it's gone:
@@ -147,13 +153,13 @@ Confirm it's gone:
 kubectl get pods -n bls-app-$(session_name)
 ```
 
-Now watch Flux restore it automatically (within 5 minutes — the reconciliation interval):
+Watch Flux restore it (within 5 minutes — the reconciliation interval):
 
 ```execute
 kubectl get pods -n bls-app-$(session_name) -w
 ```
 
-Press `Ctrl+C` when the pod is `Running` again.
+Press `Ctrl+C` when the frontend pod is `Running` again.
 
-> **This is declarative GitOps** — nobody can permanently delete an app by accident.
-> The cluster always reconciles back to the source of truth in Git.
+> **This is declarative GitOps** — the cluster always converges back to what Git declares.
+> No manual intervention needed, no configuration drift.

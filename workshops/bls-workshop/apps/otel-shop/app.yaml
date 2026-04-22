@@ -1,0 +1,170 @@
+# otel-shop-lite — 4-service ecommerce demo
+# frontend → catalog-api, checkout-api → payment-mock
+# Service URLs use short names (namespace-relative) so Flux targetNamespace works cleanly.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector:
+    app: frontend
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/icediceice/otel-shop-lite-frontend:v1-story-20260219f
+          ports:
+            - containerPort: 8080
+          env:
+            - name: CATALOG_URL
+              value: http://catalog-api
+            - name: CHECKOUT_URL
+              value: http://checkout-api
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 384Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-api
+spec:
+  selector:
+    app: catalog-api
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalog-api
+  template:
+    metadata:
+      labels:
+        app: catalog-api
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/icediceice/otel-shop-lite-catalog-api:v1
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 384Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: checkout-api
+spec:
+  selector:
+    app: checkout-api
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: checkout-api
+  template:
+    metadata:
+      labels:
+        app: checkout-api
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/icediceice/otel-shop-lite-checkout-api:v1
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PAYMENT_URL
+              value: http://payment-mock
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 384Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-mock
+spec:
+  selector:
+    app: payment-mock
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-mock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-mock
+  template:
+    metadata:
+      labels:
+        app: payment-mock
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/icediceice/otel-shop-lite-payment-mock:v1
+          ports:
+            - containerPort: 8080
+          env:
+            - name: FAIL_MODE
+              value: ok
+            - name: LATENCY_MS
+              value: "0"
+            - name: ERROR_RATE
+              value: "0"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 384Mi
