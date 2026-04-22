@@ -151,7 +151,7 @@ Expected: `nginx-...` pod in `Running` state.
 
 ## Step 6 — View in Kommander UI
 
-1. Click **<a href="https://10.38.60.15/dkp/kommander/dashboard/" target="_blank">Open Kommander ↗</a>**.
+1. Click **<a href="https://kommander.nkp.nuth-lab.xyz" target="_blank">Open Kommander ↗</a>**.
 2. Navigate to **Clusters** → `workload01` → **Workloads**.
 3. Filter by namespace `bls-app-$SESSION_NAME` — you will see the NGINX deployment listed.
 4. Click the deployment name to see replica status, pod health, and resource usage.

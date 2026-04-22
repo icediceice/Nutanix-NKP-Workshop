@@ -49,7 +49,7 @@ kubectl get ingress -n monitoring
 
 Or open it directly from Kommander:
 
-1. Click **<a href="https://10.38.60.15/dkp/kommander/dashboard/" target="_blank">Open Kommander ↗</a>**.
+1. Click **<a href="https://kommander.nkp.nuth-lab.xyz" target="_blank">Open Kommander ↗</a>**.
 2. Navigate to **Clusters** → `workload01` → **Applications**.
 3. Click the **Grafana** tile → **Open**.
 

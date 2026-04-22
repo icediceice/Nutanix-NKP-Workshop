@@ -36,7 +36,7 @@ services, observe infrastructure health, and run Day-2 operations — all throug
 | Component | Details |
 |-----------|---------|
 | **Session namespace** | `bls-app-$(session_name)` |
-| **Kommander (Management)** | <a href="https://10.38.60.15/dkp/kommander/dashboard/" target="_blank">Open Kommander ↗</a> |
+| **Kommander (Management)** | <a href="https://kommander.nkp.nuth-lab.xyz" target="_blank">Open Kommander ↗</a> |
 | **Kommander login** | `workshop@nuth-lab.xyz` / `NKP-Workshop-2026` |
 | **Workload cluster** | `workload01` — your terminal is pre-wired to it |
 | **kubectl** | Ready to use — try it now: |
