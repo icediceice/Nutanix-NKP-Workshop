@@ -53,7 +53,7 @@ spec:
     - websecure
   routes:
     - kind: Rule
-      match: PathPrefix(`/dkp/`) || PathPrefix(`/dex`) || PathPrefix(`/token`)
+      match: PathPrefix(`/`)
       middlewares:
         - name: forwardauth
       services:
