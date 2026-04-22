@@ -24,7 +24,7 @@ spec:
         policy: privileged
     dashboards:
       - name: Commander
-        url: "https://10.38.49.16.nip.io/kommander/ui/"
+        url: "https://10.38.60.15/dkp/kommander/dashboard"
     applications:
       terminal:
         enabled: true
