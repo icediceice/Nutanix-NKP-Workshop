@@ -120,7 +120,7 @@ Shows the API server endpoint for `workload01`.
 Check the current Kubernetes version:
 
 ```execute
-kubectl version --short
+kubectl version --client
 ```
 
 ---
