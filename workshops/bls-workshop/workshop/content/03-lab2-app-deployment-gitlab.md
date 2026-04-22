@@ -18,9 +18,12 @@ continuously reconciles the cluster to match what is declared in that repo.
 Two Flux resources drive this:
 
 | Resource | Purpose |
-|----------|---------| 
+|----------|---------|
 | `GitRepository` | Points Flux at a Git repo (URL + credentials) |
 | `Kustomization` | Tells Flux which path in that repo to apply, and to which cluster |
+
+> **Your session namespace:** `bls-app-$(session_name)` — all resources in this lab use this name
+> so every attendee has isolated namespaces and objects on the shared cluster.
 
 ---
 
@@ -28,10 +31,10 @@ Two Flux resources drive this:
 
 Get the GitLab repository URL and a **read-only personal access token** from your facilitator.
 
-Create the application namespace:
+Create your isolated application namespace:
 
 ```execute
-kubectl create namespace bls-app
+kubectl create namespace bls-app-$(session_name)
 ```
 
 ---
@@ -44,10 +47,10 @@ Flux needs credentials to pull from a private GitLab repo. Set your token first 
 export GITLAB_TOKEN=YOUR_TOKEN
 ```
 
-Then create the secret:
+Create your session-scoped secret:
 
 ```execute
-kubectl create secret generic gitlab-credentials \
+kubectl create secret generic gitlab-credentials-$(session_name) \
   --namespace flux-system \
   --from-literal=username=workshop-user \
   --from-literal=password=${GITLAB_TOKEN}
@@ -70,13 +73,13 @@ cat > ~/gitrepo.yaml << EOF
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
 metadata:
-  name: bls-app-source
+  name: bls-app-source-$(session_name)
   namespace: flux-system
 spec:
   interval: 1m0s
-  url: https://\${GITLAB_URL}/workshop/sample-app.git
+  url: https://${GITLAB_URL}/workshop/sample-app.git
   secretRef:
-    name: gitlab-credentials
+    name: gitlab-credentials-$(session_name)
   ref:
     branch: main
 EOF
@@ -89,7 +92,7 @@ kubectl apply -f ~/gitrepo.yaml
 Verify Flux can reach the repo:
 
 ```execute
-kubectl get gitrepository -n flux-system bls-app-source
+kubectl get gitrepository -n flux-system bls-app-source-$(session_name)
 ```
 
 Expected: `READY=True`, `STATUS=stored artifact for revision 'main/...'`
@@ -98,14 +101,14 @@ Expected: `READY=True`, `STATUS=stored artifact for revision 'main/...'`
 
 ## Step 4 — Create a Kustomization
 
-Tell Flux which path to apply to which namespace:
+Tell Flux which path to apply to your namespace:
 
 ```execute
-cat > ~/kustomization.yaml << 'EOF'
+cat > ~/kustomization.yaml << EOF
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: bls-app
+  name: bls-app-$(session_name)
   namespace: flux-system
 spec:
   interval: 5m0s
@@ -113,8 +116,8 @@ spec:
   prune: true
   sourceRef:
     kind: GitRepository
-    name: bls-app-source
-  targetNamespace: bls-app
+    name: bls-app-source-$(session_name)
+  targetNamespace: bls-app-$(session_name)
 EOF
 ```
 
@@ -129,7 +132,7 @@ kubectl apply -f ~/kustomization.yaml
 Check Flux reconciliation status:
 
 ```execute
-kubectl get kustomization -n flux-system bls-app
+kubectl get kustomization -n flux-system bls-app-$(session_name)
 ```
 
 Expected: `READY=True`, `APPLIED REVISION=main/...`
@@ -137,12 +140,12 @@ Expected: `READY=True`, `APPLIED REVISION=main/...`
 Check the running pods:
 
 ```execute
-kubectl get pods -n bls-app
+kubectl get pods -n bls-app-$(session_name)
 ```
 
 Expected: `nginx-...` pod in `Running` state.
 
-> **Checkpoint ✅** — NGINX pod is Running in `bls-app` namespace.
+> **Checkpoint ✅** — NGINX pod is Running in `bls-app-$(session_name)` namespace.
 
 ---
 
@@ -150,7 +153,7 @@ Expected: `nginx-...` pod in `Running` state.
 
 1. Open the **Kommander** tab on the right.
 2. Navigate to **Clusters** → `workload01` → **Workloads**.
-3. Filter by namespace `bls-app` — you will see the NGINX deployment listed.
+3. Filter by namespace `bls-app-$(session_name)` — you will see the NGINX deployment listed.
 4. Click the deployment name to see replica status, pod health, and resource usage.
 
 ---
@@ -163,16 +166,7 @@ Expected: `nginx-...` pod in `Running` state.
 4. Watch the pods update:
 
 ```execute
-kubectl get pods -n bls-app -w
+kubectl get pods -n bls-app-$(session_name) -w
 ```
 
 Press `Ctrl+C` to stop watching.
-
-> **Observe:** A second NGINX pod starts automatically — no manual `kubectl apply` needed.
-
----
-
-## Summary
-
-You connected NKP's built-in Flux CD to a GitLab repository and deployed an application
-to `workload01` entirely via GitOps. Any change pushed to GitLab is automatically applied to the cluster.

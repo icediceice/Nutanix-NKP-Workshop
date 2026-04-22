@@ -29,10 +29,18 @@ services, observe infrastructure health, and run Day-2 operations — all throug
 
 ---
 
+## Your Session
+
+> **Your unique session ID:** `$(session_name)`
+>
+> All namespaces and resources you create use this as a suffix — every attendee gets isolated
+> objects on the shared cluster. Use it when filtering in Kommander and Kiali.
+
 ## Your Environment
 
 | Component | Details |
 |-----------|---------|
+| **Session namespace** | `bls-app-$(session_name)` |
 | **Kommander (Management)** | Click the **Kommander** tab on the right → |
 | **Kommander login** | `workshop@nuth-lab.xyz` / `NKP-Workshop-2026` |
 | **Workload cluster** | `workload01` — your terminal is pre-wired to it |
