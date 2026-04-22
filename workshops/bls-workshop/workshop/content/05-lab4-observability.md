@@ -16,7 +16,7 @@ infrastructure metrics.
 ## Step 1 — Inject Istio Sidecars
 
 Your otel-shop pods were created before Istio was installed — they don't have Envoy sidecars yet.
-Restart the deployments so Istio injects them:
+Restart the deployments so **Istio-Helm** injects them (namespace is already labelled `istio.io/rev=istio-helm`):
 
 ```execute
 kubectl rollout restart deployment -n bls-app-$SESSION_NAME

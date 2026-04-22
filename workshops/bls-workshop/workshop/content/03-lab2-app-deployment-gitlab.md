@@ -39,7 +39,7 @@ kubectl create namespace bls-app-$SESSION_NAME
 ```
 
 ```execute
-kubectl label namespace bls-app-$SESSION_NAME istio-injection=enabled
+kubectl label namespace bls-app-$SESSION_NAME istio.io/rev=istio-helm
 ```
 
 ---
