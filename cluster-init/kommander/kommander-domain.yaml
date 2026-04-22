@@ -38,58 +38,8 @@ spec:
                 port:
                   number: 80
 ---
-# IngressRoutes on websecure (port 443) for sslip domain.
-# Traefik v3 web-entrypoint routes don't mirror to port 443 — explicit routes needed.
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
-metadata:
-  name: sslip-websecure-oauth
-  namespace: kommander
-spec:
-  entryPoints:
-    - websecure
-  routes:
-    - kind: Rule
-      match: PathPrefix(`/_oauth`)
-      services:
-        - name: traefik-forward-auth-mgmt
-          port: 4181
-  tls: {}
----
-# Redirect sslip root / → /dkp/kommander/dashboard so SPA relative assets resolve.
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: sslip-root-redirect
-  namespace: kommander
-spec:
-  redirectRegex:
-    regex: "^https://nkp-10-38-49-16\\.sslip\\.nutanixdemo\\.com/$"
-    replacement: "https://nkp-10-38-49-16.sslip.nutanixdemo.com/dkp/kommander/dashboard"
-    permanent: false
----
-# Safety net: sslip root / → /dkp/kommander/dashboard (no forwardauth needed, just redirect).
-# Handles the case where TFA post-login rd= points to root (stale session state).
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
-metadata:
-  name: sslip-websecure-root
-  namespace: kommander
-spec:
-  entryPoints:
-    - websecure
-  routes:
-    - kind: Rule
-      match: Path(`/`)
-      middlewares:
-        - name: sslip-root-redirect
-      services:
-        - name: kommander
-          port: 80
-  tls: {}
----
-# Dex auth provider on HTTPS — NO forwardauth (Dex IS the auth provider).
-# /dex and /token must not hit forwardauth or the OAuth loop fires.
+# Dex auth provider on HTTPS — lab-kom Dex Ingress has entrypoints:web only,
+# so explicit websecure IngressRoute needed. No forwardauth — Dex IS the auth provider.
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -107,21 +57,50 @@ spec:
           scheme: https
   tls: {}
 ---
-# Only /dkp paths get forwardauth — avoids looping on /dex or /_oauth.
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
+# TFA callback — matches working NKP cluster pattern.
+# No entrypoints annotation → Traefik registers on ALL entrypoints including websecure.
+# forwardauth middleware means TFA receives X-Forwarded-Uri: /_oauth?code=... and
+# correctly handles the OIDC callback, sets cookie, redirects to rd.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
 metadata:
-  name: sslip-websecure-kommander
+  name: tfa-oauth
   namespace: kommander
+  annotations:
+    kubernetes.io/ingress.class: kommander-traefik
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: "kommander-stripprefixes@kubernetescrd,kommander-forwardauth@kubernetescrd"
 spec:
-  entryPoints:
-    - websecure
-  routes:
-    - kind: Rule
-      match: PathPrefix(`/dkp`)
-      middlewares:
-        - name: forwardauth
-      services:
-        - name: kommander
-          port: 80
-  tls: {}
+  rules:
+    - http:
+        paths:
+          - path: /_oauth
+            pathType: Prefix
+            backend:
+              service:
+                name: traefik-forward-auth-mgmt
+                port:
+                  number: 4181
+---
+# Kommander UI — matches working NKP cluster pattern.
+# stripprefixes strips /dkp/kommander/dashboard so kommander receives request at root.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kommander-ui
+  namespace: kommander
+  annotations:
+    kubernetes.io/ingress.class: kommander-traefik
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: "kommander-stripprefixes@kubernetescrd,kommander-forwardauth@kubernetescrd"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /dkp/kommander/dashboard
+            pathType: Prefix
+            backend:
+              service:
+                name: kommander
+                port:
+                  number: 80
