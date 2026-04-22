@@ -68,7 +68,26 @@ spec:
     replacement: "https://nkp-10-38-49-16.sslip.nutanixdemo.com/dkp/kommander/dashboard"
     permanent: false
 ---
-# All sslip HTTPS traffic: root-redirect + forwardauth (auth stays on sslip domain).
+# Dex auth provider on HTTPS — NO forwardauth (Dex IS the auth provider).
+# /dex and /token must not hit forwardauth or the OAuth loop fires.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: sslip-websecure-dex
+  namespace: kommander
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: PathPrefix(`/dex`) || PathPrefix(`/token`)
+      services:
+        - name: dex
+          port: 32000
+          scheme: https
+  tls: {}
+---
+# Only /dkp paths get forwardauth — avoids looping on /dex or /_oauth.
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -79,9 +98,8 @@ spec:
     - websecure
   routes:
     - kind: Rule
-      match: PathPrefix(`/`)
+      match: PathPrefix(`/dkp`)
       middlewares:
-        - name: sslip-root-redirect
         - name: forwardauth
       services:
         - name: kommander
