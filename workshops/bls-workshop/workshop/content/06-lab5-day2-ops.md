@@ -123,11 +123,11 @@ cat > ~/bls-backup.yaml << EOF
 apiVersion: velero.io/v1
 kind: Backup
 metadata:
-  name: bls-app-backup-$(session_name)
+  name: bls-app-backup-$SESSION_NAME
   namespace: velero
 spec:
   includedNamespaces:
-  - bls-app-$(session_name)
+  - bls-app-$SESSION_NAME
 EOF
 ```
 
@@ -138,7 +138,7 @@ kubectl apply -f ~/bls-backup.yaml
 Watch until the backup completes:
 
 ```execute
-kubectl get backup bls-app-backup-$(session_name) -n velero -w
+kubectl get backup bls-app-backup-$SESSION_NAME -n velero -w
 ```
 
 Press `Ctrl+C` once status shows `Completed`.
@@ -148,13 +148,13 @@ Press `Ctrl+C` once status shows `Completed`.
 Delete the namespace to simulate data loss:
 
 ```execute
-kubectl delete namespace bls-app-$(session_name)
+kubectl delete namespace bls-app-$SESSION_NAME
 ```
 
 Confirm it is gone:
 
 ```execute
-kubectl get ns bls-app-$(session_name)
+kubectl get ns bls-app-$SESSION_NAME
 ```
 
 Restore from backup:
@@ -164,10 +164,10 @@ cat > ~/bls-restore.yaml << EOF
 apiVersion: velero.io/v1
 kind: Restore
 metadata:
-  name: bls-app-restore-$(session_name)
+  name: bls-app-restore-$SESSION_NAME
   namespace: velero
 spec:
-  backupName: bls-app-backup-$(session_name)
+  backupName: bls-app-backup-$SESSION_NAME
 EOF
 ```
 
@@ -178,16 +178,16 @@ kubectl apply -f ~/bls-restore.yaml
 Watch the restore:
 
 ```execute
-kubectl get restore bls-app-restore-$(session_name) -n velero -w
+kubectl get restore bls-app-restore-$SESSION_NAME -n velero -w
 ```
 
 Press `Ctrl+C` once `Completed`, then verify:
 
 ```execute
-kubectl get pods -n bls-app-$(session_name)
+kubectl get pods -n bls-app-$SESSION_NAME
 ```
 
-> **Checkpoint ✅** — `bls-app-$(session_name)` namespace and NGINX pods restored.
+> **Checkpoint ✅** — `bls-app-$SESSION_NAME` namespace and NGINX pods restored.
 
 ---
 

@@ -1,5 +1,13 @@
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
 
+// Inject real session name from hostname into display text
+const sessionName = window.location.hostname.split('.')[0];
+document.querySelectorAll('code, p, td, blockquote').forEach(el => {
+  if (el.children.length === 0 && el.textContent.includes('$(session_name)')) {
+    el.textContent = el.textContent.replaceAll('$(session_name)', sessionName);
+  }
+});
+
 // Replace mermaid code blocks with renderable divs before mermaid.run()
 document.querySelectorAll('pre code.language-mermaid').forEach(el => {
   const div = document.createElement('div');

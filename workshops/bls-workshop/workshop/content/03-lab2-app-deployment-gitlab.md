@@ -22,7 +22,7 @@ Two Flux resources drive this:
 | `GitRepository` | Points Flux at a Git repo (URL + credentials) |
 | `Kustomization` | Tells Flux which path in that repo to apply, and to which cluster |
 
-> **Your session namespace:** `bls-app-$(session_name)` — all resources in this lab use this name
+> **Your session namespace:** `bls-app-$SESSION_NAME` — all resources in this lab use this name
 > so every attendee has isolated namespaces and objects on the shared cluster.
 
 ---
@@ -34,7 +34,7 @@ Get the GitLab repository URL and a **read-only personal access token** from you
 Create your isolated application namespace:
 
 ```execute
-kubectl create namespace bls-app-$(session_name)
+kubectl create namespace bls-app-$SESSION_NAME
 ```
 
 ---
@@ -50,7 +50,7 @@ export GITLAB_TOKEN=YOUR_TOKEN
 Create your session-scoped secret:
 
 ```execute
-kubectl create secret generic gitlab-credentials-$(session_name) \
+kubectl create secret generic gitlab-credentials-$SESSION_NAME \
   --namespace flux-system \
   --from-literal=username=workshop-user \
   --from-literal=password=${GITLAB_TOKEN}
@@ -73,13 +73,13 @@ cat > ~/gitrepo.yaml << EOF
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
 metadata:
-  name: bls-app-source-$(session_name)
+  name: bls-app-source-$SESSION_NAME
   namespace: flux-system
 spec:
   interval: 1m0s
   url: https://${GITLAB_URL}/workshop/sample-app.git
   secretRef:
-    name: gitlab-credentials-$(session_name)
+    name: gitlab-credentials-$SESSION_NAME
   ref:
     branch: main
 EOF
@@ -92,7 +92,7 @@ kubectl apply -f ~/gitrepo.yaml
 Verify Flux can reach the repo:
 
 ```execute
-kubectl get gitrepository -n flux-system bls-app-source-$(session_name)
+kubectl get gitrepository -n flux-system bls-app-source-$SESSION_NAME
 ```
 
 Expected: `READY=True`, `STATUS=stored artifact for revision 'main/...'`
@@ -108,7 +108,7 @@ cat > ~/kustomization.yaml << EOF
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: bls-app-$(session_name)
+  name: bls-app-$SESSION_NAME
   namespace: flux-system
 spec:
   interval: 5m0s
@@ -116,8 +116,8 @@ spec:
   prune: true
   sourceRef:
     kind: GitRepository
-    name: bls-app-source-$(session_name)
-  targetNamespace: bls-app-$(session_name)
+    name: bls-app-source-$SESSION_NAME
+  targetNamespace: bls-app-$SESSION_NAME
 EOF
 ```
 
@@ -132,7 +132,7 @@ kubectl apply -f ~/kustomization.yaml
 Check Flux reconciliation status:
 
 ```execute
-kubectl get kustomization -n flux-system bls-app-$(session_name)
+kubectl get kustomization -n flux-system bls-app-$SESSION_NAME
 ```
 
 Expected: `READY=True`, `APPLIED REVISION=main/...`
@@ -140,12 +140,12 @@ Expected: `READY=True`, `APPLIED REVISION=main/...`
 Check the running pods:
 
 ```execute
-kubectl get pods -n bls-app-$(session_name)
+kubectl get pods -n bls-app-$SESSION_NAME
 ```
 
 Expected: `nginx-...` pod in `Running` state.
 
-> **Checkpoint ✅** — NGINX pod is Running in `bls-app-$(session_name)` namespace.
+> **Checkpoint ✅** — NGINX pod is Running in `bls-app-$SESSION_NAME` namespace.
 
 ---
 
@@ -153,7 +153,7 @@ Expected: `nginx-...` pod in `Running` state.
 
 1. Open the **Kommander** tab on the right.
 2. Navigate to **Clusters** → `workload01` → **Workloads**.
-3. Filter by namespace `bls-app-$(session_name)` — you will see the NGINX deployment listed.
+3. Filter by namespace `bls-app-$SESSION_NAME` — you will see the NGINX deployment listed.
 4. Click the deployment name to see replica status, pod health, and resource usage.
 
 ---
@@ -166,7 +166,7 @@ Expected: `nginx-...` pod in `Running` state.
 4. Watch the pods update:
 
 ```execute
-kubectl get pods -n bls-app-$(session_name) -w
+kubectl get pods -n bls-app-$SESSION_NAME -w
 ```
 
 Press `Ctrl+C` to stop watching.

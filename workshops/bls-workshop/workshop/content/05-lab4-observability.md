@@ -151,7 +151,7 @@ In Grafana, add a panel to track your application namespace:
 3. Copy and paste this query to track pod restarts in `bls-app` (from Lab 2):
 
 ```copy
-sum(increase(kube_pod_container_status_restarts_total{namespace="bls-app-$(session_name)"}[1h]))
+sum(increase(kube_pod_container_status_restarts_total{namespace="bls-app-$SESSION_NAME"}[1h]))
 ```
 
 4. Set the panel title to `bls-app Pod Restarts (1h)`.
