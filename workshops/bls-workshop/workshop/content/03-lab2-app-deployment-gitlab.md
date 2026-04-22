@@ -35,11 +35,11 @@ Browser → frontend → catalog-api    (product listings)
 Create the namespace with Istio sidecar injection enabled (used in the observability lab later):
 
 ```execute
-kubectl create namespace bls-app-$(session_name)
+kubectl create namespace bls-app-$SESSION_NAME
 ```
 
 ```execute
-kubectl label namespace bls-app-$(session_name) istio-injection=enabled
+kubectl label namespace bls-app-$SESSION_NAME istio-injection=enabled
 ```
 
 ---
@@ -53,7 +53,7 @@ cat > ~/gitrepo.yaml << EOF
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
 metadata:
-  name: bls-app-source-$(session_name)
+  name: bls-app-source-$SESSION_NAME
   namespace: kommander-flux
 spec:
   interval: 1m0s
@@ -67,7 +67,7 @@ kubectl apply -f ~/gitrepo.yaml
 Check Flux can reach the repo (~15 seconds):
 
 ```execute
-kubectl get gitrepository -n kommander-flux bls-app-source-$(session_name)
+kubectl get gitrepository -n kommander-flux bls-app-source-$SESSION_NAME
 ```
 
 Expected: `READY=True`
@@ -83,7 +83,7 @@ cat > ~/kustomization.yaml << EOF
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: bls-app-$(session_name)
+  name: bls-app-$SESSION_NAME
   namespace: kommander-flux
 spec:
   interval: 5m0s
@@ -91,8 +91,8 @@ spec:
   prune: true
   sourceRef:
     kind: GitRepository
-    name: bls-app-source-$(session_name)
-  targetNamespace: bls-app-$(session_name)
+    name: bls-app-source-$SESSION_NAME
+  targetNamespace: bls-app-$SESSION_NAME
 EOF
 kubectl apply -f ~/kustomization.yaml
 ```
@@ -100,7 +100,7 @@ kubectl apply -f ~/kustomization.yaml
 Watch all four services come up (~60 seconds):
 
 ```execute
-kubectl get pods -n bls-app-$(session_name) -w
+kubectl get pods -n bls-app-$SESSION_NAME -w
 ```
 
 Press `Ctrl+C` when all pods show `Running`.
@@ -114,13 +114,13 @@ Press `Ctrl+C` when all pods show `Running`.
 See everything Flux deployed in a single command:
 
 ```execute
-kubectl get all -n bls-app-$(session_name)
+kubectl get all -n bls-app-$SESSION_NAME
 ```
 
 Check the inter-service wiring — note `CATALOG_URL` and `CHECKOUT_URL` env vars:
 
 ```execute
-kubectl describe deployment frontend -n bls-app-$(session_name)
+kubectl describe deployment frontend -n bls-app-$SESSION_NAME
 ```
 
 ---
@@ -141,13 +141,13 @@ Every service on this cluster is sourced from Git. No snowflake deployments.
 Delete the entire frontend — Flux will restore it automatically:
 
 ```execute
-kubectl delete deployment frontend -n bls-app-$(session_name)
+kubectl delete deployment frontend -n bls-app-$SESSION_NAME
 ```
 
 Watch Flux restore it (within 5 minutes):
 
 ```execute
-kubectl get pods -n bls-app-$(session_name) -w
+kubectl get pods -n bls-app-$SESSION_NAME -w
 ```
 
 Press `Ctrl+C` when the frontend pod is `Running` again.
