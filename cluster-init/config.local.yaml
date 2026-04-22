@@ -1,0 +1,33 @@
+# cluster-init/config.local.yaml
+# Live values for NKP Kommander cluster — gitignored, never commit.
+
+# --- Cluster Connection ---
+kubeconfig_path: ../auth/nkp.conf
+cluster_context: nkp-admin@nkp
+
+# --- Platform Config ---
+storage_class: nutanix-volume
+metallb_ip_range: "10.38.49.39-10.38.49.58"
+ingress_domain: 10.38.49.16.nip.io
+
+# --- Educates Config ---
+educates_version: "3.7.0"
+educates_ingress_domain: 10.38.49.16.nip.io
+educates_ingress_class: "kommander-traefik"
+educates_infra_provider: generic
+educates_policy_engine: kyverno
+
+# --- Registration App ---
+registration_app_nodeport: 30080
+admin_password: "NKPWorkshop2026!"
+
+# --- NUS / S3 Config ---
+s3_endpoint: ""
+s3_access_key: ""
+s3_secret_key: ""
+
+# --- Management Cluster ---
+kommander_mgmt_ip: "10.38.49.16"
+
+# --- Workshop Session Config ---
+session_label: "workshop-2026-04"

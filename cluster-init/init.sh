@@ -318,6 +318,12 @@ if [[ "${APP_ONLY}" == "false" ]] || [[ "${WORKSHOPS_ONLY}" == "true" ]]; then
   done
 
   echo "  ✓ Workshops published"
+
+  # ── Apply apex redirect (nkp.nuth-lab.xyz → bls-workshop /create/) ──
+  echo "  → Applying apex redirect..."
+  kubectl apply -f "${SCRIPT_DIR}/educates/apex-redirect.yaml"
+  echo "  ✓ Apex redirect applied"
+
   [[ "${WORKSHOPS_ONLY}" == "true" ]] && { echo "Done (workshops-only)."; exit 0; }
 fi
 
