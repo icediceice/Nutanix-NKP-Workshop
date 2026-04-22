@@ -9,7 +9,7 @@ stack: Kiali for service mesh topology, Jaeger for distributed traces, and Grafa
 infrastructure metrics.
 
 > **Pre-requisite:** Lab 2 complete — otel-shop running in `bls-app-$(session_name)`.
-> Facilitator has pre-enabled Istio, Kiali, and Jaeger on `workload01`.
+> Facilitator has pre-enabled **Istio-Helm Service Mesh**, **Kiali**, and **Jaeger** on `workload01` via Kommander Platform Services.
 
 ---
 
@@ -57,7 +57,7 @@ pkill -f "port-forward.*8080"
 
 ## Step 3 — Kiali: Service Mesh Topology
 
-Kiali shows how your services talk to each other in real time.
+Kiali shows how your services talk to each other in real time — powered by the **Istio-Helm Service Mesh** sidecars injected in Step 1.
 
 1. Click **<a href="https://kommander.nkp.nuth-lab.xyz" target="_blank">Open Kommander ↗</a>**.
 2. Navigate to **Clusters** → `workload01` → **Platform Services**.
@@ -132,14 +132,65 @@ Grafana shows cluster-level and namespace-level resource metrics.
 | Network I/O | Traffic volume per pod |
 | Throttling | Whether any pod is CPU-throttled |
 
-3. Switch to **Kubernetes / Compute Resources / Cluster** for a full cluster view.
-4. Click **Explore** (compass icon) → run a PromQL query to see your namespace's pod count:
+3. Switch to **Kubernetes / Compute Resources / Cluster** for the full cluster view — see how much of the shared cluster your otel-shop is using.
+
+4. Switch to **Kubernetes / Networking / Namespace (Pods)** — observe inbound/outbound bytes during the traffic burst from Step 2.
+
+---
+
+### PromQL Exploration
+
+Click **Explore** (compass icon in the left sidebar) → ensure data source is **Prometheus** → try these queries one at a time:
+
+**Your namespace pod count:**
 
 ```copy
 count(kube_pod_info{namespace="bls-app-$(session_name)"})
 ```
 
-> **Checkpoint ✅** — You can correlate the traffic you generated in Step 1 with CPU/network spikes in Grafana.
+**CPU usage across your pods (cores):**
+
+```copy
+sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="bls-app-$(session_name)", container!=""}[5m]))
+```
+
+**Memory per pod (MB):**
+
+```copy
+sum by (pod) (container_memory_working_set_bytes{namespace="bls-app-$(session_name)", container!=""}) / 1024 / 1024
+```
+
+**Network bytes received per pod:**
+
+```copy
+sum by (pod) (rate(container_network_receive_bytes_total{namespace="bls-app-$(session_name)"}[5m]))
+```
+
+**Container restarts (should be 0 for healthy app):**
+
+```copy
+sum by (pod) (kube_pod_container_status_restarts_total{namespace="bls-app-$(session_name)"})
+```
+
+**All pods not Running across the whole cluster (health check):**
+
+```copy
+kube_pod_status_phase{phase!="Running", phase!="Succeeded"} == 1
+```
+
+**Node CPU utilisation % (all nodes):**
+
+```copy
+100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+```
+
+**Node memory available (GB):**
+
+```copy
+node_memory_MemAvailable_bytes / 1024 / 1024 / 1024
+```
+
+> **Checkpoint ✅** — You can correlate the traffic burst from Step 2 with CPU/network spikes in Grafana and write your own PromQL queries.
 
 ---
 
