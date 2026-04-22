@@ -29,9 +29,6 @@ spec:
         enabled: false
       editor:
         enabled: false
-    dashboards:
-    - name: Kommander
-      url: https://kommander.nkp.nuth-lab.xyz
     objects:
     - apiVersion: rbac.authorization.k8s.io/v1
       kind: ClusterRoleBinding
