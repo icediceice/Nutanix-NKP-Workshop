@@ -11,7 +11,7 @@ built-in GitOps engine. No pipelines, no manual apply. Three commands and your a
 
 ## The App — otel-shop
 
-The app you're deploying is a microservices ecommerce store with four services:
+A microservices ecommerce store with four services:
 
 ```
 Browser → frontend → catalog-api    (product listings)
@@ -25,8 +25,6 @@ Browser → frontend → catalog-api    (product listings)
 | `checkout-api` | Handles orders, calls payment-mock |
 | `payment-mock` | Simulates payment processing |
 
-All four are deployed together from a single Git commit — no manual steps per service.
-
 > **Your session namespace:** `bls-app-$(session_name)` — every attendee gets isolated
 > resources on the shared cluster.
 
@@ -34,8 +32,14 @@ All four are deployed together from a single Git commit — no manual steps per 
 
 ## Step 1 — Create Your Namespace
 
+Create the namespace with Istio sidecar injection enabled (used in the observability lab later):
+
 ```execute
 kubectl create namespace bls-app-$(session_name)
+```
+
+```execute
+kubectl label namespace bls-app-$(session_name) istio-injection=enabled
 ```
 
 ---
@@ -50,7 +54,7 @@ apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
 metadata:
   name: bls-app-source-$(session_name)
-  namespace: flux-system
+  namespace: kommander-flux
 spec:
   interval: 1m0s
   url: https://github.com/icediceice/Nutanix-NKP-Workshop
@@ -63,7 +67,7 @@ kubectl apply -f ~/gitrepo.yaml
 Check Flux can reach the repo (~15 seconds):
 
 ```execute
-kubectl get gitrepository -n flux-system bls-app-source-$(session_name)
+kubectl get gitrepository -n kommander-flux bls-app-source-$(session_name)
 ```
 
 Expected: `READY=True`
@@ -80,7 +84,7 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: bls-app-$(session_name)
-  namespace: flux-system
+  namespace: kommander-flux
 spec:
   interval: 5m0s
   path: ./workshops/bls-workshop/apps/otel-shop
@@ -101,7 +105,7 @@ kubectl get pods -n bls-app-$(session_name) -w
 
 Press `Ctrl+C` when all pods show `Running`.
 
-> **Checkpoint ✅** — 4 pods Running: `frontend`, `catalog-api`, `checkout-api`, `payment-mock`.
+> **Checkpoint ✅** — 4 pods Running in `bls-app-$(session_name)`.
 
 ---
 
@@ -113,27 +117,20 @@ See everything Flux deployed in a single command:
 kubectl get all -n bls-app-$(session_name)
 ```
 
-You'll see 4 Deployments, 4 Services — all created from one `Kustomization` pointing at a
-path in a GitHub repo. No `kubectl apply` was run for any individual resource.
-
-Check the inter-service wiring:
+Check the inter-service wiring — note `CATALOG_URL` and `CHECKOUT_URL` env vars:
 
 ```execute
 kubectl describe deployment frontend -n bls-app-$(session_name)
 ```
 
-Note the `CATALOG_URL` and `CHECKOUT_URL` env vars — the frontend knows where to find the
-other services in the same namespace.
-
 ---
 
-## Step 5 — View in Kommander
+## Step 5 — View in Kommander Continuous Delivery
 
 1. Click **<a href="https://kommander.nkp.nuth-lab.xyz" target="_blank">Open Kommander ↗</a>**.
 2. In the left navigation go to **Continuous Delivery**.
 3. Select **GitRepositories** — find `bls-app-source-$(session_name)` with `READY=True`.
-4. Select **Kustomizations** — find `bls-app-$(session_name)` showing the applied revision,
-   last reconcile time, and the 8 resources it manages.
+4. Select **Kustomizations** — find `bls-app-$(session_name)` showing the applied revision and the 8 resources it manages.
 
 Every service on this cluster is sourced from Git. No snowflake deployments.
 
@@ -147,13 +144,7 @@ Delete the entire frontend — Flux will restore it automatically:
 kubectl delete deployment frontend -n bls-app-$(session_name)
 ```
 
-Confirm it's gone:
-
-```execute
-kubectl get pods -n bls-app-$(session_name)
-```
-
-Watch Flux restore it (within 5 minutes — the reconciliation interval):
+Watch Flux restore it (within 5 minutes):
 
 ```execute
 kubectl get pods -n bls-app-$(session_name) -w
@@ -161,5 +152,5 @@ kubectl get pods -n bls-app-$(session_name) -w
 
 Press `Ctrl+C` when the frontend pod is `Running` again.
 
-> **This is declarative GitOps** — the cluster always converges back to what Git declares.
-> No manual intervention needed, no configuration drift.
+> **Declarative GitOps** — the cluster always converges back to what Git declares.
+> No manual recovery needed, no configuration drift.
