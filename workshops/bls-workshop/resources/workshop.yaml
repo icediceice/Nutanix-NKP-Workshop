@@ -22,6 +22,9 @@ spec:
       budget: custom
       security:
         policy: privileged
+    dashboards:
+      - name: Commander
+        url: "https://10.38.49.16.nip.io/kommander/ui/"
     applications:
       terminal:
         enabled: true
