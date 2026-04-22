@@ -36,12 +36,19 @@ echo "╚═══════════════════════�
 echo ""
 
 # ── Step 1: Discover active workshop namespace ────────────────────────────────
-info "Discovering active bls-workshop environment..."
-ENV_NAME=$(kubectl --kubeconfig="${KUBECONFIG_MGMT}" get workshopenvironments \
-  -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.workshop.name}{"\n"}{end}' 2>/dev/null \
-  | awk -F'\t' '$2=="bls-workshop"{print $1}' | head -1)
+info "Discovering active bls-workshop environment via training-portal..."
+PORTAL_POD=$(kubectl --kubeconfig="${KUBECONFIG_WK}" get pods \
+  -n nkp-workshop-portal-ui --no-headers 2>/dev/null \
+  | awk '/training-portal/{print $1}' | head -1)
 
-[[ -z "${ENV_NAME}" ]] && fail "No running bls-workshop WorkshopEnvironment found on management cluster."
+[[ -z "${PORTAL_POD}" ]] && fail "training-portal pod not found in nkp-workshop-portal-ui on workload01."
+
+ENV_NAME=$(kubectl --kubeconfig="${KUBECONFIG_WK}" exec \
+  -n nkp-workshop-portal-ui "${PORTAL_POD}" -- \
+  sqlite3 /opt/app-root/data/db.sqlite3 \
+  "SELECT e.name FROM workshops_environment e JOIN workshops_workshop w ON e.workshop_id=w.id WHERE w.name='bls-workshop' LIMIT 1;" 2>/dev/null)
+
+[[ -z "${ENV_NAME}" ]] && fail "bls-workshop environment not found in training-portal DB."
 ok "Environment: ${ENV_NAME}"
 
 # ── Step 2: Build image ───────────────────────────────────────────────────────

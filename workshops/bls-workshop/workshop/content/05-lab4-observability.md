@@ -1,194 +1,142 @@
 ---
-title: "Lab 4: Infrastructure Observability & Monitoring (1 hr)"
+title: "Lab 4: Observability — Traces, Topology & Metrics (1 hr)"
 ---
 
 ## Goal
 
-Explore NKP's built-in observability stack on `workload01`. You will navigate Grafana dashboards,
-query Prometheus metrics, and inspect Alertmanager rules — gaining visibility into cluster health
-without installing any third-party tooling.
+Observe the **otel-shop** application you deployed in Lab 2 using the full NKP observability
+stack: Kiali for service mesh topology, Jaeger for distributed traces, and Grafana for
+infrastructure metrics.
+
+> **Pre-requisite:** Lab 2 complete — otel-shop running in `bls-app-$(session_name)`.
+> Facilitator has pre-enabled Istio, Kiali, and Jaeger on `workload01`.
 
 ---
 
-## Background
+## Step 1 — Generate Traffic
 
-NKP ships a pre-integrated observability stack:
+The otel-shop services only produce traces when they receive requests. Run a quick traffic
+burst from within the cluster:
 
-| Tool | Role |
-|------|------|
-| **Prometheus** | Scrapes metrics from all nodes, pods, and NKP components |
-| **Grafana** | Visualizes metrics in pre-built and custom dashboards |
-| **Alertmanager** | Routes and manages alerts from Prometheus rules |
-| **Fluent Bit** | Collects container logs and forwards to OpenSearch |
+```execute
+kubectl run traffic-gen-$SESSION_NAME \
+  --image=curlimages/curl \
+  --restart=Never \
+  -n bls-app-$SESSION_NAME \
+  -- sh -c 'for i in $(seq 1 30); do curl -s http://frontend/ > /dev/null; curl -s http://frontend/products > /dev/null; done; echo done'
+```
+
+Wait for it to complete:
+
+```execute
+kubectl logs -n bls-app-$SESSION_NAME traffic-gen-$SESSION_NAME --follow
+```
+
+Clean up when done:
+
+```execute
+kubectl delete pod traffic-gen-$SESSION_NAME -n bls-app-$SESSION_NAME
+```
 
 ---
 
-## Step 1 — Confirm Monitoring Stack is Running
+## Step 2 — Kiali: Service Mesh Topology
 
-```execute
-kubectl get pods -n monitoring
-```
-
-You should see pods for `prometheus-*`, `grafana-*`, `alertmanager-*`, `kube-state-metrics-*`, and `node-exporter-*` (one per node).
-
-Check resource usage at a glance:
-
-```execute
-kubectl top nodes
-```
-
----
-
-## Step 2 — Open Grafana
-
-Get the Grafana ingress URL:
-
-```execute
-kubectl get ingress -n monitoring
-```
-
-Or open it directly from Kommander:
+Kiali shows how your services talk to each other in real time.
 
 1. Click **<a href="https://kommander.nkp.nuth-lab.xyz" target="_blank">Open Kommander ↗</a>**.
-2. Navigate to **Clusters** → `workload01` → **Applications**.
-3. Click the **Grafana** tile → **Open**.
+2. Navigate to **Clusters** → `workload01` → **Platform Services**.
+3. Find **Kiali** → click **Open**.
 
-Log in with the admin credentials your facilitator provided.
+In Kiali:
+
+1. Click **Graph** in the left sidebar.
+2. In the **Namespace** dropdown, select `bls-app-$(session_name)`.
+3. Set the time range to **Last 5m** and enable **Traffic Animation**.
+
+**What to look for:**
+
+| Element | Meaning |
+|---------|---------|
+| Arrows between services | Active request paths |
+| Green edges | Healthy traffic (2xx responses) |
+| Red/orange edges | Errors or timeouts |
+| Numbers on edges | Requests per second |
+
+4. Click on the **frontend** node → **Details** panel shows inbound/outbound request rates.
+5. Click on the **checkout-api** node — observe it calls both `catalog-api` and `payment-mock`.
+
+> **Checkpoint ✅** — You can see the 4-service call graph and confirm all edges are green.
 
 ---
 
-## Step 3 — Explore Pre-Built Dashboards
+## Step 3 — Jaeger: Distributed Traces
 
-1. In Grafana, click **Dashboards** in the left sidebar.
-2. Open **Kubernetes / Compute Resources / Cluster**.
+Jaeger captures the full request path across all services — every hop, every latency.
+
+1. In Kommander: **Clusters** → `workload01` → **Platform Services** → **Jaeger** → **Open**.
+
+In Jaeger:
+
+1. In the **Service** dropdown, select `frontend`.
+2. Set **Lookback** to `Last 15 minutes`.
+3. Click **Find Traces**.
+
+**Explore a trace:**
+
+1. Click any trace — it opens the waterfall view.
+2. You should see spans for: `frontend` → `catalog-api` and `frontend` → `checkout-api` → `payment-mock`.
+3. Click a span to expand timing details.
+
+**Questions to explore:**
+- Which service adds the most latency to a checkout request?
+- What does the span look like for a product listing vs a checkout?
+
+> **Checkpoint ✅** — You can see end-to-end traces crossing all 4 services.
+
+---
+
+## Step 4 — Grafana: Infrastructure Metrics
+
+Grafana shows cluster-level and namespace-level resource metrics.
+
+1. In Kommander: **Clusters** → `workload01` → **Platform Services** → **Grafana** → **Open**.
+2. Log in with the credentials your facilitator provided.
+
+**Explore dashboards:**
+
+1. Click **Dashboards** → **Kubernetes / Compute Resources / Namespace (Pods)**.
+2. In the **namespace** dropdown, select `bls-app-$(session_name)`.
 
 **What to look for:**
 
 | Panel | Meaning |
 |-------|---------|
-| CPU Usage by Namespace | Which workloads are consuming CPU |
-| Memory Usage by Namespace | Which namespaces are approaching limits |
-| Network Bytes Received/Transmitted | Traffic patterns across the cluster |
-| Pod Restart Count | Pods that may be crashing or OOM-killing |
+| CPU Usage | Which service is most CPU-intensive |
+| Memory Usage | Baseline memory per service pod |
+| Network I/O | Traffic volume per pod |
+| Throttling | Whether any pod is CPU-throttled |
 
-3. Open **Kubernetes / Compute Resources / Node (Pods)** — select a node from the dropdown.
-4. Open **Kubernetes / USE Method / Cluster** — Utilization, Saturation, Errors per resource.
-
----
-
-## Step 4 — Query Prometheus Directly
-
-1. In Grafana, go to **Explore** (compass icon in the left sidebar).
-2. Ensure the data source is set to **Prometheus**.
-3. Run these queries one at a time — click the copy button then paste into Grafana:
-
-**Node CPU usage (%):**
+3. Switch to **Kubernetes / Compute Resources / Cluster** for a full cluster view.
+4. Click **Explore** (compass icon) → run a PromQL query to see your namespace's pod count:
 
 ```copy
-100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+count(kube_pod_info{namespace="bls-app-$(session_name)"})
 ```
 
-**Memory available per node (GB):**
-
-```copy
-node_memory_MemAvailable_bytes / 1024 / 1024 / 1024
-```
-
-**Running pods per node:**
-
-```copy
-count by (node) (kube_pod_info{node!=""})
-```
-
-**Pods not in Running state:**
-
-```copy
-kube_pod_status_phase{phase!="Running",phase!="Succeeded"} == 1
-```
-
-> **Checkpoint ✅** — You can run PromQL queries and read live cluster metrics.
+> **Checkpoint ✅** — You can correlate the traffic you generated in Step 1 with CPU/network spikes in Grafana.
 
 ---
 
-## Step 5 — Explore Alertmanager
+## Step 5 — Connect the Dots
 
-Get the Alertmanager URL:
+You have now used three tools that complement each other:
 
-```execute
-kubectl get ingress -n monitoring
-```
+| Question | Tool |
+|----------|------|
+| "Which service is failing?" | Kiali — red edges in graph |
+| "What's the full call chain for this slow request?" | Jaeger — trace waterfall |
+| "Is the cluster running out of CPU/memory?" | Grafana — resource dashboards |
 
-Open the Alertmanager URL in your browser. You will see any currently firing alerts.
-
-View the Prometheus alert rules loaded into the cluster:
-
-```execute
-kubectl get prometheusrule -A
-```
-
-List all rules, then inspect the first one:
-
-```execute
-kubectl get prometheusrule -n monitoring
-```
-
-```execute
-kubectl get prometheusrule -n monitoring \
-  $(kubectl get prometheusrule -n monitoring --no-headers -o custom-columns=NAME:.metadata.name | head -1) \
-  -o jsonpath='{.spec.groups[0].rules[0]}'
-```
-
-> **Observe:** Alert rules are Kubernetes resources — they can be versioned in Git and deployed via the same GitOps workflow used for applications.
-
----
-
-## Step 6 — Create a Custom Dashboard Panel
-
-In Grafana, add a panel to track your application namespace:
-
-1. Click **Dashboards** → **New** → **New Dashboard** → **Add visualization**.
-2. Select **Prometheus** as the data source.
-3. Copy and paste this query to track pod restarts in `bls-app` (from Lab 2):
-
-```copy
-sum(increase(kube_pod_container_status_restarts_total{namespace="bls-app-$(session_name)"}[1h]))
-```
-
-4. Set the panel title to `bls-app Pod Restarts (1h)`.
-5. Click **Apply** → **Save dashboard** → name it `BLS Workshop`.
-
----
-
-## Step 7 — Review Node Exporter Metrics
-
-View the node exporter daemonset pods:
-
-```execute
-kubectl get pods -n monitoring -l app.kubernetes.io/name=node-exporter
-```
-
-In Grafana, open **Node Exporter Full** and select any node from the dropdown. Key metrics to review:
-- **CPU** — system vs user vs iowait
-- **Memory** — used/available/cached
-- **Disk I/O** — read/write throughput
-- **Network** — interface traffic
-
----
-
-## Step 8 — Check Cluster Events
-
-Events are the first tool to reach for when something looks off:
-
-```execute
-kubectl get events -A --sort-by='.lastTimestamp' | tail -20
-```
-
-> **Checkpoint ✅** — You explored Grafana, queried Prometheus, and reviewed alert rules. The observability stack requires zero configuration — it's part of every NKP cluster.
-
----
-
-## Summary
-
-NKP's built-in observability stack gives platform teams immediate visibility into every cluster
-without manual installation. Prometheus, Grafana, and Alertmanager are pre-configured and
-pre-wired to all workloads from day one.
+In production: an alert from Grafana leads you to Kiali to find the failing service, then
+Jaeger to pinpoint the slow span. Each tool answers a different layer of the same problem.
