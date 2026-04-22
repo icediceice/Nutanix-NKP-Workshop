@@ -1,3 +1,17 @@
+## 5. Updating Workshop Content (bls-workshop)
+
+After editing any file under `workshops/bls-workshop/workshop/content/`:
+
+1. Run the reload script — it builds, pushes, and restarts all active sessions atomically:
+   ```bash
+   workshops/bls-workshop/scripts/reload-image.sh
+   ```
+   Requires: sudo, `gh` CLI logged in, `auth/nkp.conf` + `auth/workload01.conf` present.
+
+2. **Never** `kubectl delete workshopenvironment` — detaches from training-portal SQLite, causes spin loop.
+3. **Never** run docker build / rollout restart manually — use the script (it handles locking + dynamic namespace discovery).
+4. Execute blocks in workshop markdown must use `$SESSION_NAME` (shell env var), NOT `$(session_name)` (CRD syntax — display only, substituted by JS).
+
 ## 3. No Real Names
 ## 1. No Real Names
 
