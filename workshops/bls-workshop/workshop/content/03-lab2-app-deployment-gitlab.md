@@ -43,7 +43,7 @@ kubectl create namespace bls-app-$SESSION_NAME
 
 Flux needs credentials to pull from a private GitLab repo. Set your token first (replace `YOUR_TOKEN` with the value from your facilitator):
 
-```execute
+```copy
 export GITLAB_TOKEN=YOUR_TOKEN
 ```
 
@@ -62,7 +62,7 @@ kubectl create secret generic gitlab-credentials-$SESSION_NAME \
 
 Set your GitLab URL (replace `YOUR_GITLAB_URL` with the value from your facilitator):
 
-```execute
+```copy
 export GITLAB_URL=YOUR_GITLAB_URL
 ```
 

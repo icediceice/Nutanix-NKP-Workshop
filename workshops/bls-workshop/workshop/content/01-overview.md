@@ -2,11 +2,6 @@
 title: "Workshop Overview"
 ---
 
-```dashboard:create-dashboard
-name: Kommander
-url: https://kommander.nkp.nuth-lab.xyz
-```
-
 ## Welcome to the BLS NKP Hands-On Workshop
 
 This workshop gives you direct, hands-on experience operating **Nutanix Kubernetes Platform (NKP)**.
