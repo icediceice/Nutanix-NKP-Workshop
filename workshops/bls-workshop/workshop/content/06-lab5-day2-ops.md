@@ -94,7 +94,7 @@ The `PHASE` column should show `Available`.
 ### Step B2 — View Existing Backups
 
 ```execute
-kubectl get backup -n velero
+kubectl get backup.velero.io -n velero
 ```
 
 ### Step B3 — Back Up Your Namespace
@@ -119,7 +119,7 @@ EOF
 Watch until the backup completes:
 
 ```execute
-kubectl get backup bls-app-backup-$SESSION_NAME -n velero -w
+kubectl get backup.velero.io bls-app-backup-$SESSION_NAME -n velero -w
 ```
 
 Press `Ctrl+C` once `STATUS` shows `Completed`.
@@ -157,7 +157,7 @@ EOF
 Watch the restore:
 
 ```execute
-kubectl get restore bls-app-restore-$SESSION_NAME -n velero -w
+kubectl get restore.velero.io bls-app-restore-$SESSION_NAME -n velero -w
 ```
 
 Press `Ctrl+C` once `Completed`, then verify:
