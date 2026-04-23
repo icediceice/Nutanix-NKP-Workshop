@@ -4,9 +4,9 @@ title: "Lab 5: Production Operations — Day-2 Ops (1 hr)"
 
 ## Goal
 
-Experience the full Day-2 operations lifecycle on `workload01`: scale a node pool, perform a
-Kubernetes version upgrade, explore backup and restore, and practise common
-troubleshooting techniques — all driven from the NKP Kommander UI and CLI.
+Experience the Day-2 operations lifecycle on `workload01`: scale workloads in Kubernetes,
+back up and restore a namespace with Velero, and practise common troubleshooting techniques —
+all driven from the NKP Kommander UI and CLI.
 
 ---
 
@@ -14,112 +14,95 @@ troubleshooting techniques — all driven from the NKP Kommander UI and CLI.
 
 | Operation | NKP Mechanism |
 |-----------|--------------|
-| Scale nodes | Modify `MachineDeployment` replica count via UI or CLI |
-| Upgrade Kubernetes | NKP upgrade wizard (CAPI rolling replacement) |
-| Backup / Restore | Velero integration |
+| Scale pods | `kubectl scale` — adjust replica count instantly |
+| Scale nodes | Modify `MachineDeployment` replicas via Kommander UI |
+| Backup / Restore | Velero with MinIO object storage |
 | Troubleshoot | Kommander UI events, kubectl, log inspection |
 
 ---
 
-## Part A — Node Scaling (20 min)
+## Part A — Workload Scaling (20 min)
 
-### Step A1 — View Current Node Pools
+Kubernetes lets you scale any Deployment up or down in seconds — no node changes needed.
+You will scale the otel-shop app you deployed in Lab 2.
 
-```execute
-kubectl get machinedeployment -A
-```
-
-Check current node count:
+### Step A1 — Check Current Replicas
 
 ```execute
-kubectl get nodes
+kubectl get deployments -n bls-app-$SESSION_NAME
 ```
 
-### Step A2 — Scale Out via Kommander UI
+### Step A2 — Scale Up
 
-1. Click the **Kommander** tab on the right.
-2. Navigate to **Clusters** → `workload01` → **Nodes** tab.
-3. Click the worker node pool name → **Edit**.
-4. Change **Replicas** from `3` to `4` → **Save**.
-
-Monitor the new node joining:
+Scale the `frontend` to 3 replicas:
 
 ```execute
-kubectl get nodes -w
+kubectl scale deployment frontend --replicas=3 -n bls-app-$SESSION_NAME
 ```
 
-Press `Ctrl+C` once the new node shows `Ready`. This typically takes 3–5 minutes on AHV.
-
-> **Checkpoint ✅** — `kubectl get nodes` shows 4 worker nodes in `Ready` state.
-
-### Step A3 — Scale In
-
-In Kommander, reduce the worker pool back to `3` replicas.
-
-NKP gracefully drains the node before terminating it (respects PodDisruptionBudgets).
-
-Watch the drain:
+Watch pods come up:
 
 ```execute
-kubectl get nodes -w
+kubectl get pods -n bls-app-$SESSION_NAME -w
 ```
 
-Press `Ctrl+C` once the node count returns to 3.
+Press `Ctrl+C` once all 3 frontend pods show `Running 2/2`.
+
+> **Checkpoint ✅** — `kubectl get pods` shows 3 `frontend` pods in `Running` state.
+
+### Step A3 — Scale Down
+
+Scale back to 1 replica:
+
+```execute
+kubectl scale deployment frontend --replicas=1 -n bls-app-$SESSION_NAME
+```
+
+Verify:
+
+```execute
+kubectl get deployments -n bls-app-$SESSION_NAME
+```
+
+> **Note:** NKP node pools (MachineDeployments) follow the same pattern — change the replica
+> count in Kommander UI → **Clusters** → `workload01` → node pool → **Edit**.
+> Node scale-out takes 3–5 minutes on AHV; pod scaling takes seconds.
 
 ---
 
-## Part B — Cluster Upgrade (20 min)
+## Part B — Backup and Restore with Velero (20 min)
 
-### Step B1 — Check Current Version
+NKP integrates with **Velero** for Kubernetes object backup. Velero stores backups in
+**MinIO** — an S3-compatible object store running inside the cluster.
 
-```execute
-kubectl version --client
-```
-
-### Step B2 — Initiate an Upgrade via Kommander UI
-
-> **Note:** If no newer Kubernetes version is available in this environment, your facilitator will demonstrate this step.
-
-1. Kommander → **Clusters** → `workload01` → **Overview**.
-2. If an upgrade is available, an **Upgrade Available** banner appears.
-3. Click **Upgrade** → select the target Kubernetes version.
-4. NKP shows the upgrade plan (control plane first, then workers).
-5. Click **Start Upgrade**.
-
-Monitor upgrade progress:
-
-```execute
-kubectl get machines -A -w
-```
-
-Press `Ctrl+C` to stop watching.
-
-> **Checkpoint ✅** — `kubectl version` shows the upgraded Kubernetes version.
-
----
-
-## Part C — Backup and Restore (10 min)
-
-NKP integrates with **Velero** for Kubernetes object backup.
-
-### Step C1 — Check Velero Status
+### Step B1 — Verify Velero is Ready
 
 ```execute
 kubectl get pods -n velero
 ```
 
-### Step C2 — View Existing Backups
+Both `velero-*` and `minio-0` should be `Running`.
+
+Check the backup storage location is available:
+
+```execute
+kubectl get backupstoragelocation -n velero
+```
+
+The `PHASE` column should show `Available`.
+
+### Step B2 — View Existing Backups
 
 ```execute
 kubectl get backup -n velero
 ```
 
-### Step C3 — Create a Namespace Backup
+### Step B3 — Back Up Your Namespace
 
-Back up your session namespace from Lab 2:
+Create a Velero backup of your session namespace from Lab 2:
 
 ```execute
-cat > ~/bls-backup.yaml << EOF
+kubectl apply -f - << EOF
 apiVersion: velero.io/v1
 kind: Backup
 metadata:
@@ -128,11 +111,9 @@ metadata:
 spec:
   includedNamespaces:
   - bls-app-$SESSION_NAME
+  storageLocation: default
+  ttl: 2h0m0s
 EOF
-```
-
-```execute
-kubectl apply -f ~/bls-backup.yaml
 ```
 
 Watch until the backup completes:
@@ -141,11 +122,13 @@ Watch until the backup completes:
 kubectl get backup bls-app-backup-$SESSION_NAME -n velero -w
 ```
 
-Press `Ctrl+C` once status shows `Completed`.
+Press `Ctrl+C` once `STATUS` shows `Completed`.
 
-### Step C4 — Simulate Recovery
+> **Checkpoint ✅** — Backup phase `Completed`.
 
-Delete the namespace to simulate data loss:
+### Step B4 — Simulate Data Loss
+
+Delete the namespace to simulate an incident:
 
 ```execute
 kubectl delete namespace bls-app-$SESSION_NAME
@@ -157,10 +140,10 @@ Confirm it is gone:
 kubectl get ns bls-app-$SESSION_NAME
 ```
 
-Restore from backup:
+### Step B5 — Restore from Backup
 
 ```execute
-cat > ~/bls-restore.yaml << EOF
+kubectl apply -f - << EOF
 apiVersion: velero.io/v1
 kind: Restore
 metadata:
@@ -169,10 +152,6 @@ metadata:
 spec:
   backupName: bls-app-backup-$SESSION_NAME
 EOF
-```
-
-```execute
-kubectl apply -f ~/bls-restore.yaml
 ```
 
 Watch the restore:
@@ -187,11 +166,11 @@ Press `Ctrl+C` once `Completed`, then verify:
 kubectl get pods -n bls-app-$SESSION_NAME
 ```
 
-> **Checkpoint ✅** — `bls-app-$SESSION_NAME` namespace and NGINX pods restored.
+> **Checkpoint ✅** — `bls-app-$SESSION_NAME` namespace and all pods restored.
 
 ---
 
-## Part D — Troubleshooting (10 min)
+## Part C — Troubleshooting (10 min)
 
 ### Technique 1 — Cluster-wide events (always check first)
 
@@ -205,7 +184,7 @@ kubectl get events -A --sort-by='.lastTimestamp' | tail -30
 kubectl get pods -A | grep -v Running | grep -v Completed
 ```
 
-If any pod is not Running, describe it (copy and replace `POD` and `NS` with values from above):
+If any pod is not Running, describe it (replace `POD` and `NS` with values from above):
 
 ```copy
 kubectl describe pod POD -n NS
@@ -239,6 +218,7 @@ kubectl top pods -A --sort-by=memory | head -20
 
 ## Summary
 
-Day-2 operations in NKP are declarative. Scaling and upgrades are state changes you declare;
-NKP converges to them safely using CAPI's rolling replacement model. Velero provides point-in-time
-recovery for any namespace. The CLI commands on this page are your toolkit for any production issue.
+Day-2 operations in NKP are declarative. Pod scaling takes seconds via `kubectl scale`;
+node pool scaling is a replica count change in Kommander UI. Velero with MinIO gives you
+point-in-time namespace recovery. The CLI commands on this page are your toolkit for any
+production issue.
