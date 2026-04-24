@@ -26,6 +26,7 @@ Show your reasoning at each step. Be direct.
 ## Pre-demo checklist
 
 - [ ] `kubectl get pods -n demo-triage` shows `broken-demo` in `ErrImagePull`
+- [ ] Service pre-created: `http://10.38.49.118:30092` (returns connection refused until pod is fixed — goes live the moment Claude patches the image)
 - [ ] Claude Code CLI open in terminal with repo at /Git/Nutanix-NKP-Workshop
 - [ ] Audience can see the terminal (full screen, large font)
 
