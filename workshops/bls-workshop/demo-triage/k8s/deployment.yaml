@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: triage-app
+  namespace: demo-triage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: triage-app
+  template:
+    metadata:
+      labels:
+        app: triage-app
+    spec:
+      serviceAccountName: triage-app
+      containers:
+      - name: app
+        image: ghcr.io/icediceice/nkp-workshop-triage-app:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        env:
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: anthropic-key
+              key: api-key
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi

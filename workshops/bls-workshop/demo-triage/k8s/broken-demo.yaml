@@ -1,0 +1,25 @@
+# Demo: this deployment uses a non-existent image tag → ErrImagePull / ImagePullBackOff
+# Claude will detect this via events, identify the bad tag, and patch it to nginx:stable.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broken-demo
+  namespace: demo-triage
+  labels:
+    app: broken-demo
+    demo: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: broken-demo
+  template:
+    metadata:
+      labels:
+        app: broken-demo
+    spec:
+      containers:
+      - name: app
+        image: nginx:this-tag-does-not-exist
+        ports:
+        - containerPort: 80

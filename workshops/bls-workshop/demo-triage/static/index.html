@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NKP Cluster Triage</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      background: #0d1117;
+      color: #e6edf3;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── header ── */
+    header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 0 20px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .logo { font-size: 16px; font-weight: 700; color: #58a6ff; letter-spacing: -0.02em; }
+    .logo span { color: #3fb950; }
+    .badge {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 5px;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+    .badge b { color: #e6edf3; }
+    .spacer { flex: 1; }
+    .model-tag {
+      font-size: 11px;
+      color: #58a6ff;
+      border: 1px solid #1e3a5f;
+      background: #0a1628;
+      border-radius: 5px;
+      padding: 3px 10px;
+    }
+
+    /* ── main layout ── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      overflow: hidden;
+    }
+
+    /* ── left: pod panel ── */
+    .pod-panel {
+      background: #161b22;
+      border-right: 1px solid #30363d;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-bar {
+      padding: 12px 16px;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .panel-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .btn-ghost {
+      background: none;
+      border: 1px solid #30363d;
+      color: #58a6ff;
+      font-family: inherit;
+      font-size: 11px;
+      border-radius: 4px;
+      padding: 3px 8px;
+      cursor: pointer;
+    }
+    .btn-ghost:hover { background: #1f2937; }
+
+    .pod-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    .pod-list::-webkit-scrollbar { width: 4px; }
+    .pod-list::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+
+    .pod-card {
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      background: #0d1117;
+      padding: 11px 13px;
+      margin-bottom: 8px;
+      transition: border-color 0.3s;
+    }
+    .pod-card.healthy  { border-color: #238636; }
+    .pod-card.failing  { border-color: #da3633; }
+    .pod-card.pending  { border-color: #9e6a03; }
+
+    .pod-name { font-size: 12px; font-weight: 600; word-break: break-all; margin-bottom: 3px; }
+    .pod-image { font-size: 10px; color: #8b949e; margin-bottom: 6px; word-break: break-all; }
+    .pod-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+    .pod-status.s-run     { background: #0d2d1a; color: #3fb950; border: 1px solid #1a4731; }
+    .pod-status.s-err     { background: #2d0e0e; color: #f85149; border: 1px solid #4d1515; }
+    .pod-status.s-pend    { background: #2d2008; color: #e3b341; border: 1px solid #4d3808; }
+    .pod-status.s-unknown { background: #1f2937; color: #8b949e; border: 1px solid #374151; }
+    .restarts { font-size: 10px; color: #f85149; margin-left: 6px; }
+
+    .pod-empty {
+      color: #8b949e;
+      font-size: 12px;
+      padding: 20px 6px;
+      text-align: center;
+    }
+
+    /* ── diagnose button ── */
+    .diagnose-wrap {
+      padding: 14px;
+      border-top: 1px solid #30363d;
+      flex-shrink: 0;
+    }
+    .diagnose-btn {
+      width: 100%;
+      padding: 11px;
+      border: none;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.15s, transform 0.1s;
+      background: linear-gradient(135deg, #1a4a7a 0%, #1e40af 100%);
+      color: #fff;
+    }
+    .diagnose-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+    .diagnose-btn:active:not(:disabled) { transform: translateY(0); }
+    .diagnose-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .diagnose-btn.working { background: linear-gradient(135deg, #4a1a7a 0%, #7c3aed 100%); }
+
+    /* ── right: AI panel ── */
+    .ai-panel {
+      display: flex;
+      flex-direction: column;
+      background: #0d1117;
+      overflow: hidden;
+    }
+    .ai-bar {
+      padding: 12px 18px;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #374151;
+      flex-shrink: 0;
+    }
+    .dot.active {
+      background: #58a6ff;
+      box-shadow: 0 0 0 2px rgba(88,166,255,0.25);
+      animation: blink 1.2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
+    .ai-status { font-size: 12px; color: #8b949e; }
+
+    .ai-output {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+      font-size: 13px;
+      line-height: 1.75;
+    }
+    .ai-output::-webkit-scrollbar { width: 4px; }
+    .ai-output::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+
+    .placeholder {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #374151;
+      text-align: center;
+    }
+    .placeholder-icon { font-size: 40px; margin-bottom: 14px; }
+    .placeholder-text { font-size: 13px; line-height: 1.6; }
+
+    /* message types */
+    .msg-text {
+      color: #e6edf3;
+      white-space: pre-wrap;
+      margin-bottom: 14px;
+    }
+    .msg-cmd {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: #0a1628;
+      border: 1px solid #1e3a5f;
+      border-radius: 5px;
+      padding: 8px 12px;
+      margin: 8px 0 4px;
+      font-size: 12px;
+      color: #58a6ff;
+    }
+    .msg-cmd::before { content: "$"; color: #3fb950; flex-shrink: 0; }
+    .msg-result {
+      background: #111827;
+      border-left: 2px solid #1f2937;
+      padding: 8px 12px;
+      margin-bottom: 12px;
+      font-size: 11px;
+      color: #6b7280;
+      white-space: pre-wrap;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .msg-result::-webkit-scrollbar { width: 3px; }
+    .msg-result::-webkit-scrollbar-thumb { background: #374151; }
+
+    .msg-done {
+      margin-top: 18px;
+      padding: 14px 16px;
+      background: #0d2d1a;
+      border: 1px solid #238636;
+      border-radius: 6px;
+      color: #3fb950;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡ NKP <span>Triage</span></div>
+  <div class="badge">cluster: <b>workload01</b></div>
+  <div class="badge">ns: <b>demo-triage</b></div>
+  <div class="spacer"></div>
+  <div class="model-tag">AI-Assisted</div>
+</header>
+
+<main>
+  <!-- left -->
+  <div class="pod-panel">
+    <div class="panel-bar">
+      <span class="panel-label">Pod Health</span>
+      <button class="btn-ghost" onclick="loadPods()">↻ Refresh</button>
+    </div>
+    <div class="pod-list" id="pod-list">
+      <div class="pod-empty">Loading pods…</div>
+    </div>
+    <div class="diagnose-wrap">
+      <button class="diagnose-btn" id="diag-btn" onclick="startDiagnosis()">
+        <span>🤖</span> AI Diagnose &amp; Fix
+      </button>
+    </div>
+  </div>
+
+  <!-- right -->
+  <div class="ai-panel">
+    <div class="ai-bar">
+      <div class="dot" id="dot"></div>
+      <span class="ai-status" id="ai-status">Ready — press "AI Diagnose &amp; Fix" to start</span>
+    </div>
+    <div class="ai-output" id="ai-output">
+      <div class="placeholder">
+        <div>
+          <div class="placeholder-icon">🔍</div>
+          <div class="placeholder-text">
+            The AI will audit your cluster,<br>
+            diagnose any failing pods,<br>
+            and apply the fix automatically.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  let busy = false;
+
+  /* ── pod status helpers ── */
+  function podStatusLabel(pod) {
+    const cs = (pod.status?.containerStatuses || [])[0];
+    if (cs?.state?.waiting)    return cs.state.waiting.reason    || 'Waiting';
+    if (cs?.state?.terminated) return cs.state.terminated.reason || 'Terminated';
+    return pod.status?.phase || 'Unknown';
+  }
+
+  function cardClass(label) {
+    if (['Running','Succeeded'].includes(label)) return 'healthy';
+    if (['Pending','ContainerCreating','PodInitializing'].includes(label)) return 'pending';
+    return 'failing';
+  }
+
+  function badgeClass(label) {
+    if (['Running','Succeeded'].includes(label)) return 's-run';
+    if (['Pending','ContainerCreating','PodInitializing'].includes(label)) return 's-pend';
+    if (label === 'Unknown') return 's-unknown';
+    return 's-err';
+  }
+
+  /* ── load pods ── */
+  async function loadPods() {
+    const list = document.getElementById('pod-list');
+    try {
+      const r = await fetch('/api/pods');
+      const data = await r.json();
+      const pods = data.items || [];
+
+      if (!pods.length) {
+        list.innerHTML = '<div class="pod-empty">No pods in demo-triage</div>';
+        return;
+      }
+
+      list.innerHTML = pods.map(p => {
+        const label    = podStatusLabel(p);
+        const restarts = (p.status?.containerStatuses || [])
+          .reduce((n, c) => n + (c.restartCount || 0), 0);
+        const image    = p.spec?.containers?.[0]?.image || '';
+
+        return `
+          <div class="pod-card ${cardClass(label)}">
+            <div class="pod-name">${esc(p.metadata.name)}</div>
+            <div class="pod-image">${esc(image)}</div>
+            <span class="pod-status ${badgeClass(label)}">${esc(label)}</span>
+            ${restarts ? `<span class="restarts">${restarts} restart${restarts !== 1 ? 's' : ''}</span>` : ''}
+          </div>`;
+      }).join('');
+    } catch (e) {
+      list.innerHTML = `<div class="pod-empty" style="color:#f85149">Error: ${esc(e.message)}</div>`;
+    }
+  }
+
+  /* ── append output ── */
+  function append(html) {
+    const out = document.getElementById('ai-output');
+    out.querySelector('.placeholder')?.remove();
+    out.insertAdjacentHTML('beforeend', html);
+    out.scrollTop = out.scrollHeight;
+  }
+
+  /* ── diagnosis ── */
+  async function startDiagnosis() {
+    if (busy) return;
+    busy = true;
+
+    const btn    = document.getElementById('diag-btn');
+    const dot    = document.getElementById('dot');
+    const status = document.getElementById('ai-status');
+    const out    = document.getElementById('ai-output');
+
+    btn.disabled = true;
+    btn.classList.add('working');
+    btn.innerHTML = '<span>⏳</span> Diagnosing…';
+    dot.classList.add('active');
+    status.textContent = 'Scanning cluster…';
+    out.innerHTML = '';
+
+    const src = new EventSource('/api/diagnose');
+
+    src.onmessage = e => {
+      const msg = JSON.parse(e.data);
+
+      if (msg.type === 'text') {
+        append(`<div class="msg-text">${esc(msg.text)}</div>`);
+      } else if (msg.type === 'tool_call') {
+        append(`<div class="msg-cmd">${esc(msg.cmd)}</div>`);
+      } else if (msg.type === 'tool_result') {
+        append(`<div class="msg-result">${esc(msg.output)}</div>`);
+      } else if (msg.type === 'done') {
+        append(`<div class="msg-done">✓ Diagnosis complete — refreshing pod status…</div>`);
+        src.close();
+        setTimeout(loadPods, 2500);
+        setTimeout(loadPods, 7000);
+
+        btn.disabled = false;
+        btn.classList.remove('working');
+        btn.innerHTML = '<span>🤖</span> AI Diagnose &amp; Fix';
+        dot.classList.remove('active');
+        status.textContent = 'Done — pods refreshed';
+        busy = false;
+      }
+    };
+
+    src.onerror = () => {
+      src.close();
+      append(`<div style="color:#f85149;padding:8px">Connection lost — check backend logs.</div>`);
+      btn.disabled = false;
+      btn.classList.remove('working');
+      btn.innerHTML = '<span>🤖</span> AI Diagnose &amp; Fix';
+      dot.classList.remove('active');
+      status.textContent = 'Error';
+      busy = false;
+    };
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  loadPods();
+  setInterval(loadPods, 15000);
+</script>
+</body>
+</html>
